@@ -94,7 +94,7 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 - Tiebreaker applies exactly the same uniform RPS and qualification algorithm recursively; multiple draws/ties can occur, and are never secretly overridden. Every state transition must be well-defined and terminate once exactly W winners have been locked (almost-sure completion, not bounded maximum time).
 - **Important example:** 3 finalists, 2 slots, HAN=2, BEN=2, JAY=1; HAN and BEN both win next throw, reach 3, occupy both slots, game ends; no tiebreak.
 - **Oversubscription example:** 4 finalists, 2 slots; 3 candidates simultaneously hit 3; those three alone play a new first-to-3 race for the 2 slots; the fourth candidate is excluded. If 2 qualify in the next race, lock both.
-- [D3 approved 2026-10-09: on oversubscription, lower scorers are excluded and only the tied candidates replay a fresh first-to-3.]
+- [D3 approved 2026-10-09: on oversubscription, lower scorers are excluded and only the tied candidates replay a fresh first-to-3.] Implementation note (Phase 4): a reveal only scores with exactly two gesture types, so at least one contender never scores; with W + 1 finalists contenders always exceed open slots by exactly 1, so oversubscription cannot occur in real play. The rule is implemented and unit-tested on constructed states as a defensive guard; seeded simulations confirm no real finale ever triggers it.
 - Store the full series of throws and score transitions for replayable audit/history. At exactly W qualified winners, commit final result **once** before victory animation.
 
 ## 6. Interface and interaction

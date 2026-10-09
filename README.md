@@ -25,10 +25,12 @@ src/
     rng/       crypto RNG (unbiased bounded sampling) + seeded/scripted test RNGs
     setup/     roster + start validation
     engine/    match state machine (createMatch / beginTurn / resolveTurn / shufflePositions),
-               Fate strip (fateSlots), rock-paper-scissors (rps), event log text
-  animation/   visual-only spin paths + turn timeline (never decide outcomes)
-  storage/     localStorage setup + IndexedDB current-match checkpoint
-  hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation)
+               finale (beginFinale / startFinaleRound / resolveFinaleRound), Fate strip,
+               rock-paper-scissors, event log text
+  animation/   visual-only spin paths, turn + finale timelines (never decide outcomes)
+  audio/       placeholder synthesized finale sound (Web Audio; safe no-op without it)
+  storage/     localStorage setup + IndexedDB current-match checkpoint and completed results
+  hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation, useFinaleShow, useSound)
   components/  UI (setup/, match/)
   app/         App shell (injects repository, RNG and timing for tests)
   test/        test setup and statistics helpers

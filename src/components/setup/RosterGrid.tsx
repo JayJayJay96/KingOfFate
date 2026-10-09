@@ -2,13 +2,14 @@ import { useId } from 'react';
 import {
   removeParticipant,
   setAllActive,
-  setParticipantActive,
+  toggleParticipant,
   type Roster,
 } from '../../game/setup/roster';
 
 interface RosterGridProps {
   readonly roster: Roster;
-  readonly onRosterChange: (roster: Roster) => void;
+  /** Functional update, applied to the latest roster (safe under rapid clicks). */
+  readonly onRosterChange: (change: (roster: Roster) => Roster) => void;
 }
 
 /** Attendance board: every stored fighter with an in/out toggle. Inactive fighters stay stored. */
@@ -35,7 +36,7 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
             <button
               type="button"
               className="button button--small"
-              onClick={() => onRosterChange(setAllActive(roster, true))}
+              onClick={() => onRosterChange((r) => setAllActive(r, true))}
               disabled={activeCount === roster.length}
             >
               All in
@@ -43,7 +44,7 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
             <button
               type="button"
               className="button button--small"
-              onClick={() => onRosterChange(setAllActive(roster, false))}
+              onClick={() => onRosterChange((r) => setAllActive(r, false))}
               disabled={activeCount === 0}
             >
               All out
@@ -59,7 +60,7 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
                   title={
                     p.active ? 'Playing today. Click to sit out.' : 'Sitting out. Click to play.'
                   }
-                  onClick={() => onRosterChange(setParticipantActive(roster, p.id, !p.active))}
+                  onClick={() => onRosterChange((r) => toggleParticipant(r, p.id))}
                 >
                   <span className="slot__name">{p.name}</span>
                   <span className="slot__status" aria-hidden="true">
@@ -71,7 +72,7 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
                   className="slot__remove"
                   aria-label={`Remove ${p.name}`}
                   title="Remove from roster"
-                  onClick={() => onRosterChange(removeParticipant(roster, p.id))}
+                  onClick={() => onRosterChange((r) => removeParticipant(r, p.id))}
                 >
                   ×
                 </button>

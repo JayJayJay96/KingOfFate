@@ -9,8 +9,10 @@ import { DuelPanel } from './DuelPanel';
 import { FateStrip } from './FateStrip';
 import { EventLog } from './EventLog';
 import { FighterGrid } from './FighterGrid';
-import { FinaleGate } from './FinaleGate';
+import { useSound } from '../../hooks/useSound';
+import { FinaleStage } from './FinaleStage';
 import { PreviewPanel } from './PreviewPanel';
+import { VictoryScreen } from './VictoryScreen';
 
 interface MatchScreenProps {
   readonly match: MatchState;
@@ -19,6 +21,9 @@ interface MatchScreenProps {
   readonly onSpin: () => void;
   readonly onShuffle: () => void;
   readonly onSpinComplete: (turnId: string) => void;
+  readonly onBeginFinale: () => void;
+  readonly onNextFinaleRound: () => void;
+  readonly onResolveFinaleRound: (roundId: string) => void;
   readonly onLeave: () => void;
 }
 
@@ -31,9 +36,14 @@ export function MatchScreen({
   onSpin,
   onShuffle,
   onSpinComplete,
+  onBeginFinale,
+  onNextFinaleRound,
+  onResolveFinaleRound,
   onLeave,
 }: MatchScreenProps) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
+  // Lives across finale → victory so one unlocked audio context is reused.
+  const sound = useSound();
   const alive = alivePlayers(match);
   const animation = useTurnAnimation(
     match.pendingTurn,
@@ -61,7 +71,22 @@ export function MatchScreen({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [canSpin, onSpin]);
 
-  if (match.phase === 'FINALE_GATE') return <FinaleGate match={match} onLeave={onLeave} />;
+  if (match.phase === 'FINALE') {
+    return (
+      <FinaleStage
+        match={match}
+        timeScale={timeScale}
+        sound={sound}
+        saveError={saveError}
+        onBegin={onBeginFinale}
+        onNextRound={onNextFinaleRound}
+        onResolveRound={onResolveFinaleRound}
+      />
+    );
+  }
+  if (match.phase === 'VICTORY') {
+    return <VictoryScreen match={match} sound={sound} saveError={saveError} onLeave={onLeave} />;
+  }
 
   return (
     <main className="match">

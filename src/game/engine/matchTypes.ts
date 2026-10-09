@@ -1,8 +1,8 @@
 import type { FateKind, FatePresetId } from '../config/presets';
-import type { DuelThrow } from './rps';
+import type { DuelThrow, Gesture } from './rps';
 
-/** v2 (Phase 3): Shields, Fate strip, VS duels, Sudden Death. */
-export const MATCH_SCHEMA_VERSION = 2;
+/** v3 (Phase 4): adds the automated RPS finale and completion. v2 added Fates/Shields. */
+export const MATCH_SCHEMA_VERSION = 3;
 
 export interface MatchPlayer {
   readonly id: string;
@@ -17,9 +17,52 @@ export interface MatchPlayer {
 /**
  * READY: host may start the next ordinary turn.
  * SPINNING: a turn's full outcome is committed and persisted; reveal animations are running.
- * FINALE_GATE: alive count reached W + 1. Placeholder until the Phase 4 finale exists.
+ * FINALE: alive count reached W + 1; the automated RPS finale runs (see FinaleState).
+ * VICTORY: exactly W winners locked; the result is committed and the ceremony shows.
  */
-export type MatchPhase = 'READY' | 'SPINNING' | 'FINALE_GATE';
+export type MatchPhase = 'READY' | 'SPINNING' | 'FINALE' | 'VICTORY';
+
+export interface FinaleThrow {
+  readonly playerId: string;
+  readonly gesture: Gesture;
+}
+
+/** One reveal's throws, sampled and saved before its chant starts. */
+export interface FinaleRoundCommit {
+  readonly roundId: string;
+  readonly roundNumber: number;
+  /** 1 = main race; 2+ = tiebreak races. */
+  readonly stageNumber: number;
+  readonly throws: readonly FinaleThrow[];
+}
+
+export interface FinaleRoundResult extends FinaleRoundCommit {
+  /** Null = draw (everyone the same, or all three gestures). */
+  readonly winningGesture: Gesture | null;
+  readonly scorerIds: readonly string[];
+  readonly qualifiedIds: readonly string[];
+  /** Set when this reveal oversubscribed the slots and started a tiebreak. */
+  readonly tiebreakIds: readonly string[] | null;
+}
+
+export interface FinaleState {
+  /** Host has pressed Start (needed so audio can play). */
+  readonly started: boolean;
+  readonly stageNumber: number;
+  /** All finalists in their stage layout order. */
+  readonly finalistIds: readonly string[];
+  /** Still competing in the current race. */
+  readonly contenderIds: readonly string[];
+  /** Current race points (reset for tiebreaks). */
+  readonly scores: Readonly<Record<string, number>>;
+  /** Locked winners in qualification order. */
+  readonly winnerIds: readonly string[];
+  /** Out of contention after an oversubscribed reveal (D3). */
+  readonly excludedIds: readonly string[];
+  readonly pendingRound: FinaleRoundCommit | null;
+  /** Full audit trail of every reveal and score change. */
+  readonly rounds: readonly FinaleRoundResult[];
+}
 
 export interface CommittedDuel {
   readonly opponentId: string;
@@ -81,6 +124,25 @@ export type MatchEvent =
   | (EventBase & { readonly type: 'SUDDEN_DEATH_STARTED'; readonly fateSlots: readonly FateKind[] })
   | (EventBase & { readonly type: 'SHIELDS_CLEARED'; readonly playerIds: readonly string[] })
   | (EventBase & { readonly type: 'FINALE_REACHED'; readonly finalistIds: readonly string[] })
+  | (EventBase & { readonly type: 'FINALE_STARTED' })
+  | (EventBase & { readonly type: 'FINALE_ROUND_COMMITTED'; readonly round: FinaleRoundCommit })
+  | (EventBase & { readonly type: 'FINALE_ROUND_RESOLVED'; readonly round: FinaleRoundResult })
+  | (EventBase & {
+      readonly type: 'FINALISTS_QUALIFIED';
+      readonly playerIds: readonly string[];
+      /** True when filled automatically because contenders = open slots (D2). */
+      readonly automatic: boolean;
+    })
+  | (EventBase & {
+      readonly type: 'TIEBREAK_STARTED';
+      readonly contenderIds: readonly string[];
+      readonly slots: number;
+    })
+  | (EventBase & {
+      readonly type: 'MATCH_COMPLETED';
+      readonly winnerIds: readonly string[];
+      readonly completedAt: string;
+    })
   /** Visual positions changed. Never affects odds. Hidden from the visible log. */
   | (EventBase & {
       readonly type: 'POSITIONS_SHUFFLED';
@@ -114,5 +176,9 @@ export interface MatchState {
   readonly noEliminationStreak: number;
   /** Active for the rest of the ordinary stage once the streak reaches 3. */
   readonly suddenDeath: boolean;
+  /** Present from the W + 1 handoff onwards. */
+  readonly finale: FinaleState | null;
+  /** ISO-8601 UTC; set exactly once when the match is won. */
+  readonly completedAt: string | null;
   readonly events: readonly MatchEvent[];
 }

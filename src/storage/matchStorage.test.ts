@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
+import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engine/finale';
 import { beginTurn, createMatch, resolveTurn } from '../game/engine/match';
 import type { MatchState } from '../game/engine/matchTypes';
 import { createScriptedRng } from '../game/rng/rng';
@@ -123,5 +124,94 @@ describe('schema v2 checks', () => {
       },
     });
     expect((await repo.load()).status).toBe('corrupt');
+  });
+});
+
+describe('finale and completion records', () => {
+  async function wonMatch(): Promise<MatchState> {
+    let m = beginFinale(
+      createMatch(
+        {
+          players: [
+            { id: 'a', name: 'Aisyah' },
+            { id: 'b', name: 'Wei Jie' },
+          ],
+          winnerCount: 1,
+          presetId: 'normal',
+        },
+        { matchId: 'won-1', startedAt: '2026-10-09T07:00:00.000Z' },
+      ),
+    );
+    for (let i = 1; i <= 3; i++) {
+      // Rock (0) beats Scissors (2): Aisyah scores each round.
+      m = startFinaleRound(m, createScriptedRng([0, 2]), `r${i}`);
+      m = resolveFinaleRound(m, `r${i}`, '2026-10-09T08:00:00.000Z');
+    }
+    expect(m.phase).toBe('VICTORY');
+    return m;
+  }
+
+  it('saves a mid-finale checkpoint and restores it', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    const m = startFinaleRound(
+      beginFinale(
+        createMatch(
+          {
+            players: [
+              { id: 'a', name: 'A' },
+              { id: 'b', name: 'B' },
+            ],
+            winnerCount: 1,
+            presetId: 'fast',
+          },
+          { matchId: 'f1', startedAt: '2026-10-09T07:00:00.000Z' },
+        ),
+      ),
+      createScriptedRng([1, 1]),
+      'r1',
+    );
+    await repo.save(m);
+    expect(await repo.load()).toEqual({ status: 'loaded', match: m });
+  });
+
+  it('writes exactly one completion record with the victory, even when saved again', async () => {
+    const factory = new IDBFactory();
+    const repo = createIndexedDbMatchRepository(factory);
+    const won = await wonMatch();
+    await repo.save(won);
+    await repo.save(won); // e.g. a retry or a second tab
+    const records = await createIndexedDbMatchRepository(factory).listCompleted();
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      recordVersion: 1,
+      matchId: 'won-1',
+      completedAt: '2026-10-09T08:00:00.000Z',
+      winnerIds: ['a'],
+    });
+    expect(records[0]!.match.finale?.rounds).toHaveLength(3);
+  });
+
+  it('keeps the completion record after the current match is cleared', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    await repo.save(await wonMatch());
+    await repo.clear();
+    expect(await repo.load()).toEqual({ status: 'none' });
+    expect(await repo.listCompleted()).toHaveLength(1);
+  });
+
+  it('rejects a victory without exactly W winners', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    const won = await wonMatch();
+    await repo.save({ ...won, finale: { ...won.finale!, winnerIds: [] } } as MatchState);
+    // Saving still succeeds (the record writer copies what it is given) but loading refuses it.
+    expect((await repo.load()).status).toBe('corrupt');
+  });
+
+  it('the memory repository mirrors the once-only record behaviour', async () => {
+    const repo = createMemoryMatchRepository();
+    const won = await wonMatch();
+    await repo.save(won);
+    await repo.save(won);
+    expect(await repo.listCompleted()).toHaveLength(1);
   });
 });

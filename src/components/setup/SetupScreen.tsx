@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import type { Roster } from '../../game/setup/roster';
 import { describeSetupIssue, validateSetup } from '../../game/setup/validation';
 import type { SetupStore } from '../../hooks/useSetupConfig';
 import type { SetupLoadStatus } from '../../storage/setupStorage';
@@ -24,7 +25,8 @@ export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenP
   const validation = validateSetup(config);
   const issuesId = useId();
   const loadNotice = LOAD_NOTICES[loadStatus];
-  const setRoster = (roster: typeof config.roster) => update((c) => ({ ...c, roster }));
+  const changeRoster = (change: (roster: Roster) => Roster) =>
+    update((c) => ({ ...c, roster: change(c.roster) }));
 
   return (
     <main className="setup">
@@ -51,8 +53,8 @@ export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenP
 
       <div className="setup__layout">
         <div className="setup__main">
-          <RosterInput roster={config.roster} onRosterChange={setRoster} />
-          <RosterGrid roster={config.roster} onRosterChange={setRoster} />
+          <RosterInput onRosterChange={changeRoster} />
+          <RosterGrid roster={config.roster} onRosterChange={changeRoster} />
         </div>
 
         <aside className="setup__side">

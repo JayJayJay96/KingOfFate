@@ -6,6 +6,7 @@ import {
   shufflePositions,
   type MatchLaunch,
 } from '../game/engine/match';
+import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engine/finale';
 import type { MatchState } from '../game/engine/matchTypes';
 import type { Rng } from '../game/rng/rng';
 import type { MatchRepository } from '../storage/matchStorage';
@@ -23,6 +24,10 @@ export interface MatchController {
   /** Visual-only reshuffle of fighter and Fate slot positions, allowed between turns. */
   readonly shuffle: () => Promise<void>;
   readonly completeSpin: (turnId: string) => Promise<void>;
+  /** Host pressed Start on the finale stage. */
+  readonly beginFinale: () => Promise<void>;
+  readonly nextFinaleRound: () => Promise<void>;
+  readonly completeFinaleRound: (roundId: string) => Promise<void>;
   readonly leave: () => Promise<void>;
 }
 
@@ -124,6 +129,40 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
     [commit, exclusive],
   );
 
+  const beginFinaleNow = useCallback(
+    () =>
+      exclusive(async () => {
+        const state = current.current;
+        if (!state || state.phase !== 'FINALE' || state.finale?.started) return;
+        await commit(beginFinale(state));
+      }),
+    [commit, exclusive],
+  );
+
+  /** Samples and checkpoints the next reveal before its chant plays. */
+  const nextFinaleRound = useCallback(
+    () =>
+      exclusive(async () => {
+        const state = current.current;
+        const f = state?.finale;
+        if (!state || state.phase !== 'FINALE' || !f?.started || f.pendingRound) return;
+        await commit(startFinaleRound(state, rng, createId()));
+      }),
+    [commit, exclusive, rng],
+  );
+
+  /** Scores the reveal once; a winning result is committed (with its record) before it shows. */
+  const completeFinaleRound = useCallback(
+    (roundId: string) =>
+      exclusive(async () => {
+        const state = current.current;
+        if (!state) return;
+        const next = resolveFinaleRound(state, roundId, new Date().toISOString());
+        if (next !== state) await commit(next);
+      }),
+    [commit, exclusive],
+  );
+
   const leave = useCallback(
     () =>
       exclusive(async () => {
@@ -135,5 +174,18 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
     [exclusive, repository],
   );
 
-  return { loading, match, notice, saveError, start, spin, shuffle, completeSpin, leave };
+  return {
+    loading,
+    match,
+    notice,
+    saveError,
+    start,
+    spin,
+    shuffle,
+    completeSpin,
+    beginFinale: beginFinaleNow,
+    nextFinaleRound,
+    completeFinaleRound,
+    leave,
+  };
 }

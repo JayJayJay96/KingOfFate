@@ -15,16 +15,46 @@ export type MatchLoadResult =
 export type MatchSaveResult =
   { readonly ok: true } | { readonly ok: false; readonly message: string };
 
-/** Checkpoint store for the single in-progress match. Each save is one atomic write. */
+/** The once-only result of a won match (full final state kept for audit/history). */
+export interface CompletedMatchRecord {
+  readonly recordVersion: 1;
+  readonly matchId: string;
+  /** ISO-8601 UTC. */
+  readonly completedAt: string;
+  readonly winnerIds: readonly string[];
+  readonly match: MatchState;
+}
+
+/**
+ * Checkpoint store for the single in-progress match. Each save is one atomic write; saving a
+ * VICTORY state also writes its completion record in the SAME transaction (keyed by matchId, so
+ * repeated saves can never create a second record).
+ */
 export interface MatchRepository {
   load(): Promise<MatchLoadResult>;
   save(match: MatchState): Promise<MatchSaveResult>;
   clear(): Promise<MatchSaveResult>;
+  listCompleted(): Promise<CompletedMatchRecord[]>;
+}
+
+export function toCompletedRecord(match: MatchState): CompletedMatchRecord {
+  if (match.phase !== 'VICTORY' || !match.completedAt || !match.finale) {
+    throw new Error('Only a won match has a completion record');
+  }
+  return {
+    recordVersion: 1,
+    matchId: match.matchId,
+    completedAt: match.completedAt,
+    winnerIds: match.finale.winnerIds,
+    match,
+  };
 }
 
 const DB_NAME = 'kof';
-const DB_VERSION = 1;
+/** v2 adds the completed-matches store (Phase 4). */
+const DB_VERSION = 2;
 const STORE = 'current-match';
+const COMPLETED_STORE = 'completed-matches';
 const CURRENT_KEY = 'current';
 const CORRUPT_KEY = 'corrupt-backup';
 
@@ -39,8 +69,10 @@ export function createIndexedDbMatchRepository(
     dbPromise ??= new Promise<IDBDatabase>((resolve, reject) => {
       const request = factory.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(STORE)) {
-          request.result.createObjectStore(STORE);
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+        if (!db.objectStoreNames.contains(COMPLETED_STORE)) {
+          db.createObjectStore(COMPLETED_STORE, { keyPath: 'matchId' });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -53,15 +85,16 @@ export function createIndexedDbMatchRepository(
     return dbPromise;
   }
 
-  /** Runs one transaction; resolves only after it has fully committed. */
+  /** Runs one transaction over the given stores; resolves only after it has fully committed. */
   async function transact<T>(
     mode: IDBTransactionMode,
-    work: (store: IDBObjectStore) => IDBRequest<T> | void,
+    work: (store: IDBObjectStore, tx: IDBTransaction) => IDBRequest<T> | void,
+    stores: string[] = [STORE],
   ): Promise<T | undefined> {
     const db = await open();
     return new Promise<T | undefined>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const request = work(tx.objectStore(STORE));
+      const tx = db.transaction(stores, mode);
+      const request = work(tx.objectStore(STORE), tx);
       tx.oncomplete = () => resolve(request ? request.result : undefined);
       tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed.'));
       tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted.'));
@@ -104,7 +137,15 @@ export function createIndexedDbMatchRepository(
     },
     async save(match) {
       try {
-        await transact('readwrite', (store) => store.put(match, CURRENT_KEY));
+        const completed = match.phase === 'VICTORY' ? toCompletedRecord(match) : null;
+        await transact(
+          'readwrite',
+          (store, tx) => {
+            if (completed) tx.objectStore(COMPLETED_STORE).put(completed);
+            return store.put(match, CURRENT_KEY);
+          },
+          [STORE, COMPLETED_STORE],
+        );
         return { ok: true };
       } catch (error) {
         return { ok: false, message: messageOf(error) };
@@ -118,28 +159,43 @@ export function createIndexedDbMatchRepository(
         return { ok: false, message: messageOf(error) };
       }
     },
+    async listCompleted() {
+      const all = await transact<CompletedMatchRecord[]>(
+        'readonly',
+        (_store, tx) => tx.objectStore(COMPLETED_STORE).getAll(),
+        [STORE, COMPLETED_STORE],
+      );
+      return all ?? [];
+    },
   };
 }
 
 /** In-memory repository for tests; structuredClone mimics IndexedDB's copy semantics. */
 export function createMemoryMatchRepository(initial: MatchState | null = null): MatchRepository {
   let stored: MatchState | null = initial ? structuredClone(initial) : null;
+  const completed = new Map<string, CompletedMatchRecord>();
   return {
     async load() {
       return stored ? { status: 'loaded', match: structuredClone(stored) } : { status: 'none' };
     },
     async save(match) {
       stored = structuredClone(match);
+      if (match.phase === 'VICTORY') {
+        completed.set(match.matchId, structuredClone(toCompletedRecord(match)));
+      }
       return { ok: true };
     },
     async clear() {
       stored = null;
       return { ok: true };
     },
+    async listCompleted() {
+      return [...completed.values()].map((r) => structuredClone(r));
+    },
   };
 }
 
-const PHASES = new Set(['READY', 'SPINNING', 'FINALE_GATE']);
+const PHASES = new Set(['READY', 'SPINNING', 'FINALE', 'VICTORY']);
 
 /** Structural + consistency check so a damaged checkpoint can never be resumed. */
 export function isMatchState(value: unknown): value is MatchState {
@@ -204,7 +260,59 @@ export function isMatchState(value: unknown): value is MatchState {
   } else if (pending !== null) {
     return false;
   }
-  return true;
+
+  const inFinale = value.phase === 'FINALE' || value.phase === 'VICTORY';
+  if (!inFinale) return value.finale === null && value.completedAt === null;
+  return isValidFinale(value.finale, alive, value.winnerCount, value.phase, value.completedAt);
+}
+
+function isValidFinale(
+  finale: unknown,
+  alive: readonly { id: string }[],
+  winnerCount: number,
+  phase: string,
+  completedAt: unknown,
+): boolean {
+  if (!isRecord(finale) || typeof finale.started !== 'boolean') return false;
+  if (!isNonNegativeInt(finale.stageNumber) || (finale.stageNumber as number) < 1) return false;
+  const lists = ['finalistIds', 'contenderIds', 'winnerIds', 'excludedIds'] as const;
+  if (!lists.every((k) => isStringArray(finale[k]))) return false;
+  const finalists = finale.finalistIds as string[];
+  const contenders = finale.contenderIds as string[];
+  const winners = finale.winnerIds as string[];
+  const excluded = finale.excludedIds as string[];
+  const aliveIds = new Set(alive.map((p) => p.id));
+  if (finalists.length !== aliveIds.size || !finalists.every((id) => aliveIds.has(id))) {
+    return false;
+  }
+  const seen = new Set<string>();
+  for (const id of [...contenders, ...winners, ...excluded]) {
+    if (!aliveIds.has(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  if (!isRecord(finale.scores) || !Object.values(finale.scores).every(isNonNegativeInt)) {
+    return false;
+  }
+  if (!Array.isArray(finale.rounds)) return false;
+
+  const pending = finale.pendingRound;
+  if (pending !== null) {
+    if (!isRecord(pending) || typeof pending.roundId !== 'string') return false;
+    if (!Array.isArray(pending.throws) || pending.throws.length !== contenders.length) return false;
+    const ok = pending.throws.every(
+      (t, i) => isRecord(t) && t.playerId === contenders[i] && isGesture(t.gesture),
+    );
+    if (!ok) return false;
+  }
+
+  if (phase === 'VICTORY') {
+    return winners.length === winnerCount && pending === null && typeof completedAt === 'string';
+  }
+  return winners.length < winnerCount && contenders.length > 0 && completedAt === null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
 }
 
 function isValidDuel(duel: unknown, playerId: unknown, alive: readonly { id: string }[]): boolean {

@@ -74,6 +74,10 @@ export function setParticipantActive(roster: Roster, id: string, active: boolean
   return roster.map((p) => (p.id === id && p.active !== active ? { ...p, active } : p));
 }
 
+export function toggleParticipant(roster: Roster, id: string): Roster {
+  return roster.map((p) => (p.id === id ? { ...p, active: !p.active } : p));
+}
+
 export function setAllActive(roster: Roster, active: boolean): Roster {
   return roster.map((p) => (p.active === active ? p : { ...p, active }));
 }

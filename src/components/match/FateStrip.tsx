@@ -2,24 +2,23 @@ import type { FateKind } from '../../game/config/presets';
 import { SUDDEN_DEATH_STREAK } from '../../game/engine/match';
 import { countSlots } from '../../game/engine/fateSlots';
 
-const FATE_INFO: Readonly<Record<FateKind, { label: string; icon: string; help: string }>> =
-  {
-    KO: {
-      label: 'KO',
-      icon: '💥',
-      help: 'KO: the fighter loses their Shield, or is eliminated if they have none.',
-    },
-    VS: {
-      label: 'VS',
-      icon: '⚔️',
-      help: 'VS: rock-paper-scissors duel vs a random living fighter. Loser loses their Shield or is eliminated; winner earns a Shield (not in Sudden Death).',
-    },
-    SHIELD: {
-      label: 'Shield',
-      icon: '🛡️',
-      help: 'Shield: the fighter gains a Shield (max 1; a second one is wasted).',
-    },
-  };
+const FATE_INFO: Readonly<Record<FateKind, { label: string; icon: string; help: string }>> = {
+  KO: {
+    label: 'KO',
+    icon: '💥',
+    help: 'KO: the fighter loses their Shield, or is eliminated if they have none.',
+  },
+  VS: {
+    label: 'VS',
+    icon: '⚔️',
+    help: 'VS: rock-paper-scissors duel vs a random living fighter. Loser loses their Shield or is eliminated; winner earns a Shield (not in Sudden Death).',
+  },
+  SHIELD: {
+    label: 'Shield',
+    icon: '🛡️',
+    help: 'Shield: the fighter gains a Shield (max 1; a second one is wasted).',
+  },
+};
 
 interface FateStripProps {
   readonly slots: readonly FateKind[];

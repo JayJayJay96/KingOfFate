@@ -1,6 +1,12 @@
 import { FATE_PRESETS } from '../config/presets';
 import { countSlots } from './fateSlots';
-import type { CommittedDuel, MatchEvent, MatchState, TurnOutcome } from './matchTypes';
+import type {
+  CommittedDuel,
+  FinaleRoundResult,
+  MatchEvent,
+  MatchState,
+  TurnOutcome,
+} from './matchTypes';
 import type { Gesture } from './rps';
 
 export const GESTURE_LABEL: Readonly<Record<Gesture, string>> = {
@@ -23,6 +29,7 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
       }, ${FATE_PRESETS[event.presetId].label} preset.`;
     case 'TURN_COMMITTED':
     case 'POSITIONS_SHUFFLED':
+    case 'FINALE_ROUND_COMMITTED':
       return null;
     case 'TURN_RESOLVED':
       return `Turn ${event.turnNumber}: ${describeOutcome(event.outcome, event.playerId, event.duel, nameOf)}`;
@@ -34,7 +41,37 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
       return `Finale rules: all Shields removed (${joinNames(event.playerIds.map(nameOf))}).`;
     case 'FINALE_REACHED':
       return `Finale! ${joinNames(event.finalistIds.map(nameOf))} advance.`;
+    case 'FINALE_STARTED':
+      return 'Một Hai Ba Yo! The finale begins: first to 3 points takes a winner slot.';
+    case 'FINALE_ROUND_RESOLVED':
+      return describeFinaleRound(event.round, nameOf);
+    case 'FINALISTS_QUALIFIED': {
+      const names = joinNames(event.playerIds.map(nameOf));
+      const many = event.playerIds.length > 1;
+      return event.automatic
+        ? `${names} ${many ? 'take' : 'takes'} the last slot${many ? 's' : ''} automatically.`
+        : `${names} ${many ? 'reach' : 'reaches'} 3 and ${many ? 'take winner slots' : 'takes a winner slot'}!`;
+    }
+    case 'TIEBREAK_STARTED':
+      return `TIEBREAK! ${joinNames(event.contenderIds.map(nameOf))} reached 3 together for ${event.slots} slot${event.slots === 1 ? '' : 's'}. Their scores reset; everyone else is out.`;
+    case 'MATCH_COMPLETED':
+      return `${event.winnerIds.length === 1 ? 'Winner' : 'Winners'}: ${joinNames(event.winnerIds.map(nameOf))}!`;
   }
+}
+
+export function describeFinaleRound(
+  round: FinaleRoundResult,
+  nameOf: (id: string) => string,
+): string {
+  const prefix = `${round.stageNumber > 1 ? 'Tiebreak ' : ''}Round ${round.roundNumber}:`;
+  if (!round.winningGesture) {
+    const kinds = new Set(round.throws.map((t) => t.gesture));
+    return kinds.size === 1
+      ? `${prefix} draw, everyone threw ${GESTURE_LABEL[round.throws[0]!.gesture]}.`
+      : `${prefix} draw, Rock, Paper and Scissors all thrown.`;
+  }
+  const loser = round.throws.find((t) => t.gesture !== round.winningGesture)!.gesture;
+  return `${prefix} ${GESTURE_LABEL[round.winningGesture]} beats ${GESTURE_LABEL[loser]}, +1 for ${joinNames(round.scorerIds.map(nameOf))}.`;
 }
 
 export function describeOutcome(

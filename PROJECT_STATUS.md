@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-09  
-**Phase:** 3 — Complete Fate System  
-**Overall status:** Phases 1–2 done. **Phase 3 implemented and verified locally** (159 unit/integration tests, 6 E2E ×3 runs green); awaiting owner review. Not deployed.
+**Phase:** 4 — Vietnamese-chant RPS Finale  
+**Overall status:** Phases 1–3 done (owner tested). **Phase 4 implemented and verified locally**: feature-complete gameplay MVP (200 unit/integration tests, 8 E2E ×3 runs green); awaiting owner review. Not deployed.
 
 ## 1. Current snapshot
 
@@ -10,12 +10,12 @@
 |---|---|
 | Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
 | Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup: `localStorage` `kof.setup` (schema 1). Current match: IndexedDB db `kof` v1, store `current-match`, key `current` (**match schema 2** since Phase 3; older saved matches are discarded with a notice); corrupt checkpoints moved to key `corrupt-backup`. |
+| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound preference `kof.sound`. IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 3** since Phase 4; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
 | RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
 | Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
-| Finale rules (D2, D3) | Approved; Phase 4 |
+| Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
 | Pause/skip (D4) | OPEN — before Phase 5 |
-| Git | `main`; see `git log` (Phase 3 commit follows this update) |
+| Git | `main`; see `git log` (Phase 4 commit follows this update) |
 | Deployment | Not attempted |
 
 ## 2. Phase tracker
@@ -24,8 +24,8 @@
 |---|---|---|
 | 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
-| 3 — Full Fate System | **Implemented; automated checks pass; awaiting owner review** | Owner plays matches on each preset; confirms P3 notes below |
-| 4 — Vietnamese-chant RPS Finale | Not started | W+1 handoff (gate exists), exactly W winners |
+| 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
+| 4 — Vietnamese-chant RPS Finale | **Implemented; automated checks pass; awaiting owner review** | Owner plays finales for 1, 2 and 3+ winners; confirms P4 notes below |
 | 5 — Retro Arcade Experience | Not started | Art/audio/shortcuts/visual polish; D4 resolved |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
@@ -46,18 +46,32 @@
 |---|---|---|---|
 | D4 | Esc pause behavior during finale chant; animation skip? | Safe pause/resume at beat/throw boundary; no outcome changes. | Phase 5 |
 | D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
-| P3-a | Fate strip starts **evenly spread** (e.g. Normal: VS at slots 3/8/13/18, Shield at 11); one **Shuffle** button shuffles fighters AND Fate slots. | Keep. | Phase 3 acceptance |
-| P3-b | Sudden Death flips slots **in place** (all Shield → KO, then the first extra VS → KO) so viewers see what changed. | Keep. | Phase 3 acceptance |
-| P3-c | VS opponent is shown directly in the duel panel (no separate opponent spin); result waits for both cursors, then a ~2–4 s duel (+0.9 s per draw). | Keep for MVP; Phase 5 can add flair. | Phase 3 acceptance |
-| P3-d | Placeholder icons are emoji (💥 ⚔️ 🛡️ ✊ ✋ ✌️) until Phase 5 art. | Keep. | Phase 5 |
+| P3-d | Placeholder icons are emoji (💥 ⚔️ 🛡️ ✊ ✋ ✌️ 👑) until Phase 5 art. | Keep. | Phase 5 |
+| P4-a | Finale waits for **one host click** ("Start the finale" / Space / Enter) before the automatic rounds, so the browser allows sound. | Keep. | Phase 4 acceptance |
+| P4-b | Placeholder audio is synthesized (drum beats on Một/Hai/Ba/Yo, low drone, victory jingle) with a Sound on/off toggle; no voice. Real chant recording + music + volume sliders in Phase 5. | Keep for MVP. | Phase 5 |
+| P4-c | Pacing: intro Một-Hai-Ba-Yo 0.6 s per beat; each round "Hai · Ba · Yo!" then 1.5 s result hold + 0.7 s pause (~3.4 s/round). With 4–6 finalists many reveals are draws (all three hands), so big finales can take a few minutes. | Watch in play; tune later if needed. | Phase 5 |
+| P4-d | No Abandon during the finale (it must finish). Esc/pause is D4. | Keep until D4. | Phase 5 |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner plays Phase 2 (`npm run dev`): start, spin with `?`/Space, refresh during a spin, abandon, reach the finale gate. Confirm P2-a / P2-b.
-2. Phase 3: 20-slot Fate strip with simultaneous cursor; KO/VS/Shield; normal VS RPS duel (rethrow on draw); Shield cap/waste; 3-turn no-elimination streak → Sudden Death with visible odds swap; seeded probability tests for slot weights and RPS parity.
+1. Owner plays complete matches (`npm run dev`) with 1, 2 and 3–5 winners; tries a refresh mid-finale and on the victory screen; confirms P4-a…P4-d.
+2. Decide D4 (Esc pause / skip during the finale) before Phase 5.
+3. Phase 5: retro presentation polish (art, real chant audio + music, volume controls, shortcuts).
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 4: Vietnamese-chant RPS finale + winner ceremony
+- **Owner input:** "ok tested, all good, proceed to phase 4" (Phase 3 accepted).
+- **Added:** `src/game/engine/finale.ts` (+test), `errors.ts`, `matchEvents.ts`; `src/animation/finaleTimeline.ts` (+test); `src/audio/finaleAudio.ts` (placeholder Web Audio); `src/hooks/useFinaleShow.ts`, `useSound.ts`; `src/components/match/FinaleStage.tsx`, `VictoryScreen.tsx`; `e2e/finale.spec.ts`.
+- **Changed:** `matchTypes.ts` (schema 3: `FINALE`/`VICTORY` phases, `FinaleState`, rounds audit, finale events, `completedAt`), `match.ts` (W+1 → finale state; Shields cleared), `describeEvent.ts`, `matchStorage.ts` (DB v2 + `completed-matches`, VICTORY save writes the record in the same transaction, v3 validation, `listCompleted`), `useMatch.ts` (begin/next/complete finale round), `MatchScreen`, `App`, CSS, tests; removed `FinaleGate.tsx`. Docs: `PROJECT.md` §5 D3 note.
+- **Rules implemented (PROJECT.md §5):** finale at W+1 with Shields cleared; host Start (P4-a), intro "Một Hai Ba Yo!" without a throw, then automatic "Hai · Ba · Yo!" reveals; every contender throws uniformly and the reveal is checkpointed before its chant; all-same or all-three = draw; otherwise every winning hand +1; first to 3 locks a slot and leaves; D3 tiebreak + D2 guard implemented; exactly W winners; MATCH_COMPLETED + completion record committed once before the ceremony; full throw/score history kept.
+- **Finding:** D3 oversubscription cannot happen with W + 1 finalists (some contender always fails to score, and contenders = open slots + 1). Verified by 1,500 seeded finales (none triggered a tiebreak); the rule itself is unit-tested on constructed states.
+- **Bug found + fixed (Phase 1 code):** rapid roster toggles could overwrite each other because updates used the last-rendered roster. Roster changes are now functional (`toggleParticipant`, updater callbacks). Found while scripting the browser pane.
+- **Tests:** `npm test` → **14 files, 200 passed** (scoring/draw/multi-scorer cases, owner HAN/BEN/JAY example, D3/D2 on constructed states, exactly W distinct winners for W=1..5 ×300 finales each, each finalist equally likely to miss out (seeded chi-square p=0.001), idempotent resolve, mid-finale resume without re-rolling, victory reload records nothing new, completion record once). `npm run e2e` → **8 passed**; ×2 repeat → **16/16**: real finale to victory with reload on the ceremony and exactly 1 IndexedDB record; refresh mid-finale keeps round numbering 1..n with no gaps/repeats. Typecheck + lint clean.
+- **Manual (browser pane):** triangle finale (3 finalists, 2 winners) start screen, a live "Yo!" reveal (Rock/Rock/Paper), victory screen with crowns and correct score trail. Fixed: confetti drawn over the log, and 2-digit log numbers clipped.
+- **Unverified:** audio actually audible (headless/pane checks can't hear it; code paths are no-ops without Web Audio); 4–6-finalist ring on a projector; very long finales with many draws.
+- **Next exact action:** owner review of Phase 4 (P4-a…d) → D4 decision → Phase 5.
 
 ### 2026-10-09 — Phase 3: Complete Fate System
 - **Owner input:** "feels good now, proceed to phase 3"; shuffle should not appear in the event log (done first: `5b5b1f9`; event kept in state for audit).

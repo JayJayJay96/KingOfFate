@@ -7,6 +7,7 @@ import {
   removeParticipant,
   setAllActive,
   setParticipantActive,
+  toggleParticipant,
   type Roster,
 } from './roster';
 
@@ -97,5 +98,18 @@ describe('roster updates', () => {
   it('removes a participant by id only', () => {
     expect(removeParticipant(roster, 'a').map((p) => p.id)).toEqual(['b', 'c']);
     expect(removeParticipant(roster, 'missing')).toEqual(roster);
+  });
+});
+
+describe('toggleParticipant', () => {
+  it('flips attendance from the roster it is given (safe for chained updates)', () => {
+    const roster: Roster = [
+      { id: 'a', name: 'Aisyah', active: false },
+      { id: 'b', name: 'Wei Jie', active: false },
+    ];
+    const once = toggleParticipant(roster, 'a');
+    const twice = toggleParticipant(once, 'b');
+    expect(twice.map((p) => p.active)).toEqual([true, true]);
+    expect(toggleParticipant(twice, 'a')[0]?.active).toBe(false);
   });
 });

@@ -41,14 +41,12 @@ test('setup validates, survives a refresh and starts a match', async ({ page }) 
   await expect(page.getByRole('radio', { name: '2', exact: true })).toBeChecked();
   await expect(page.getByRole('radio', { name: /chaotic/i })).toBeChecked();
 
-  // 3 active for 2 winners = W + 1: straight to the finale gate, inactive Muthu excluded.
+  // 3 active for 2 winners = W + 1: straight to the finale, inactive Muthu excluded.
   await start.click();
-  await expect(page.getByRole('heading', { name: 'Finale!' })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Finalists' }).getByRole('listitem')).toHaveText([
+  await expect(page.getByRole('main', { name: 'Finale' })).toBeVisible();
+  await expect(page.locator('[data-testid=finalist] .finalist__name')).toHaveText([
     'Aisyah',
     'Wei Jie',
     'Kavitha',
   ]);
-  await page.getByRole('button', { name: /return to setup/i }).click();
-  await expect(start).toBeEnabled();
 });

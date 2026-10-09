@@ -90,7 +90,7 @@ describe('createMatch', () => {
 
   it('goes straight to the finale gate when N = W + 1, with no ordinary turns', () => {
     const m = createMatch(launch(3, 2), ids);
-    expect(m.phase).toBe('FINALE_GATE');
+    expect(m.phase).toBe('FINALE');
     expect(() => beginTurn(m, createScriptedRng([0, 0]), 't1')).toThrow(IllegalTransitionError);
   });
 
@@ -225,7 +225,7 @@ describe('VS', () => {
     // p2 (living 2) vs others [p0, p1, p3] index 2 = p3; Paper beats Rock.
     const kill = vs(createMatch(launch(4, 2), ids), 2, 2, [PAPER, ROCK]);
     expect(alivePlayers(kill)).toHaveLength(3);
-    expect(kill.phase).toBe('FINALE_GATE');
+    expect(kill.phase).toBe('FINALE');
 
     let block = shieldUp(createMatch(launch(4, 2), ids), 3);
     block = vs(block, 2, 2, [PAPER, ROCK]);
@@ -280,7 +280,7 @@ describe('finale gate', () => {
   it('clears every Shield when W + 1 remain', () => {
     let m = shieldUp(createMatch(launch(4, 2), ids), 0); // p0 Shield
     m = ko(m, 3); // p3 out → 3 alive = W + 1
-    expect(m.phase).toBe('FINALE_GATE');
+    expect(m.phase).toBe('FINALE');
     expect(m.players.some((p) => p.shield)).toBe(false);
     expect(m.events.slice(-2).map((e) => e.type)).toEqual(['SHIELDS_CLEARED', 'FINALE_REACHED']);
   });
@@ -319,7 +319,7 @@ describe('full matches (seeded)', () => {
       for (let w = 1; w <= 5; w++) {
         for (const n of [w + 1, w + 2, w + 5, 20, 32]) {
           const final = playOut(createMatch(launch(n, w, presetId), ids), rng);
-          expect(final.phase).toBe('FINALE_GATE');
+          expect(final.phase).toBe('FINALE');
           expect(alivePlayers(final)).toHaveLength(w + 1);
           expect(final.players.some((p) => p.shield)).toBe(false);
           const eventIds = final.events.map((e) => e.id);

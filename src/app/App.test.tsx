@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engine/finale';
 import { beginTurn, createMatch } from '../game/engine/match';
 import { createScriptedRng, createSeededRng, type Rng } from '../game/rng/rng';
 import { createMemoryMatchRepository, type MatchRepository } from '../storage/matchStorage';
@@ -114,11 +115,15 @@ const VS = 2;
 const SHIELD = 10;
 
 describe('Match', () => {
-  it('plays from setup to the finale gate with only active fighters, then returns to setup', async () => {
-    // Turn 1: living index 1 (Wei Jie) + KO; turn 2: living index 0 (Aisyah) + KO.
+  it('plays from setup through the finale to the winner, then returns to setup', async () => {
+    // Turn 1: living 1 (Wei Jie) KO; turn 2: living 0 (Aisyah) KO → Kavitha vs Hafiz finale.
+    // Finale reveals (Kavitha, Hafiz): Rock beats Scissors three times → Kavitha wins.
+    const ROCK = 0;
+    const SCISSORS = 2;
+    const repo = createMemoryMatchRepository();
     const { user } = await renderApp(
-      createMemoryMatchRepository(),
-      createScriptedRng([1, KO, 0, KO]),
+      repo,
+      createScriptedRng([1, KO, 0, KO, ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS]),
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
     await user.click(screen.getByRole('button', { name: 'Mei Ling' })); // sits out
@@ -126,34 +131,87 @@ describe('Match', () => {
 
     const grid = await screen.findByRole('list', { name: 'Fighters' });
     expect(within(grid).getAllByRole('listitem')).toHaveLength(4);
-    expect(screen.getByTestId('alive-count')).toHaveTextContent('4 / 4 alive');
-
     await user.click(randomButton());
-    expect(randomButton()).toBeDisabled();
     await findInLog('Turn 1: Wei Jie takes a KO. Eliminated!');
-    expect(screen.getByTestId('alive-count')).toHaveTextContent('3 / 4 alive');
-
     await user.click(randomButton());
-    await screen.findByRole('heading', { name: 'Finale!' });
-    const finalists = screen.getByRole('list', { name: 'Finalists' });
+
+    // Full-screen finale with the two finalists, waiting for the host.
+    await screen.findByRole('main', { name: 'Finale' });
+    expect(screen.getAllByTestId('finalist').map((f) => f.textContent)).toEqual([
+      expect.stringContaining('Kavitha'),
+      expect.stringContaining('Hafiz'),
+    ]);
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+
+    // Automatic rounds → victory, committed (with a single record) before the ceremony.
+    await screen.findByRole('main', { name: 'Victory' });
+    expect(screen.getByRole('heading', { name: 'Winner!' })).toBeInTheDocument();
     expect(
-      within(finalists)
+      within(screen.getByRole('list', { name: 'Winners' }))
         .getAllByRole('listitem')
         .map((li) => li.textContent),
-    ).toEqual(['Kavitha', 'Hafiz']);
+    ).toEqual(['👑 Kavitha']);
+    expect(screen.getByTestId('result-saved')).toBeInTheDocument();
+    expect(await repo.listCompleted()).toHaveLength(1);
+    await findInLog('Winner: Kavitha!');
 
     await user.click(screen.getByRole('button', { name: /return to setup/i }));
     expect(screen.getByRole('button', { name: 'Mei Ling' })).toHaveAttribute(
       'aria-pressed',
       'false',
     );
+    expect(await repo.load()).toEqual({ status: 'none' });
+    expect(await repo.listCompleted()).toHaveLength(1);
   });
 
-  it('starts directly at the finale gate when N = W + 1', async () => {
+  it('starts directly in the finale when N = W + 1', async () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie');
     await user.click(startButton());
-    expect(await screen.findByRole('heading', { name: 'Finale!' })).toBeInTheDocument();
+    expect(await screen.findByRole('main', { name: 'Finale' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start the finale/i })).toBeInTheDocument();
+  });
+
+  it('resumes a finale mid-round after a reload without re-rolling the committed hands', async () => {
+    const players = ['Aisyah', 'Wei Jie', 'Kavitha'].map((name, i) => ({ id: `p${i}`, name }));
+    let m = beginFinale(
+      createMatch(
+        { players, winnerCount: 2, presetId: 'normal' },
+        { matchId: 'm1', startedAt: '2026-10-09T07:00:00.000Z' },
+      ),
+    );
+    // Committed reveal: Rock, Rock, Scissors → Aisyah and Wei Jie score.
+    m = startFinaleRound(m, createScriptedRng([0, 0, 2]), 'r1');
+    const repo = createMemoryMatchRepository(m);
+
+    // After the committed round, each following reveal is scripted; anything else would throw.
+    await renderApp(repo, createScriptedRng([0, 0, 2, 0, 0, 2]));
+    await findInLog('Round 1: Rock beats Scissors, +1 for Aisyah and Wei Jie.');
+    await screen.findByRole('main', { name: 'Victory' });
+    expect(
+      within(screen.getByRole('list', { name: 'Winners' }))
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['👑 Aisyah', '👑 Wei Jie']);
+  });
+
+  it('shows the victory again after a reload, without recording a second result', async () => {
+    const players = ['Aisyah', 'Wei Jie'].map((name, i) => ({ id: `p${i}`, name }));
+    let m = beginFinale(
+      createMatch(
+        { players, winnerCount: 1, presetId: 'normal' },
+        { matchId: 'm1', startedAt: '2026-10-09T07:00:00.000Z' },
+      ),
+    );
+    for (let i = 1; i <= 3; i++) {
+      m = startFinaleRound(m, createScriptedRng([2, 1]), `r${i}`); // Scissors beats Paper
+      m = resolveFinaleRound(m, `r${i}`, '2026-10-09T08:00:00.000Z');
+    }
+    const repo = createMemoryMatchRepository();
+    await repo.save(m);
+    await renderApp(repo, createScriptedRng([]));
+    expect(await screen.findByRole('main', { name: 'Victory' })).toBeInTheDocument();
+    expect(await repo.listCompleted()).toHaveLength(1);
   });
 
   it('starts a turn with Space but ignores rapid repeats (one turn only)', async () => {

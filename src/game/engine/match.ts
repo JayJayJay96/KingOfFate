@@ -1,14 +1,16 @@
 import { isWinnerCount, MAX_ACTIVE_PLAYERS, MIN_ACTIVE_PLAYERS } from '../config/limits';
 import { FATE_PRESETS, FATE_SLOT_COUNT, type FatePresetId } from '../config/presets';
 import type { Rng } from '../rng/rng';
+import { IllegalTransitionError } from './errors';
 import { spreadSlots, toSuddenDeathSlots } from './fateSlots';
+import { initialFinale } from './finale';
+import { appendEvent } from './matchEvents';
 import {
   MATCH_SCHEMA_VERSION,
   type CommittedDuel,
   type CommittedTurn,
   type MatchPlayer,
   type MatchState,
-  type NewMatchEvent,
   type TurnOutcome,
 } from './matchTypes';
 import { challengerWins, sampleDuelThrows } from './rps';
@@ -22,9 +24,7 @@ export interface MatchLaunch {
   readonly presetId: FatePresetId;
 }
 
-export class IllegalTransitionError extends Error {
-  override name = 'IllegalTransitionError';
-}
+export { IllegalTransitionError };
 
 export function alivePlayers(state: MatchState): readonly MatchPlayer[] {
   return state.players.filter((p) => p.alive);
@@ -68,6 +68,8 @@ export function createMatch(
     lastTurn: null,
     noEliminationStreak: 0,
     suddenDeath: false,
+    finale: null,
+    completedAt: null,
     events: [],
   };
   state = appendEvent(state, {
@@ -249,7 +251,7 @@ function fisherYates<T>(items: readonly T[], rng: Rng): T[] {
   return out;
 }
 
-/** At exactly W + 1 alive: stop ordinary turns, clear all Shields (finale starts equal). */
+/** At exactly W + 1 alive: stop ordinary turns, clear all Shields, set up the RPS finale. */
 function enterFinaleIfReached(state: MatchState): MatchState {
   const alive = alivePlayers(state);
   if (state.phase !== 'READY' || alive.length !== state.winnerCount + 1) return state;
@@ -262,12 +264,12 @@ function enterFinaleIfReached(state: MatchState): MatchState {
     );
   }
   return appendEvent(
-    { ...next, phase: 'FINALE_GATE', suddenDeath: false },
+    {
+      ...next,
+      phase: 'FINALE',
+      suddenDeath: false,
+      finale: initialFinale(alive.map((p) => p.id)),
+    },
     { type: 'FINALE_REACHED', finalistIds: alive.map((p) => p.id) },
   );
-}
-
-function appendEvent(state: MatchState, event: NewMatchEvent): MatchState {
-  const seq = state.events.length + 1;
-  return { ...state, events: [...state.events, { ...event, id: `${state.matchId}#${seq}`, seq }] };
 }

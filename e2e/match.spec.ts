@@ -51,7 +51,7 @@ async function snapshot(page: Page) {
 test('a real match runs full-length spins and hands off at W + 1', async ({ page }) => {
   test.setTimeout(150_000);
   await startMatch(page, ['Aisyah', 'Wei Jie', 'Kavitha', 'Hafiz'], 2, 'Fast');
-  const finale = page.getByRole('heading', { name: 'Finale!' });
+  const finale = page.getByRole('main', { name: 'Finale' });
 
   const started = Date.now();
   await randomButton(page).click();
@@ -66,9 +66,8 @@ test('a real match runs full-length spins and hands off at W + 1', async ({ page
     await expect(turnLines(page)).toHaveCount(turn, { timeout: TURN_BUDGET });
   }
   await expect(finale).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Finalists' }).getByRole('listitem')).toHaveCount(3);
-  await page.getByRole('button', { name: /return to setup/i }).click();
-  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('finalist')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: /start the finale/i })).toBeVisible();
 });
 
 test('refreshing mid-spin replays the committed turn and applies it exactly once', async ({

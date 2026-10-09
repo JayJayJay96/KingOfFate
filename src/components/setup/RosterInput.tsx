@@ -1,11 +1,16 @@
 import { useId, useState, type KeyboardEvent } from 'react';
 import { MAX_NAME_LENGTH } from '../../game/config/limits';
-import { addNamesToRoster, type NameRejection, type Roster } from '../../game/setup/roster';
+import {
+  addNamesToRoster,
+  type NameRejection,
+  type Roster,
+  type RosterAddResult,
+} from '../../game/setup/roster';
 import { createId } from '../../utils/ids';
 
 interface RosterInputProps {
-  readonly roster: Roster;
-  readonly onRosterChange: (roster: Roster) => void;
+  /** Functional update, applied to the latest roster. */
+  readonly onRosterChange: (change: (roster: Roster) => Roster) => void;
 }
 
 interface AddFeedback {
@@ -13,15 +18,20 @@ interface AddFeedback {
   readonly rejected: readonly NameRejection[];
 }
 
-export function RosterInput({ roster, onRosterChange }: RosterInputProps) {
+export function RosterInput({ onRosterChange }: RosterInputProps) {
   const inputId = useId();
   const hintId = useId();
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState<AddFeedback | null>(null);
 
   function handleAdd() {
-    const result = addNamesToRoster(roster, text, createId);
-    if (result.added.length > 0) onRosterChange(result.roster);
+    let outcome: RosterAddResult | null = null;
+    onRosterChange((current) => {
+      outcome = addNamesToRoster(current, text, createId);
+      return outcome.roster;
+    });
+    const result = outcome as RosterAddResult | null;
+    if (!result) return;
     // Keep only the rejected names in the box so the host can fix them.
     setText(result.rejected.map((r) => r.name).join('\n'));
     setFeedback({ addedCount: result.added.length, rejected: result.rejected });

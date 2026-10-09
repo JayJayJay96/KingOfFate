@@ -49,6 +49,9 @@ export function App({ matchRepository, rng, timeScale = 1 }: AppProps) {
         onSpin={() => void game.spin()}
         onShuffle={() => void game.shuffle()}
         onSpinComplete={(turnId) => void game.completeSpin(turnId)}
+        onBeginFinale={() => void game.beginFinale()}
+        onNextFinaleRound={() => void game.nextFinaleRound()}
+        onResolveFinaleRound={(roundId) => void game.completeFinaleRound(roundId)}
         onLeave={() => void game.leave()}
       />
     );
