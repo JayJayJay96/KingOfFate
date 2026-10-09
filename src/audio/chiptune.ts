@@ -1,0 +1,95 @@
+/**
+ * ORIGINAL chiptune loops composed for this project (not transcriptions of any existing game
+ * music). Each theme is 4 bars of 16 sixteenth-note steps; the sound engine schedules them.
+ */
+export type MusicTheme = 'select' | 'finale';
+export type DrumHit = 'K' | 'S' | 'H' | 'T';
+
+export interface Theme {
+  readonly bpm: number;
+  /** One entry per 16th step: a note name ("A4", "G#5") or null for silence. */
+  readonly lead: readonly (string | null)[];
+  readonly bass: readonly (string | null)[];
+  /** One entry per step: K kick, S snare, H hat, T tom, or null. */
+  readonly drums: readonly (DrumHit | null)[];
+}
+
+export const STEPS_PER_LOOP = 64;
+
+/** Parses a compact bar string: tokens separated by spaces; "." = rest. */
+function bars(...barStrings: string[]): (string | null)[] {
+  const steps = barStrings.flatMap((b) => b.trim().split(/\s+/));
+  return steps.map((t) => (t === '.' ? null : t));
+}
+
+function drums(...barStrings: string[]): (DrumHit | null)[] {
+  return barStrings
+    .join('')
+    .split('')
+    .map((c) => (c === '.' ? null : (c as DrumHit)));
+}
+
+/** Character-select loop: bright, driving, A minor, 150 bpm. */
+const SELECT: Theme = {
+  bpm: 150,
+  lead: bars(
+    'A4 . C5 . E5 . A5 . G5 . E5 . C5 . D5 .',
+    'F5 . E5 . C5 . A4 . C5 . . . F5 . . .',
+    'G5 . F5 . D5 . B4 . D5 . G5 . F5 . D5 .',
+    'E5 . G#5 . B5 . E6 . D6 . B5 . G#5 . E5 .',
+  ),
+  bass: bars(
+    'A2 . A3 . A2 . A3 . A2 . A3 . A2 . A3 .',
+    'F2 . F3 . F2 . F3 . F2 . F3 . F2 . F3 .',
+    'G2 . G3 . G2 . G3 . G2 . G3 . G2 . G3 .',
+    'E2 . E3 . E2 . E3 . E2 . E3 . E2 . E3 .',
+  ),
+  drums: drums('K.H.S.H.K.HKS.H.', 'K.H.S.H.K.HKS.H.', 'K.H.S.H.K.HKS.H.', 'K.H.S.H.KKS.S.SS'),
+};
+
+/** Finale loop: tense, D minor, 112 bpm, heavy toms under the chant. */
+const FINALE: Theme = {
+  bpm: 112,
+  lead: bars(
+    'D5 . . . . . . . A4 . . . . . . .',
+    'F5 . . . . . . . E5 . . . . . . .',
+    'D5 . . . . . . . A4 . . . C5 . . .',
+    'A#4 . . . . . . . A4 . . . . . . .',
+  ),
+  bass: bars(
+    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . C2 .',
+    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . E2 .',
+    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . C2 .',
+    'A#1 A#1 . A#1 . . C2 . A1 A1 . A1 . . C#2 .',
+  ),
+  drums: drums('T..T..T...T.T...', 'T..T..T...T.T...', 'T..T..T...T.T...', 'T..T..T...TTTTTT'),
+};
+
+export const THEMES: Readonly<Record<MusicTheme, Theme>> = { select: SELECT, finale: FINALE };
+
+const NOTE_INDEX: Readonly<Record<string, number>> = {
+  C: 0,
+  'C#': 1,
+  D: 2,
+  'D#': 3,
+  E: 4,
+  F: 5,
+  'F#': 6,
+  G: 7,
+  'G#': 8,
+  A: 9,
+  'A#': 10,
+  B: 11,
+};
+
+/** "A4" → 440 Hz (equal temperament). */
+export function noteToFrequency(note: string): number {
+  const match = /^([A-G]#?)(-?\d)$/.exec(note);
+  if (!match) throw new Error(`Bad note "${note}"`);
+  const midi = (Number(match[2]) + 1) * 12 + NOTE_INDEX[match[1]!]!;
+  return 440 * 2 ** ((midi - 69) / 12);
+}
+
+export function stepSeconds(theme: Theme): number {
+  return 60 / theme.bpm / 4;
+}

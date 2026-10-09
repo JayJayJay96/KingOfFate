@@ -17,6 +17,13 @@ const IDLE: TurnAnimationState = {
   duelThrowIndex: null,
 };
 
+/** Moments of a turn's show, for sound effects. */
+export type TurnCue =
+  | { readonly kind: 'player' }
+  | { readonly kind: 'fate' }
+  | { readonly kind: 'duelIntro' }
+  | { readonly kind: 'duelThrow'; readonly index: number };
+
 /**
  * Plays a committed turn: both cursors, then the VS duel, then `onComplete(turnId)`.
  * Pure presentation; `timeScale` < 1 speeds everything up proportionally (tests only).
@@ -28,11 +35,14 @@ export function useTurnAnimation(
   fateStart: number,
   timeScale: number,
   onComplete: (turnId: string) => void,
+  onCue: (cue: TurnCue) => void = () => undefined,
 ): TurnAnimationState {
   const [frame, setFrame] = useState<{ turnId: string; state: TurnAnimationState } | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const onCueRef = useRef(onCue);
   useEffect(() => {
     onCompleteRef.current = onComplete;
+    onCueRef.current = onCue;
   });
 
   const orderKey = aliveIdsInGridOrder.join('\u0000');
@@ -49,19 +59,26 @@ export function useTurnAnimation(
 
     let current: TurnAnimationState = IDLE;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const at = (ms: number, change: Partial<TurnAnimationState>) =>
+    const at = (ms: number, change: Partial<TurnAnimationState>, cue: TurnCue) =>
       timers.push(
         setTimeout(() => {
           current = { ...current, ...change };
           setFrame({ turnId, state: current });
+          onCueRef.current(cue);
         }, ms * timeScale),
       );
 
-    for (const step of timeline.playerSteps) at(step.atMs, { playerCursorId: step.id });
-    for (const step of timeline.fateSteps) at(step.atMs, { fateCursorIndex: Number(step.id) });
+    for (const step of timeline.playerSteps) {
+      at(step.atMs, { playerCursorId: step.id }, { kind: 'player' });
+    }
+    for (const step of timeline.fateSteps) {
+      at(step.atMs, { fateCursorIndex: Number(step.id) }, { kind: 'fate' });
+    }
     if (timeline.duelThrowsAtMs.length > 0) {
-      at(timeline.cursorsDoneMs, { duelThrowIndex: -1 });
-      timeline.duelThrowsAtMs.forEach((ms, i) => at(ms, { duelThrowIndex: i }));
+      at(timeline.cursorsDoneMs, { duelThrowIndex: -1 }, { kind: 'duelIntro' });
+      timeline.duelThrowsAtMs.forEach((ms, i) =>
+        at(ms, { duelThrowIndex: i }, { kind: 'duelThrow', index: i }),
+      );
     }
     timers.push(setTimeout(() => onCompleteRef.current(turnId), timeline.completeMs * timeScale));
     return () => timers.forEach(clearTimeout);

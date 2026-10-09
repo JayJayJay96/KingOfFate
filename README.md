@@ -28,11 +28,14 @@ src/
                finale (beginFinale / startFinaleRound / resolveFinaleRound), Fate strip,
                rock-paper-scissors, event log text
   animation/   visual-only spin paths, turn + finale timelines (never decide outcomes)
-  audio/       placeholder synthesized finale sound (Web Audio; safe no-op without it)
+  audio/       sound engine: original chiptune, synthesized SFX, AI-voice chant (browser TTS),
+               settings + provider (safe no-op without Web Audio / speech)
   storage/     localStorage setup + IndexedDB current-match checkpoint and completed results
-  hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation, useFinaleShow, useSound)
-  components/  UI (setup/, match/)
+  hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation, useFinaleShow)
+  components/  UI (setup/, match/, sprites/ = original pixel art drawn in code)
   app/         App shell (injects repository, RNG and timing for tests)
   test/        test setup and statistics helpers
 e2e/           Playwright specs
 ```
+
+Third-party assets and what is deliberately not bundled: [](THIRD_PARTY_NOTICES.md).

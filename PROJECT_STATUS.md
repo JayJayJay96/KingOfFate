@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-09  
-**Phase:** 4 — Vietnamese-chant RPS Finale  
-**Overall status:** **Phases 1–4 done** (owner tested Phase 4: "all good"). Feature-complete gameplay MVP. D4 approved. Next: Phase 5. Not deployed.
+**Phase:** 5 — Retro Arcade Experience  
+**Overall status:** Phases 1–4 done. **Phase 5 implemented and verified locally** (226 unit/integration tests, 12 E2E ×3 runs green); awaiting owner review (listen with sound on). Not deployed.
 
 ## 1. Current snapshot
 
@@ -10,12 +10,13 @@
 |---|---|
 | Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
 | Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound preference `kof.sound`. IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 3** since Phase 4; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
+| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound settings `kof.audio` (replaces `kof.sound`, migrated). Custom music: IndexedDB db `kof-assets` v1 store `files` key `custom-music` (raw bytes + name/type/size/savedAt; local only). IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 3** since Phase 4; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
 | RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
 | Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
 | Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
-| Pause/skip (D4) | **Approved 2026-10-09**: Esc pauses at the next finale round boundary; resume continues; no skip. To implement in Phase 5. |
-| Git | `main`; see `git log` (Phase 4 commit follows this update) |
+| Pause/skip (D4) | **Approved and implemented (Phase 5)**: Esc pauses at the next finale round boundary; resume continues; no skip. |
+| Audio | AI chant via browser text-to-speech; original chiptune loops + synthesized SFX (Web Audio); music/voice/SFX volumes; optional local custom music. See `THIRD_PARTY_NOTICES.md`. |
+| Git | `main`; see `git log` (Phase 5 commit follows this update) |
 | Deployment | Not attempted |
 
 ## 2. Phase tracker
@@ -26,7 +27,7 @@
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
 | 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
 | 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
-| 5 — Retro Arcade Experience | Not started (D4 approved) | Art/audio/shortcuts/visual polish incl. D4 pause |
+| 5 — Retro Arcade Experience | **Implemented; automated checks pass; awaiting owner review** | Owner listens (voice, music, SFX), tries Esc pause in a finale, custom music file |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
@@ -45,20 +46,29 @@
 | ID | Question | Recommendation | Blocks |
 |---|---|---|---|
 | D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
-| P3-d | Placeholder icons are emoji (💥 ⚔️ 🛡️ ✊ ✋ ✌️ 👑) until Phase 5 art. | Keep. | Phase 5 |
-| P4-a | Finale waits for **one host click** ("Start the finale" / Space / Enter) before the automatic rounds, so the browser allows sound. | Accepted with Phase 4. | — |
-| P4-b | Placeholder audio is synthesized (drum beats on Một/Hai/Ba/Yo, low drone, victory jingle) with a Sound on/off toggle; no voice. Real chant recording + music + volume sliders in Phase 5. | Keep for MVP. | Phase 5 |
-| P4-c | Pacing: intro Một-Hai-Ba-Yo 0.6 s per beat; each round "Hai · Ba · Yo!" then 1.5 s result hold + 0.7 s pause (~3.4 s/round). With 4–6 finalists many reveals are draws (all three hands), so big finales can take a few minutes. | Watch in play; tune later if needed. | Phase 5 |
-| P4-d | No Abandon during the finale (it must finish). Pause comes with D4 in Phase 5. | Keep. | Phase 5 |
-| P5-inputs | Phase 5 needs owner input: real "Một Hai Ba Yo" chant recording (own recording or licensed), background music choice, and whether original pixel sprites should be made in-house. | Ask at Phase 5 start. | Phase 5 |
+| P4-c | Pacing: ~3.4 s per finale round; big finales (4–6 finalists, many draws) can take a few minutes. | Watch in play; tune if needed. | Optional |
+| P4-d | No Abandon during the finale (it must finish); Esc pause exists (D4). | Keep. | — |
+| P5-a | Abandon match moved into the Esc menu (header now shows "Menu (Esc)"). | Keep. | Phase 5 acceptance |
+| P5-b | Speech timing: browser voices (esp. online/natural ones) can lag the beat by a few hundred ms; drums stay on the beat. | Accept; tune beat length if it feels off. | Phase 5 acceptance |
+| P5-c | Custom *chant recording* upload with cue sync (spec §5) not built; AI voice chosen instead. | Optional later. | Optional |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner says go for Phase 5 and provides/decides P5-inputs (chant recording, music, sprites).
-2. Phase 5: retro presentation polish (art, real chant audio + music, volume controls, shortcuts, D4 Esc pause).
+1. Owner reviews Phase 5 with sound on (Edge recommended for the Vietnamese voice): Test voice in Sound settings, play a match, pause a finale with Esc, optionally pick a custom music file.
+2. Phase 6: History & Analytics (completed-match store already exists from Phase 4).
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 5: Retro Arcade Experience
+- **Owner input:** chant = "ai sound"; music = would download the KOF character-select song or accept something similar; sprites = "you do it". Explained the KOF song is copyrighted and cannot be bundled; built an original chiptune plus a local-only "my music file" option (recorded in `PROJECT.md` §5 and `THIRD_PARTY_NOTICES.md`).
+- **Added:** `src/audio/{audioSettings,chiptune,voice,soundEngine,soundContext}.ts`, `SoundProvider.tsx` (+ tests for settings/chiptune/voice); `src/storage/assetStorage.ts` (+test); `src/components/sprites/{PixelArt.tsx,fighterSprite.ts,icons.tsx}` (+test); `src/components/setup/SoundSettings.tsx`; `src/components/match/PauseMenu.tsx`; `e2e/polish.spec.ts`; `THIRD_PARTY_NOTICES.md`; dependency `@fontsource/press-start-2p` (OFL-1.1).
+- **Changed:** `App.tsx` (SoundProvider; injectable engine/asset store), `MatchScreen.tsx` (music per phase, cursor/outcome/duel SFX, shortcuts Space/Enter/S/M/Esc, pause menu with Abandon), `FinaleStage.tsx` (AI chant per beat, result SFX, D4 pause), `VictoryScreen.tsx`, `useTurnAnimation.ts` (sound cues), `useFinaleShow.ts` (D4 pause at round boundary without restarting a running round), grid/preview/Fate strip/duel (pixel sprites + icons), `SetupScreen.tsx` (Sound panel), `main.tsx` (font), CSS (pixel font for big labels, CRT scanlines, sprite/pause/sound styles). Removed `src/hooks/useSound.ts`, `src/audio/finaleAudio.ts`.
+- **Bugs found + fixed during the session:** (1) voice list empty because `voiceschanged` fired before subscription → re-read after mount. (2) IndexedDB Blob storage failed under the test shim and is fragile in some browsers → custom music stored as raw ArrayBuffer + type (realm-safe check).
+- **Tests:** `npm test` → **19 files, 226 passed** (settings migration/clamping; both chiptune loops exactly 64 steps with valid pitches; voice selection prefers natural Vietnamese then English, phonetic fallback; asset store round-trip/size limit; sprites stable per name and varied; App: spy engine hears select/finale music, ticks, KO, chant MOT/HAI/BA/YO, score and victory; D4 pause holds rounds and resumes to victory; S/M/Esc shortcuts; sound settings + custom file upload/remove). `npm run e2e` → **12 passed**, ×2 repeat → **24/24** (pixel portraits/icons present; real finale paused >5 s with no new round then resumed to victory; volume + custom WAV persist across reload in IndexedDB and can be removed; S/M/Esc). Typecheck + lint clean. Bundle: JS 288 kB, fonts load per script range.
+- **Manual (browser pane):** setup with Sound panel, voices listed (pane has English voices only → phonetic chant), match with varied portraits and pixel Fate icons, triangle finale with pixel hands, victory with crowned portraits.
+- **Unverified:** actual audibility/mix of music, SFX and voice (cannot be heard from here); the Vietnamese voice itself (not installed in the pane; Edge on Windows normally offers "HoaiMy/NamMinh Online (Natural)"); speech/beat sync on the owner's machine.
+- **Next exact action:** owner review of Phase 5 with sound on → Phase 6.
 
 ### 2026-10-09 — Phase 4 accepted; D4 approved
 - **Owner:** "ok tested, all good, D4 go with your suggestion". Asked to confirm 2 Rock + 1 Scissors → both Rock players +1: confirmed (rule in `winningGesture` / `resolveFinaleRound`; covered by the unit test "every player throwing the winning hand scores 1" with Rock, Rock, Scissors).

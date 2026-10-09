@@ -29,12 +29,20 @@ export function useFinaleShow(
   match: MatchState,
   timeScale: number,
   handlers: FinaleShowHandlers,
+  /**
+   * D4: pause takes effect at the next round boundary. A committed round in progress always
+   * finishes and is scored; while paused no new round is started. Resume continues.
+   */
+  paused = false,
 ): FinaleShowState {
   const f = match.finale;
   const pending = f?.pendingRound ?? null;
   const roundsCount = f?.rounds.length ?? 0;
   const active = match.phase === 'FINALE' && !!f?.started;
-  const key = `${active}|${pending?.roundId ?? '-'}|${roundsCount}`;
+  // A running round must not restart when pause toggles, so `paused` only keys the idle state.
+  const key = pending
+    ? `${active}|round|${pending.roundId}`
+    : `${active}|idle|${roundsCount}|${paused}`;
 
   const [frame, setFrame] = useState<{ key: string; word: ChantWord | null; reveal: boolean }>({
     key: '',
@@ -60,6 +68,8 @@ export function useFinaleShow(
       for (const cue of cues) at(cue.atMs, () => show(cue.word, cue.reveal));
       const roundId = pending.roundId;
       at(resolveMs, () => handlersRef.current.onResolveRound(roundId));
+    } else if (paused) {
+      // Hold here until resumed.
     } else if (roundsCount === 0) {
       const { cues, doneMs } = introTimeline();
       for (const cue of cues) at(cue.atMs, () => show(cue.word, false));

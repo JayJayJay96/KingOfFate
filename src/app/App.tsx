@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import type { SoundEngine } from '../audio/soundEngine';
+import { SoundProvider } from '../audio/SoundProvider';
 import { MatchScreen } from '../components/match/MatchScreen';
 import { SetupScreen } from '../components/setup/SetupScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
@@ -6,6 +8,7 @@ import { activeParticipants } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
 import { useMatch } from '../hooks/useMatch';
 import { useSetupConfig } from '../hooks/useSetupConfig';
+import type { AssetStore } from '../storage/assetStorage';
 import { createIndexedDbMatchRepository, type MatchRepository } from '../storage/matchStorage';
 
 export interface AppProps {
@@ -14,9 +17,23 @@ export interface AppProps {
   readonly rng?: Rng;
   /** Multiplies all spin timings; tests use a tiny value. Production: 1. */
   readonly timeScale?: number;
+  readonly soundEngine?: SoundEngine;
+  readonly assetStore?: AssetStore;
 }
 
-export function App({ matchRepository, rng, timeScale = 1 }: AppProps) {
+export function App({ soundEngine, assetStore, ...rest }: AppProps) {
+  return (
+    <SoundProvider engine={soundEngine} assets={assetStore}>
+      <Game {...rest} />
+    </SoundProvider>
+  );
+}
+
+function Game({
+  matchRepository,
+  rng,
+  timeScale = 1,
+}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale'>) {
   const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
   const [matchRng] = useState(() => rng ?? createCryptoRng());
   const setup = useSetupConfig();

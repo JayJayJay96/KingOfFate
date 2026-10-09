@@ -1,26 +1,25 @@
 import { useEffect } from 'react';
+import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
-import type { SoundControl } from '../../hooks/useSound';
+import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { EventLog } from './EventLog';
 
 interface VictoryScreenProps {
   readonly match: MatchState;
-  readonly sound: SoundControl;
   readonly saveError: string | null;
   readonly onLeave: () => void;
 }
 
 /** Winner ceremony. The result was committed (with its record) before this rendered. */
-export function VictoryScreen({ match, sound, saveError, onLeave }: VictoryScreenProps) {
+export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps) {
   const f = match.finale!;
+  const { engine } = useSound();
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const others = f.finalistIds.filter((id) => !f.winnerIds.includes(id));
-  const { audio } = sound;
 
   useEffect(() => {
-    audio.stopMusic();
-    audio.victory();
-  }, [audio]);
+    engine.sfx('victory');
+  }, [engine]);
 
   return (
     <main className="victory" aria-label="Victory">
@@ -36,8 +35,11 @@ export function VictoryScreen({ match, sound, saveError, onLeave }: VictoryScree
       <ol className="victory__winners" aria-label="Winners">
         {f.winnerIds.map((id) => (
           <li key={id}>
-            <span aria-hidden="true">👑 </span>
-            {nameOf(id)}
+            <span className="victory__portrait">
+              <CrownIcon size={28} />
+              <FighterSprite seed={nameOf(id)} size={96} />
+            </span>
+            <span className="victory__name">{nameOf(id)}</span>
           </li>
         ))}
       </ol>

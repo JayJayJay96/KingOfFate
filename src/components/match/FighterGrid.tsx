@@ -1,4 +1,5 @@
 import type { MatchPlayer } from '../../game/engine/matchTypes';
+import { FighterSprite } from '../sprites/icons';
 
 interface FighterGridProps {
   readonly players: readonly MatchPlayer[];
@@ -33,6 +34,7 @@ export function FighterGrid({
             data-cursor={p.id === highlightId ? 'true' : undefined}
             data-shield={p.shield ? 'true' : undefined}
           >
+            <FighterSprite seed={p.name} size={40} />
             <span className="fighter__name">{p.name}</span>
             {p.shield && (
               <span className="fighter__shield" title="Has a Shield">

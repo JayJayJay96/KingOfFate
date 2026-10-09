@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engine/finale';
@@ -6,6 +6,7 @@ import { beginTurn, createMatch } from '../game/engine/match';
 import { createScriptedRng, createSeededRng, type Rng } from '../game/rng/rng';
 import { createMemoryMatchRepository, type MatchRepository } from '../storage/matchStorage';
 import { SETUP_STORAGE_KEY } from '../storage/setupStorage';
+import type { SoundEngine } from '../audio/soundEngine';
 import { App } from './App';
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -16,9 +17,10 @@ const FAST = { timeScale: 0.005 };
 async function renderApp(
   repo: MatchRepository = createMemoryMatchRepository(),
   rng: Rng = createSeededRng(1),
+  timeScale = FAST.timeScale,
 ) {
   const user = userEvent.setup();
-  const utils = render(<App matchRepository={repo} rng={rng} {...FAST} />);
+  const utils = render(<App matchRepository={repo} rng={rng} timeScale={timeScale} />);
   await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
   return { user, repo, ...utils };
 }
@@ -150,7 +152,7 @@ describe('Match', () => {
       within(screen.getByRole('list', { name: 'Winners' }))
         .getAllByRole('listitem')
         .map((li) => li.textContent),
-    ).toEqual(['👑 Kavitha']);
+    ).toEqual(['Kavitha']);
     expect(screen.getByTestId('result-saved')).toBeInTheDocument();
     expect(await repo.listCompleted()).toHaveLength(1);
     await findInLog('Winner: Kavitha!');
@@ -192,7 +194,7 @@ describe('Match', () => {
       within(screen.getByRole('list', { name: 'Winners' }))
         .getAllByRole('listitem')
         .map((li) => li.textContent),
-    ).toEqual(['👑 Aisyah', '👑 Wei Jie']);
+    ).toEqual(['Aisyah', 'Wei Jie']);
   });
 
   it('shows the victory again after a reload, without recording a second result', async () => {
@@ -255,10 +257,16 @@ describe('Match', () => {
     await user.click(startButton());
     await screen.findByRole('list', { name: 'Fighters' });
 
+    // Abandon lives in the Esc menu.
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Paused' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /abandon match/i }));
     await user.click(screen.getByRole('button', { name: /keep playing/i }));
+    await user.click(screen.getByRole('button', { name: 'Resume' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Fighters' })).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: /menu/i }));
     await user.click(screen.getByRole('button', { name: /abandon match/i }));
     await user.click(screen.getByRole('button', { name: /yes, abandon/i }));
     expect(await screen.findByRole('button', { name: /^start$/i })).toBeInTheDocument();
@@ -347,6 +355,7 @@ describe('Fates on screen', () => {
     const { user } = await renderApp(
       createMemoryMatchRepository(),
       createScriptedRng([0, VS, 0, ROCK, ROCK, ROCK, SCISSORS]),
+      0.05, // slow enough for the duel panel to be observed
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
     await user.click(startButton());
@@ -379,5 +388,140 @@ describe('Fates on screen', () => {
     expect(screen.getByTestId('sudden-death')).toBeInTheDocument();
     expect(screen.getByTestId('fate-odds')).toHaveTextContent('KO 90% · VS 10%');
     expect(document.querySelectorAll('.fate-slot--SHIELD')).toHaveLength(0);
+  });
+});
+
+function spyEngine() {
+  const calls: string[] = [];
+  const engine: SoundEngine = {
+    webAudio: true,
+    speech: true,
+    unlock: () => calls.push('unlock'),
+    apply: () => undefined,
+    setMusic: (theme) => calls.push(`music:${theme}`),
+    setPaused: (p) => calls.push(`paused:${p}`),
+    sfx: (name) => calls.push(`sfx:${name}`),
+    chant: (word) => calls.push(`chant:${word}`),
+    listVoices: () => [],
+    onVoicesChanged: () => () => undefined,
+    dispose: () => undefined,
+  };
+  return { engine, calls };
+}
+
+describe('Phase 5: sound, shortcuts and pause', () => {
+  const ROCK = 0;
+  const SCISSORS = 2;
+
+  it('plays music per phase, cursor ticks, outcome sounds, the chant and the victory jingle', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        rng={createScriptedRng([0, KO, ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS])}
+        timeScale={0.005}
+        soundEngine={engine}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    expect(calls).toContain('music:select');
+
+    await user.click(randomButton());
+    await screen.findByRole('main', { name: 'Finale' });
+    expect(calls).toContain('sfx:tick');
+    expect(calls).toContain('sfx:fateTick');
+    expect(calls).toContain('sfx:ko');
+
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await screen.findByRole('main', { name: 'Victory' });
+    expect(calls).toContain('music:finale');
+    for (const word of ['MOT', 'HAI', 'BA', 'YO']) expect(calls).toContain(`chant:${word}`);
+    expect(calls).toContain('sfx:score');
+    // The winning reveal ends the match, so the victory jingle replaces the qualify sting.
+    expect(calls).toContain('sfx:victory');
+    expect(calls.at(-1)).not.toBe('music:finale');
+  });
+
+  it('D4: Esc pauses the finale after the current round; Resume continues', async () => {
+    // Two finalists; the slow scale lets the test act between rounds.
+    const players = ['Aisyah', 'Wei Jie'].map((name, i) => ({ id: `p${i}`, name }));
+    const repo = createMemoryMatchRepository(
+      beginFinale(
+        createMatch(
+          { players, winnerCount: 1, presetId: 'normal' },
+          { matchId: 'm1', startedAt: '2026-10-09T07:00:00.000Z' },
+        ),
+      ),
+    );
+    const { user } = await renderApp(
+      repo,
+      createScriptedRng([ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS]),
+      0.02,
+    );
+    await findInLog('Round 1: Rock beats Scissors, +1 for Aisyah.');
+    await user.keyboard('{Escape}');
+    expect(await screen.findByRole('dialog', { name: 'Finale paused' })).toBeInTheDocument();
+
+    // While paused no further round is played.
+    const roundsNow = () =>
+      within(screen.getByTestId('event-log')).queryAllByText(/^Round \d+:/).length;
+    const held = roundsNow();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(roundsNow()).toBe(held);
+    expect(screen.getByRole('main', { name: 'Finale' })).toBeInTheDocument();
+
+    const dialog = screen.getByRole('dialog', { name: 'Finale paused' });
+    await user.click(within(dialog).getByRole('button', { name: 'Resume' }));
+    await screen.findByRole('main', { name: 'Victory' }, { timeout: 4000 });
+  });
+
+  it('keyboard: S shuffles, M mutes, Esc opens the menu and blocks spinning', async () => {
+    const { user } = await renderApp(createMemoryMatchRepository(), createSeededRng(9));
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
+    await user.click(startButton());
+    const grid = await screen.findByRole('list', { name: 'Fighters' });
+    const order = () =>
+      within(grid)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent);
+    const before = order();
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    await user.keyboard('s');
+    await waitFor(() => expect(order()).not.toEqual(before));
+
+    await user.keyboard('m');
+    expect(JSON.parse(localStorage.getItem('kof.audio')!).muted).toBe(true);
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Paused' })).toBeInTheDocument();
+    expect(randomButton()).toBeDisabled();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(randomButton()).toBeEnabled();
+  });
+
+  it('sound settings persist, and a custom music file is kept locally and can be removed', async () => {
+    const { user } = await renderApp();
+    const music = screen.getByRole('slider', { name: 'Music' });
+    fireEvent.change(music, { target: { value: '20' } });
+    expect(JSON.parse(localStorage.getItem('kof.audio')!).music).toBe(0.2);
+
+    const file = new File([new Uint8Array([1, 2, 3, 4])], 'office-theme.mp3', {
+      type: 'audio/mpeg',
+    });
+    await user.upload(screen.getByLabelText(/choose file/i), file);
+    expect(await screen.findByText(/My music file: office-theme\.mp3/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /my music file/i })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /built-in chiptune/i })).toBeChecked(),
+    );
+    expect(screen.getByRole('radio', { name: /my music file/i })).toBeDisabled();
   });
 });

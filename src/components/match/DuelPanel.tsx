@@ -1,8 +1,7 @@
 import { GESTURE_LABEL } from '../../game/engine/describeEvent';
 import type { CommittedDuel } from '../../game/engine/matchTypes';
 import { beats, type Gesture } from '../../game/engine/rps';
-
-const GESTURE_ICON: Readonly<Record<Gesture, string>> = { ROCK: '✊', PAPER: '✋', SCISSORS: '✌️' };
+import { FighterSprite, HandIcon } from '../sprites/icons';
 
 interface DuelPanelProps {
   readonly challengerName: string;
@@ -46,8 +45,11 @@ export function DuelPanel({ challengerName, opponentName, duel, throwIndex }: Du
 function Side({ name, gesture }: { readonly name: string; readonly gesture?: Gesture }) {
   return (
     <div className="duel__side">
-      <span className="duel__hand" aria-hidden="true">
-        {gesture ? GESTURE_ICON[gesture] : '✊'}
+      <span className="duel__figure">
+        <FighterSprite seed={name} size={72} />
+        <span className="duel__hand">
+          <HandIcon gesture={gesture ?? 'ROCK'} size={40} />
+        </span>
       </span>
       <span className="duel__name">{name}</span>
       <span className="duel__gesture">{gesture ? GESTURE_LABEL[gesture] : '…'}</span>

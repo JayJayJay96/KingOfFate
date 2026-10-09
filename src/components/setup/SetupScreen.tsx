@@ -6,6 +6,7 @@ import type { SetupLoadStatus } from '../../storage/setupStorage';
 import { MatchOptions } from './MatchOptions';
 import { RosterGrid } from './RosterGrid';
 import { RosterInput } from './RosterInput';
+import { SoundSettings } from './SoundSettings';
 
 interface SetupScreenProps {
   readonly store: SetupStore;
@@ -64,6 +65,8 @@ export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenP
             onWinnerCountChange={(winnerCount) => update((c) => ({ ...c, winnerCount }))}
             onPresetChange={(presetId) => update((c) => ({ ...c, presetId }))}
           />
+
+          <SoundSettings />
 
           <section className="panel start-panel">
             <div id={issuesId} aria-live="polite">

@@ -1,21 +1,23 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useSound } from '../../audio/soundContext';
 import { CHANT_LABEL, stagePositions, type ChantWord } from '../../animation/finaleTimeline';
 import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEvent';
 import { FINALE_TARGET_SCORE } from '../../game/engine/finale';
 import type { FinaleThrow, MatchState } from '../../game/engine/matchTypes';
-import type { Gesture } from '../../game/engine/rps';
 import { useFinaleShow } from '../../hooks/useFinaleShow';
-import type { SoundControl } from '../../hooks/useSound';
+import { CrownIcon, FighterSprite, HandIcon } from '../sprites/icons';
 import { EventLog } from './EventLog';
+import { PauseMenu } from './PauseMenu';
 
-const GESTURE_ICON: Readonly<Record<Gesture, string>> = { ROCK: '✊', PAPER: '✋', SCISSORS: '✌️' };
 const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"]';
 
 interface FinaleStageProps {
   readonly match: MatchState;
   readonly timeScale: number;
-  readonly sound: SoundControl;
   readonly saveError: string | null;
+  /** D4: pause requested (takes effect after the current round). */
+  readonly paused: boolean;
+  readonly onTogglePause: () => void;
   readonly onBegin: () => void;
   readonly onNextRound: () => void;
   readonly onResolveRound: (roundId: string) => void;
@@ -25,35 +27,44 @@ interface FinaleStageProps {
 export function FinaleStage({
   match,
   timeScale,
-  sound,
   saveError,
+  paused,
+  onTogglePause,
   onBegin,
   onNextRound,
   onResolveRound,
 }: FinaleStageProps) {
   const f = match.finale!;
+  const { engine, settings, toggleMute } = useSound();
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
-  const show = useFinaleShow(match, timeScale, {
-    onNextRound,
-    onResolveRound,
-    onBeat: (word: ChantWord) => sound.audio.chant(word),
-  });
+  const show = useFinaleShow(
+    match,
+    timeScale,
+    { onNextRound, onResolveRound, onBeat: (word: ChantWord) => engine.chant(word) },
+    paused,
+  );
 
   const slotsLeft = match.winnerCount - f.winnerIds.length;
   const lastRound = f.rounds.at(-1) ?? null;
   const showingResult = !f.pendingRound && lastRound !== null;
   const positions = stagePositions(f.finalistIds.length);
+  const holding = paused && !f.pendingRound;
 
   function begin() {
-    sound.unlock();
-    sound.audio.startMusic();
+    engine.unlock();
     onBegin();
   }
 
-  // Background drone while the finale runs (once audio has been unlocked by a click).
+  // Result sounds for newly scored reveals (not for a finale restored from storage).
+  const seenRounds = useRef(f.rounds.length);
   useEffect(() => {
-    if (f.started && sound.unlocked) sound.audio.startMusic();
-  }, [f.started, sound.unlocked, sound.audio]);
+    if (f.rounds.length > seenRounds.current && lastRound) {
+      engine.sfx(
+        !lastRound.winningGesture ? 'draw' : lastRound.qualifiedIds.length ? 'qualify' : 'score',
+      );
+    }
+    seenRounds.current = f.rounds.length;
+  }, [engine, f.rounds.length, lastRound]);
 
   useEffect(() => {
     if (f.started) return;
@@ -80,21 +91,31 @@ export function FinaleStage({
             Tiebreak {f.stageNumber - 1}
           </span>
         )}
-        <button
-          type="button"
-          className="button button--small finale-stage__sound"
-          aria-pressed={sound.enabled}
-          onClick={sound.toggle}
-          title={sound.audio.available ? 'Placeholder sound effects' : 'Sound is not available'}
-          disabled={!sound.audio.available}
-        >
-          {sound.audio.available ? (sound.enabled ? '🔊 Sound on' : '🔇 Sound off') : 'No sound'}
-        </button>
+        <span className="finale-stage__actions">
+          {f.started && (
+            <button type="button" className="button button--small" onClick={onTogglePause}>
+              {paused ? 'Resume' : 'Pause (Esc)'}
+            </button>
+          )}
+          <button
+            type="button"
+            className="button button--small"
+            aria-pressed={!settings.muted}
+            onClick={toggleMute}
+          >
+            {settings.muted ? 'Sound off (M)' : 'Sound on (M)'}
+          </button>
+        </span>
       </header>
 
       {saveError && (
         <p className="banner banner--error" role="alert">
           {saveError}
+        </p>
+      )}
+      {paused && f.pendingRound && (
+        <p className="banner banner--warn" role="status" data-testid="pausing">
+          Pausing after this round…
         </p>
       )}
 
@@ -138,6 +159,14 @@ export function FinaleStage({
       )}
 
       <EventLog match={match} />
+
+      {holding && (
+        <PauseMenu
+          title="Finale paused"
+          message="The next round starts when you resume. Nothing already decided changes."
+          onResume={onTogglePause}
+        />
+      )}
     </main>
   );
 }
@@ -163,14 +192,21 @@ function Finalist({ name, position, score, status, word, revealed, scored }: Fin
       data-testid="finalist"
       data-status={status}
       data-score={score}
+      data-gesture={revealed?.gesture}
     >
-      <span
-        key={bouncing ? word : 'still'}
-        className={bouncing ? 'finalist__hand finalist__hand--bounce' : 'finalist__hand'}
-        aria-hidden="true"
-      >
-        {status === 'winner' ? '👑' : revealed ? GESTURE_ICON[revealed.gesture] : '✊'}
-      </span>
+      <div className="finalist__figure">
+        <FighterSprite seed={name} size={56} />
+        <span
+          key={bouncing ? word : 'still'}
+          className={bouncing ? 'finalist__hand finalist__hand--bounce' : 'finalist__hand'}
+        >
+          {status === 'winner' ? (
+            <CrownIcon size={26} />
+          ) : (
+            <HandIcon gesture={revealed?.gesture ?? 'ROCK'} size={34} />
+          )}
+        </span>
+      </div>
       <span className="finalist__name">{name}</span>
       {status === 'winner' && <span className="finalist__badge">Winner</span>}
       {status === 'out' && <span className="finalist__badge">Out</span>}

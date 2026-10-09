@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSound } from '../../audio/soundContext';
+import type { SfxName } from '../../audio/soundEngine';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
 import { alivePlayers } from '../../game/engine/match';
-import type { MatchState } from '../../game/engine/matchTypes';
-import { useTurnAnimation } from '../../hooks/useTurnAnimation';
+import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
+import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
 import { DuelPanel } from './DuelPanel';
-import { FateStrip } from './FateStrip';
 import { EventLog } from './EventLog';
+import { FateStrip } from './FateStrip';
 import { FighterGrid } from './FighterGrid';
-import { useSound } from '../../hooks/useSound';
 import { FinaleStage } from './FinaleStage';
+import { PauseMenu } from './PauseMenu';
 import { PreviewPanel } from './PreviewPanel';
 import { VictoryScreen } from './VictoryScreen';
 
@@ -29,6 +31,13 @@ interface MatchScreenProps {
 
 const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"]';
 
+function outcomeSfx(last: ResolvedTurn): SfxName {
+  const o = last.outcome;
+  if (o.fate === 'KO') return o.result === 'ELIMINATED' ? 'ko' : 'blocked';
+  if (o.fate === 'SHIELD') return o.result === 'GAINED' ? 'shield' : 'wasted';
+  return o.loserResult === 'ELIMINATED' ? 'ko' : 'blocked';
+}
+
 export function MatchScreen({
   match,
   timeScale,
@@ -42,9 +51,22 @@ export function MatchScreen({
   onLeave,
 }: MatchScreenProps) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
-  // Lives across finale → victory so one unlocked audio context is reused.
-  const sound = useSound();
+  /** Normal play: Esc menu open. Finale: pause requested (D4). */
+  const [paused, setPaused] = useState(false);
+  const { engine, toggleMute } = useSound();
   const alive = alivePlayers(match);
+  const duel = match.pendingTurn?.duel ?? null;
+
+  const onCue = (cue: TurnCue) => {
+    if (cue.kind === 'player') engine.sfx('tick');
+    else if (cue.kind === 'fate') engine.sfx('fateTick');
+    else if (cue.kind === 'duelIntro') engine.sfx('vs');
+    else {
+      const t = duel?.throws[cue.index];
+      engine.sfx(t && t.challenger === t.opponent ? 'draw' : 'clash');
+    }
+  };
+
   const animation = useTurnAnimation(
     match.pendingTurn,
     alive.map((p) => p.id),
@@ -52,32 +74,73 @@ export function MatchScreen({
     fateStartIndex(match.lastTurn?.turn.fateSlotIndex ?? null),
     timeScale,
     onSpinComplete,
+    onCue,
   );
   const highlightId = animation.playerCursorId;
-  const duel = match.pendingTurn?.duel ?? null;
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
-  const canSpin = match.phase === 'READY' && !confirmingAbandon;
+  const inOrdinaryPlay = match.phase === 'READY' || match.phase === 'SPINNING';
+  const canSpin = match.phase === 'READY' && !confirmingAbandon && !paused;
 
-  // Space/Enter start the next turn, except when a control has focus (it handles its own keys).
+  // Background music follows the phase; it holds while paused.
+  const finaleStarted = !!match.finale?.started;
+  useEffect(() => {
+    engine.setMusic(
+      inOrdinaryPlay ? 'select' : match.phase === 'FINALE' && finaleStarted ? 'finale' : null,
+    );
+  }, [engine, inOrdinaryPlay, match.phase, finaleStarted]);
+  useEffect(() => () => engine.setMusic(null), [engine]);
+  useEffect(() => {
+    engine.setPaused(paused);
+  }, [engine, paused]);
+
+  // Outcome sounds for newly resolved turns (not for a match restored from storage).
+  const lastTurnId = match.lastTurn?.turn.turnId ?? null;
+  const seenTurn = useRef(lastTurnId);
+  useEffect(() => {
+    if (lastTurnId && lastTurnId !== seenTurn.current && match.lastTurn) {
+      engine.sfx(outcomeSfx(match.lastTurn));
+    }
+    seenTurn.current = lastTurnId;
+  }, [engine, lastTurnId, match.lastTurn]);
+  const seenSuddenDeath = useRef(match.suddenDeath);
+  useEffect(() => {
+    if (match.suddenDeath && !seenSuddenDeath.current) engine.sfx('suddenDeath');
+    seenSuddenDeath.current = match.suddenDeath;
+  }, [engine, match.suddenDeath]);
+
+  // Keyboard: Space/Enter spin, S shuffle, M mute, Esc menu / finale pause.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== ' ' && event.key !== 'Enter') return;
-      if (event.repeat || !canSpin) return;
-      if (event.target instanceof Element && event.target.closest(INTERACTIVE)) return;
-      event.preventDefault();
-      onSpin();
+      if (event.repeat) return;
+      const inControl = event.target instanceof Element && !!event.target.closest(INTERACTIVE);
+      const key = event.key.toLowerCase();
+      if (key === 'escape') {
+        if (inOrdinaryPlay || (match.phase === 'FINALE' && finaleStarted)) {
+          event.preventDefault();
+          setPaused((p) => !p);
+        }
+        return;
+      }
+      if (inControl) return;
+      if (key === 'm') toggleMute();
+      else if (key === 's' && canSpin) onShuffle();
+      else if ((key === ' ' || key === 'enter') && canSpin) {
+        event.preventDefault();
+        onSpin();
+      }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canSpin, onSpin]);
+  }, [canSpin, onSpin, onShuffle, toggleMute, inOrdinaryPlay, match.phase, finaleStarted]);
 
   if (match.phase === 'FINALE') {
     return (
       <FinaleStage
         match={match}
         timeScale={timeScale}
-        sound={sound}
         saveError={saveError}
+        paused={paused}
+        onTogglePause={() => setPaused((p) => !p)}
         onBegin={onBeginFinale}
         onNextRound={onNextFinaleRound}
         onResolveRound={onResolveFinaleRound}
@@ -85,7 +148,7 @@ export function MatchScreen({
     );
   }
   if (match.phase === 'VICTORY') {
-    return <VictoryScreen match={match} sound={sound} saveError={saveError} onLeave={onLeave} />;
+    return <VictoryScreen match={match} saveError={saveError} onLeave={onLeave} />;
   }
 
   return (
@@ -102,34 +165,9 @@ export function MatchScreen({
         <span>{FATE_PRESETS[match.presetId].label}</span>
         {match.suddenDeath && <span className="match__sudden-death">Sudden Death</span>}
         <span className="match__bar-actions">
-          {confirmingAbandon ? (
-            <>
-              <span>Abandon? Not recorded.</span>
-              <button
-                type="button"
-                className="button button--small button--danger"
-                onClick={onLeave}
-              >
-                Yes, abandon
-              </button>
-              <button
-                type="button"
-                className="button button--small"
-                onClick={() => setConfirmingAbandon(false)}
-              >
-                Keep playing
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="button button--small"
-              disabled={match.phase !== 'READY'}
-              onClick={() => setConfirmingAbandon(true)}
-            >
-              Abandon match
-            </button>
-          )}
+          <button type="button" className="button button--small" onClick={() => setPaused(true)}>
+            Menu (Esc)
+          </button>
         </span>
       </header>
 
@@ -187,12 +225,47 @@ export function MatchScreen({
             </button>
           </div>
           <p className="hint">
-            Click ? or press Space / Enter. Shuffle moves fighters and Fate slots; odds stay equal.
+            Space / Enter: spin · S: shuffle · M: mute · Esc: menu. Shuffle never changes odds.
           </p>
         </div>
       </section>
 
       <EventLog match={match} />
+
+      {paused && (
+        <PauseMenu
+          title="Paused"
+          message={
+            match.phase === 'SPINNING'
+              ? 'The current spin keeps going; its result is already decided.'
+              : undefined
+          }
+          onResume={() => {
+            setPaused(false);
+            setConfirmingAbandon(false);
+          }}
+        >
+          {confirmingAbandon ? (
+            <>
+              <button type="button" className="button button--danger" onClick={onLeave}>
+                Yes, abandon (not recorded)
+              </button>
+              <button type="button" className="button" onClick={() => setConfirmingAbandon(false)}>
+                Keep playing
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="button"
+              disabled={match.phase !== 'READY'}
+              onClick={() => setConfirmingAbandon(true)}
+            >
+              Abandon match
+            </button>
+          )}
+        </PauseMenu>
+      )}
     </main>
   );
 }

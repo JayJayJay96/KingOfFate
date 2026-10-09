@@ -1114,3 +1114,253 @@ textarea {
   position: relative;
   z-index: 1;
 }
+
+/* ---------- Phase 5: retro presentation ---------- */
+:root {
+  --font-pixel: 'Press Start 2P', var(--font);
+}
+
+/* Pixel font for big labels only; body text stays readable on a screenshare. */
+.title__logo,
+.panel__title,
+.match__logo,
+.preview__name,
+.finale-stage__title,
+.finale-stage__chant,
+.victory__title,
+.victory__name,
+.duel__vs,
+.random-button,
+.button--start,
+.pause-menu__title,
+.match__sudden-death {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.04em;
+}
+
+.panel__title {
+  font-size: 0.85rem;
+}
+
+.preview__name {
+  font-size: clamp(1.4rem, 4.5vw, 2.8rem);
+  line-height: 1.3;
+}
+
+.title__logo {
+  font-size: clamp(1.6rem, 5vw, 3rem);
+}
+
+.finale-stage__chant {
+  font-size: clamp(2rem, 7vw, 4.5rem);
+}
+
+.victory__title {
+  font-size: clamp(2.2rem, 9vw, 5rem);
+}
+
+/* CRT scanlines over everything (purely decorative). */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.12) 3px
+  );
+}
+
+svg.fighter-sprite,
+svg.pixel-icon {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* grid tiles with portraits */
+.fighter {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+}
+
+.fighter--out svg.fighter-sprite {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.fighter__name {
+  max-width: 100%;
+}
+
+/* preview portrait */
+.preview__portrait {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 150px;
+  border: 3px solid var(--panel-edge);
+  background: #0b0613;
+}
+
+.preview--ko .preview__portrait svg {
+  filter: grayscale(1) brightness(0.7);
+}
+
+.fate-slot svg {
+  margin: 0 auto;
+}
+
+/* duel + finale figures */
+.duel__figure,
+.finalist__figure {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.duel__hand,
+.finalist__hand {
+  position: absolute;
+  right: -18px;
+  bottom: -4px;
+}
+
+.finalist__hand {
+  right: -22px;
+}
+
+.victory__winners li {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.victory__portrait {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.victory__winners {
+  grid-auto-flow: column;
+  gap: 32px;
+  justify-content: center;
+}
+
+.victory__name {
+  font-size: clamp(1rem, 3.5vw, 1.8rem);
+}
+
+.finale-stage__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* pause menu */
+.pause-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(5, 2, 10, 0.75);
+}
+
+.pause-menu {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 14px;
+  text-align: center;
+}
+
+.pause-menu__title {
+  margin: 0;
+  color: var(--gold);
+  font-size: 1.4rem;
+}
+
+.pause-menu__message {
+  margin: 0;
+  color: var(--muted);
+}
+
+.pause-menu__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.shortcut-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.shortcut-list dt {
+  color: var(--cyan);
+  font-weight: 900;
+}
+
+.shortcut-list dd {
+  margin: 0;
+}
+
+/* sound settings */
+.sound-settings {
+  display: grid;
+  gap: 8px;
+}
+
+.sound-settings .panel__header {
+  align-items: center;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 9em 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider input {
+  accent-color: var(--gold);
+}
+
+.sound-settings__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sound-settings select {
+  flex: 1;
+  min-width: 0;
+  background: #0b0613;
+  border: 3px solid var(--panel-edge);
+  padding: 4px;
+}
+
+.sound-settings__music {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.sound-settings__music label {
+  cursor: pointer;
+}
+
+label.button {
+  display: inline-block;
+}

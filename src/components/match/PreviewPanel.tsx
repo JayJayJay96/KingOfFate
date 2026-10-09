@@ -1,12 +1,13 @@
 import { describeOutcome } from '../../game/engine/describeEvent';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
+import { FighterSprite } from '../sprites/icons';
 
 interface PreviewPanelProps {
   readonly match: MatchState;
   readonly highlightId: string | null;
 }
 
-/** Large nameplate with a generic silhouette (placeholder art until Phase 5). */
+/** Large nameplate with the selected fighter's pixel portrait. */
 export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
   const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
@@ -32,7 +33,13 @@ export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
 
   return (
     <section className={`panel preview ${tone}`} aria-label="Selected fighter">
-      <div className="preview__silhouette" aria-hidden="true" />
+      {name ? (
+        <span className="preview__portrait">
+          <FighterSprite seed={name} size={136} />
+        </span>
+      ) : (
+        <div className="preview__silhouette" aria-hidden="true" />
+      )}
       <div className="preview__text" aria-hidden="true">
         <p className="preview__name" data-testid="preview-name">
           {name ?? '???'}
