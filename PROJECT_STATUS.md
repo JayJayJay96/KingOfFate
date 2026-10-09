@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-09  
 **Phase:** 5 — Retro Arcade Experience  
-**Overall status:** Phases 1–4 done. **Phase 5 implemented and verified locally** (226 unit/integration tests, 12 E2E ×3 runs green); awaiting owner review (listen with sound on). Not deployed.
+**Overall status:** Phases 1–4 done; Phase 5 accepted ("tested, all good") plus owner follow-ups (step-by-step reveal, VS opponent spin, fallen fighters on the victory screen) implemented and verified (229 unit/integration tests, 12 E2E ×3 runs green); follow-ups await owner review. Not deployed.
 
 ## 1. Current snapshot
 
