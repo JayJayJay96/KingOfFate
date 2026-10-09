@@ -904,8 +904,8 @@ textarea {
 
 .finale-stage__arena {
   position: relative;
-  height: min(60vh, 460px);
-  min-height: 320px;
+  /* Tall enough for two rows of fighters with their hand signs below them. */
+  height: max(480px, 62vh);
   border: 3px solid var(--panel-edge);
   background: #120a1f;
 }
@@ -1225,20 +1225,18 @@ svg.pixel-icon {
 /* duel + finale figures */
 .duel__figure,
 .finalist__figure {
-  position: relative;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  gap: 6px;
 }
 
+/* Hand signs sit below the fighter (not on the head) so they read clearly. */
 .duel__hand,
 .finalist__hand {
-  position: absolute;
-  right: -18px;
-  bottom: -4px;
-}
-
-.finalist__hand {
-  right: -22px;
+  display: block;
+  padding: 4px;
+  border: 2px solid var(--panel-edge);
+  background: #0b0613;
 }
 
 .victory__winners li {

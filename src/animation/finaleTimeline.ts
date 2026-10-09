@@ -52,8 +52,17 @@ export function stagePositions(count: number): { x: number; y: number }[] {
       { x: 80, y: 50 },
     ];
   }
-  return Array.from({ length: count }, (_, i) => {
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / count;
-    return { x: 50 + 36 * Math.cos(angle), y: 50 + 38 * Math.sin(angle) };
-  });
+  if (count === 3) {
+    return [
+      { x: 50, y: 25 },
+      { x: 78, y: 74 },
+      { x: 22, y: 74 },
+    ];
+  }
+  // 4–6: two rows facing each other, with the chant word in the gap between them.
+  const top = Math.ceil(count / 2);
+  const bottom = count - top;
+  const row = (n: number, y: number) =>
+    Array.from({ length: n }, (_, i) => ({ x: ((i + 1) * 100) / (n + 1), y }));
+  return [...row(top, 24), ...row(bottom, 76)];
 }

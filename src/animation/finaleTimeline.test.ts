@@ -42,14 +42,15 @@ describe('stagePositions', () => {
     expect(pts[1]!.y).toBeCloseTo(pts[2]!.y);
   });
 
-  it.each([4, 5, 6])('%i finalists sit on a ring inside the arena', (n) => {
+  it.each([4, 5, 6])('%i finalists sit in two rows, leaving the middle for the chant', (n) => {
     const pts = stagePositions(n);
     expect(pts).toHaveLength(n);
     for (const p of pts) {
       expect(p.x).toBeGreaterThan(5);
       expect(p.x).toBeLessThan(95);
-      expect(p.y).toBeGreaterThan(5);
-      expect(p.y).toBeLessThan(95);
+      expect([24, 76]).toContain(p.y);
     }
+    // No two fighters share a spot.
+    expect(new Set(pts.map((p) => `${p.x},${p.y}`)).size).toBe(n);
   });
 });

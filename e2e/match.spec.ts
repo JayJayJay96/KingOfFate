@@ -152,8 +152,8 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
     const prev = gridOrder.indexOf(log.player[i - 1]!.name);
     expect(log.player[i]!.name).toBe(gridOrder[(prev + 1) % gridOrder.length]);
   }
-  // Owner request: the Fate cursor only starts once the fighter has been chosen.
-  expect(log.fate[0]!.t).toBeGreaterThanOrEqual(log.player.at(-1)!.t);
+  // Owner request: the Fate cursor may start mid fighter spin, but stops only after the fighter.
+  expect(log.fate.at(-1)!.t).toBeGreaterThan(log.player.at(-1)!.t);
   const firstGap = log.player[1]!.t - log.player[0]!.t;
   const lastGap = log.player.at(-1)!.t - log.player.at(-2)!.t;
   expect(lastGap).toBeGreaterThan(firstGap * 3);

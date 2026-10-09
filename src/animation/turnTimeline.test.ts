@@ -6,6 +6,8 @@ import {
   DUEL_INTRO_MS,
   DUEL_RESULT_HOLD_MS,
   DUEL_THROW_MS,
+  FATE_LANDS_AFTER_FIGHTER_MS,
+  FATE_START_FRACTION,
   fateStartIndex,
   VS_ANNOUNCE_MS,
 } from './turnTimeline';
@@ -33,12 +35,20 @@ const vsTurn: CommittedTurn = {
 };
 
 describe('buildTurnTimeline (one step at a time)', () => {
-  it('the Fate cursor only starts after the fighter has landed and been revealed', () => {
+  it('the Fate cursor starts midway through the fighter spin but stops only after the reveal', () => {
+    let overlapped = 0;
     for (let i = 0; i < 100; i++) {
       const turn = { ...koTurn, turnId: `turn-${i}`, fateSlotIndex: i % 20 };
       const t = buildTurnTimeline(turn, alive, 'a', 0);
+      const fighterLand = t.playerSteps.at(-1)!.atMs;
       expect(t.playerSteps.at(-1)!.id).toBe('c');
-      expect(t.fateStartMs).toBeGreaterThan(t.playerSteps.at(-1)!.atMs);
+      // Never before half of the fighter's travel…
+      expect(t.fateStartMs).toBeGreaterThanOrEqual(Math.round(fighterLand * FATE_START_FRACTION));
+      // …and the Fate always stops after the chosen fighter is known.
+      expect(t.fateSteps.at(-1)!.atMs).toBeGreaterThanOrEqual(
+        t.playerRevealMs + FATE_LANDS_AFTER_FIGHTER_MS,
+      );
+      if (t.fateStartMs < t.playerRevealMs) overlapped++;
       expect(t.fateSteps[0]!.atMs).toBe(t.fateStartMs);
       expect(t.fateSteps.at(-1)!.id).toBe(String(i % 20));
       // Each cursor stays within its own cap.
@@ -48,6 +58,8 @@ describe('buildTurnTimeline (one step at a time)', () => {
       expect(t.vsAnnounceMs).toBeNull();
       expect(t.opponentSteps).toEqual([]);
     }
+    // Most turns really overlap (that is the time saving).
+    expect(overlapped).toBeGreaterThan(50);
   });
 
   it('the Fate cursor walks the strip in order, wrapping', () => {

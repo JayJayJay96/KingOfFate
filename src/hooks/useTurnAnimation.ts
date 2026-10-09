@@ -75,7 +75,8 @@ export function useTurnAnimation(
       );
 
     for (const s of t.playerSteps) at(s.atMs, { playerCursorId: s.id }, { kind: 'player' });
-    at(t.fateStartMs, { stage: 'fate' }, null);
+    // The Fate cursor may already be moving; the caption switches once the fighter is revealed.
+    at(t.playerRevealMs, { stage: 'fate' }, null);
     for (const s of t.fateSteps) {
       at(s.atMs, { fateCursorIndex: Number(s.id) }, { kind: 'fate' });
     }

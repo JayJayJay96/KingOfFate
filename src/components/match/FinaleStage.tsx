@@ -195,17 +195,17 @@ function Finalist({ name, position, score, status, word, revealed, scored }: Fin
       data-gesture={revealed?.gesture}
     >
       <div className="finalist__figure">
+        {status === 'winner' && <CrownIcon size={26} />}
         <FighterSprite seed={name} size={56} />
-        <span
-          key={bouncing ? word : 'still'}
-          className={bouncing ? 'finalist__hand finalist__hand--bounce' : 'finalist__hand'}
-        >
-          {status === 'winner' ? (
-            <CrownIcon size={26} />
-          ) : (
-            <HandIcon gesture={revealed?.gesture ?? 'ROCK'} size={34} />
-          )}
-        </span>
+        {/* Hand sits below the fighter (owner request), large enough to read on a screenshare. */}
+        {status !== 'winner' && (
+          <span
+            key={bouncing ? word : 'still'}
+            className={bouncing ? 'finalist__hand finalist__hand--bounce' : 'finalist__hand'}
+          >
+            <HandIcon gesture={revealed?.gesture ?? 'ROCK'} size={52} />
+          </span>
+        )}
       </div>
       <span className="finalist__name">{name}</span>
       {status === 'winner' && <span className="finalist__badge">Winner</span>}

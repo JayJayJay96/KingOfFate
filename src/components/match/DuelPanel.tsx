@@ -78,7 +78,7 @@ function Side({
         <FighterSprite seed={name} size={72} />
         {showHand && (
           <span className="duel__hand">
-            <HandIcon gesture={gesture ?? 'ROCK'} size={40} />
+            <HandIcon gesture={gesture ?? 'ROCK'} size={60} />
           </span>
         )}
       </span>
