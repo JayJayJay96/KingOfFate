@@ -38,4 +38,4 @@ src/
 e2e/           Playwright specs
 ```
 
-Third-party assets and what is deliberately not bundled: [](THIRD_PARTY_NOTICES.md).
+Third-party assets and what is deliberately not bundled: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
