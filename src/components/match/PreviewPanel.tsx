@@ -1,4 +1,5 @@
-import type { MatchState } from '../../game/engine/matchTypes';
+import { describeOutcome } from '../../game/engine/describeEvent';
+import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
 
 interface PreviewPanelProps {
   readonly match: MatchState;
@@ -7,19 +8,18 @@ interface PreviewPanelProps {
 
 /** Large nameplate with a generic silhouette (placeholder art until Phase 5). */
 export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
-  const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? null;
+  const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
 
   let name: string | null;
   let caption: string;
   let tone = '';
   if (match.phase === 'SPINNING') {
-    name = nameOf(highlightId);
+    name = highlightId ? nameOf(highlightId) : null;
     caption = 'Fate is choosing…';
   } else if (last) {
     name = nameOf(last.turn.playerId);
-    caption = last.eliminated ? 'KO! Eliminated' : 'Survived';
-    tone = last.eliminated ? 'preview--ko' : '';
+    ({ caption, tone } = shortOutcome(last, nameOf));
   } else {
     name = null;
     caption = 'Press ? or Space to begin';
@@ -27,7 +27,7 @@ export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
 
   const announcement =
     match.phase !== 'SPINNING' && last
-      ? `Turn ${last.turn.turnNumber}: ${nameOf(last.turn.playerId)}, ${caption}.`
+      ? `Turn ${last.turn.turnNumber}: ${describeOutcome(last.outcome, last.turn.playerId, last.turn.duel, nameOf)}`
       : '';
 
   return (
@@ -44,4 +44,34 @@ export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
       </p>
     </section>
   );
+}
+
+function shortOutcome(
+  last: ResolvedTurn,
+  nameOf: (id: string) => string,
+): { caption: string; tone: string } {
+  const o = last.outcome;
+  switch (o.fate) {
+    case 'KO':
+      return o.result === 'ELIMINATED'
+        ? { caption: 'KO! Eliminated', tone: 'preview--ko' }
+        : { caption: 'KO blocked by Shield', tone: 'preview--shield' };
+    case 'SHIELD':
+      return o.result === 'GAINED'
+        ? { caption: 'Gains a Shield', tone: 'preview--shield' }
+        : { caption: 'Shield wasted (already protected)', tone: '' };
+    case 'VS': {
+      const selectedWon = o.winnerId === last.turn.playerId;
+      const other = nameOf(selectedWon ? o.loserId : o.winnerId);
+      if (selectedWon) {
+        return {
+          caption: `Wins the duel vs ${other}${o.loserResult === 'ELIMINATED' ? ` · ${other} eliminated` : ''}`,
+          tone: 'preview--shield',
+        };
+      }
+      return o.loserResult === 'ELIMINATED'
+        ? { caption: `Loses the duel vs ${other} · Eliminated`, tone: 'preview--ko' }
+        : { caption: `Loses the duel vs ${other} · Shield absorbs it`, tone: 'preview--shield' };
+    }
+  }
 }

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { spinStartId } from '../../animation/spinPlan';
+import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
 import { alivePlayers } from '../../game/engine/match';
 import type { MatchState } from '../../game/engine/matchTypes';
-import { useSpinCursor } from '../../hooks/useSpinCursor';
+import { useTurnAnimation } from '../../hooks/useTurnAnimation';
+import { DuelPanel } from './DuelPanel';
+import { FateStrip } from './FateStrip';
 import { EventLog } from './EventLog';
 import { FighterGrid } from './FighterGrid';
 import { FinaleGate } from './FinaleGate';
@@ -32,13 +35,17 @@ export function MatchScreen({
 }: MatchScreenProps) {
   const [confirmingAbandon, setConfirmingAbandon] = useState(false);
   const alive = alivePlayers(match);
-  const highlightId = useSpinCursor(
+  const animation = useTurnAnimation(
     match.pendingTurn,
     alive.map((p) => p.id),
     spinStartId(match.players, match.lastTurn?.turn.playerId ?? null),
+    fateStartIndex(match.lastTurn?.turn.fateSlotIndex ?? null),
     timeScale,
     onSpinComplete,
   );
+  const highlightId = animation.playerCursorId;
+  const duel = match.pendingTurn?.duel ?? null;
+  const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const canSpin = match.phase === 'READY' && !confirmingAbandon;
 
   // Space/Enter start the next turn, except when a control has focus (it handles its own keys).
@@ -68,6 +75,7 @@ export function MatchScreen({
           {match.winnerCount} winner{match.winnerCount === 1 ? '' : 's'}
         </span>
         <span>{FATE_PRESETS[match.presetId].label}</span>
+        {match.suddenDeath && <span className="match__sudden-death">Sudden Death</span>}
         <span className="match__bar-actions">
           {confirmingAbandon ? (
             <>
@@ -106,12 +114,30 @@ export function MatchScreen({
         </p>
       )}
 
-      <PreviewPanel match={match} highlightId={highlightId} />
+      {duel && animation.duelThrowIndex !== null ? (
+        <DuelPanel
+          challengerName={nameOf(match.pendingTurn!.playerId)}
+          opponentName={nameOf(duel.opponentId)}
+          duel={duel}
+          throwIndex={animation.duelThrowIndex}
+        />
+      ) : (
+        <PreviewPanel match={match} highlightId={highlightId} />
+      )}
+
+      <FateStrip
+        slots={match.fateSlots}
+        cursorIndex={animation.fateCursorIndex}
+        lastSlotIndex={match.lastTurn?.turn.fateSlotIndex ?? null}
+        suddenDeath={match.suddenDeath}
+        noEliminationStreak={match.noEliminationStreak}
+      />
 
       <section className="panel arena">
         <FighterGrid
           players={match.players}
           highlightId={highlightId}
+          opponentId={animation.duelThrowIndex !== null ? (duel?.opponentId ?? null) : null}
           lastTargetId={match.lastTurn?.turn.playerId ?? null}
         />
         <div className="arena__controls">
@@ -128,7 +154,7 @@ export function MatchScreen({
             <button
               type="button"
               className="button shuffle-button"
-              title="Shuffle grid positions (does not change anyone's odds)"
+              title="Shuffle fighter and Fate positions (does not change anyone's odds)"
               disabled={!canSpin}
               onClick={onShuffle}
             >
@@ -136,7 +162,7 @@ export function MatchScreen({
             </button>
           </div>
           <p className="hint">
-            Click ? or press Space / Enter. Shuffle only moves positions; odds stay equal.
+            Click ? or press Space / Enter. Shuffle moves fighters and Fate slots; odds stay equal.
           </p>
         </div>
       </section>

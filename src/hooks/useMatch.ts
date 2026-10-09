@@ -3,7 +3,7 @@ import {
   beginTurn,
   createMatch,
   resolveTurn,
-  shufflePlayers,
+  shufflePositions,
   type MatchLaunch,
 } from '../game/engine/match';
 import type { MatchState } from '../game/engine/matchTypes';
@@ -20,7 +20,7 @@ export interface MatchController {
   readonly saveError: string | null;
   readonly start: (launch: MatchLaunch) => Promise<void>;
   readonly spin: () => Promise<void>;
-  /** Visual-only reshuffle of grid positions, allowed between turns. */
+  /** Visual-only reshuffle of fighter and Fate slot positions, allowed between turns. */
   readonly shuffle: () => Promise<void>;
   readonly completeSpin: (turnId: string) => Promise<void>;
   readonly leave: () => Promise<void>;
@@ -45,6 +45,10 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
       if (result.status === 'loaded') {
         current.current = result.match;
         setMatch(result.match);
+      } else if (result.status === 'outdated') {
+        setNotice(
+          'A match saved by an older version of the game was discarded. Start a new match.',
+        );
       } else if (result.status === 'corrupt') {
         setNotice('A saved match could not be read and was discarded. Start a new match.');
       } else if (result.status === 'unavailable') {
@@ -104,7 +108,7 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
       exclusive(async () => {
         const state = current.current;
         if (!state || state.phase !== 'READY') return;
-        await commit(shufflePlayers(state, rng));
+        await commit(shufflePositions(state, rng));
       }),
     [commit, exclusive, rng],
   );

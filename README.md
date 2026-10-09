@@ -24,10 +24,11 @@ src/
     config/    limits, Fate presets, timing
     rng/       crypto RNG (unbiased bounded sampling) + seeded/scripted test RNGs
     setup/     roster + start validation
-    engine/    match state machine (createMatch / beginTurn / resolveTurn), event log text
-  animation/   visual-only spin paths (never decide outcomes)
+    engine/    match state machine (createMatch / beginTurn / resolveTurn / shufflePositions),
+               Fate strip (fateSlots), rock-paper-scissors (rps), event log text
+  animation/   visual-only spin paths + turn timeline (never decide outcomes)
   storage/     localStorage setup + IndexedDB current-match checkpoint
-  hooks/       React glue (useSetupConfig, useMatch, useSpinCursor)
+  hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation)
   components/  UI (setup/, match/)
   app/         App shell (injects repository, RNG and timing for tests)
   test/        test setup and statistics helpers

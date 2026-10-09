@@ -654,3 +654,208 @@ textarea {
   padding: 8px 16px;
   border: 3px solid var(--gold);
 }
+
+/* ---------- Phase 3: shields, Fate strip, duel, Sudden Death ---------- */
+.fighter__shield {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  z-index: 2;
+  font-size: 1.1rem;
+  filter: drop-shadow(0 0 4px var(--cyan));
+}
+
+.fighter--opponent {
+  border-color: var(--red);
+  background: #3a0f1a;
+  color: #fff;
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 16px var(--red);
+}
+
+.preview--shield {
+  border-color: var(--cyan);
+}
+
+.preview--shield .preview__caption {
+  color: var(--cyan);
+  font-weight: 900;
+}
+
+.match__sudden-death {
+  color: #fff;
+  background: var(--red);
+  padding: 2px 8px;
+  font-weight: 900;
+  animation: pulse 1s steps(2) infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.fate-strip__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  margin-bottom: 10px;
+}
+
+.fate-strip__header .panel__title {
+  margin: 0;
+}
+
+.fate-strip__odds {
+  margin: 0;
+  font-weight: 700;
+}
+
+.fate-strip__streak,
+.fate-strip__sudden-death {
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fate-strip__sudden-death {
+  color: var(--red);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.fate-strip--sudden-death {
+  border-color: var(--red);
+}
+
+.pip {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--muted);
+}
+
+.pip--on {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.fate-strip__slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (max-width: 900px) {
+  .fate-strip__slots {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+.fate-slot {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border: 3px solid var(--panel-edge);
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: help;
+}
+
+.fate-slot--KO {
+  background: #3a0f1a;
+  color: #ff8fa3;
+}
+
+.fate-slot--VS {
+  background: #2a1a3f;
+  color: #c9a7ff;
+}
+
+.fate-slot--SHIELD {
+  background: #0f2d3a;
+  color: var(--cyan);
+}
+
+.fate-slot--cursor {
+  border-color: var(--gold);
+  background: #3a2a00;
+  color: var(--gold);
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 14px var(--gold);
+}
+
+.fate-slot--last {
+  border-color: var(--gold-dark);
+}
+
+.fate-slot__label {
+  letter-spacing: 0.05em;
+}
+
+.fate-strip__help {
+  margin: 8px 0 0;
+}
+
+/* VS duel */
+.duel {
+  min-height: 170px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  border-color: var(--red);
+}
+
+.duel__fighters {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.duel__side {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.duel__hand {
+  font-size: 3.2rem;
+  line-height: 1;
+}
+
+.duel__name {
+  font-size: 1.3rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.duel__gesture {
+  color: var(--muted);
+}
+
+.duel__vs {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--red);
+  text-shadow: 3px 3px 0 #000;
+}
+
+.duel__caption {
+  margin: 0;
+  color: var(--gold);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

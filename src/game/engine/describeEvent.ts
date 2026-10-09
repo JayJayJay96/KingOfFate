@@ -1,9 +1,18 @@
 import { FATE_PRESETS } from '../config/presets';
-import type { MatchEvent, MatchState } from './matchTypes';
+import { countSlots } from './fateSlots';
+import type { CommittedDuel, MatchEvent, MatchState, TurnOutcome } from './matchTypes';
+import type { Gesture } from './rps';
+
+export const GESTURE_LABEL: Readonly<Record<Gesture, string>> = {
+  ROCK: 'Rock',
+  PAPER: 'Paper',
+  SCISSORS: 'Scissors',
+};
 
 /**
  * Log line for an event, or null for internal events. TURN_COMMITTED is internal on purpose:
- * showing it would spoil the outcome before the reveal animation finishes.
+ * showing it would spoil the outcome before the reveal animation finishes. Shuffles are hidden
+ * at the owner's request (kept in state for audit).
  */
 export function describeEvent(event: MatchEvent, state: MatchState): string | null {
   const nameOf = (id: string) => state.players.find((p) => p.id === id)?.name ?? 'Unknown';
@@ -13,13 +22,60 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
         event.winnerCount === 1 ? '' : 's'
       }, ${FATE_PRESETS[event.presetId].label} preset.`;
     case 'TURN_COMMITTED':
+    case 'POSITIONS_SHUFFLED':
       return null;
-    case 'PLAYER_ELIMINATED':
-      return `Turn ${event.turnNumber}: ${nameOf(event.playerId)} takes a KO. Eliminated!`;
+    case 'TURN_RESOLVED':
+      return `Turn ${event.turnNumber}: ${describeOutcome(event.outcome, event.playerId, event.duel, nameOf)}`;
+    case 'SUDDEN_DEATH_STARTED': {
+      const c = countSlots(event.fateSlots);
+      return `SUDDEN DEATH! 3 turns without a KO. No more Shields can be earned. Fate is now KO ${c.KO * 5}% · VS ${c.VS * 5}%.`;
+    }
+    case 'SHIELDS_CLEARED':
+      return `Finale rules: all Shields removed (${joinNames(event.playerIds.map(nameOf))}).`;
     case 'FINALE_REACHED':
       return `Finale! ${joinNames(event.finalistIds.map(nameOf))} advance.`;
-    case 'PLAYERS_SHUFFLED':
-      return null; // kept for audit, hidden from the visible log (owner preference)
+  }
+}
+
+export function describeOutcome(
+  outcome: TurnOutcome,
+  playerId: string,
+  duel: CommittedDuel | null,
+  nameOf: (id: string) => string,
+): string {
+  const name = nameOf(playerId);
+  switch (outcome.fate) {
+    case 'KO':
+      return outcome.result === 'ELIMINATED'
+        ? `${name} takes a KO. Eliminated!`
+        : `${name} takes a KO, but the Shield absorbs it.`;
+    case 'SHIELD':
+      return outcome.result === 'GAINED'
+        ? `${name} gains a Shield.`
+        : `${name} already has a Shield. Wasted!`;
+    case 'VS': {
+      const opponent = nameOf(duel?.opponentId ?? '');
+      const last = duel?.throws.at(-1);
+      const draws = (duel?.throws.length ?? 1) - 1;
+      const winnerHand = last
+        ? GESTURE_LABEL[outcome.winnerId === playerId ? last.challenger : last.opponent]
+        : '';
+      const loserHand = last
+        ? GESTURE_LABEL[outcome.winnerId === playerId ? last.opponent : last.challenger]
+        : '';
+      const drawText = draws > 0 ? ` after ${draws} draw${draws === 1 ? '' : 's'}` : '';
+      const loss =
+        outcome.loserResult === 'ELIMINATED'
+          ? `${nameOf(outcome.loserId)} is eliminated!`
+          : `${nameOf(outcome.loserId)}'s Shield absorbs the loss.`;
+      const reward =
+        outcome.winnerShield === 'GAINED'
+          ? ` ${nameOf(outcome.winnerId)} earns a Shield.`
+          : outcome.winnerShield === 'SUDDEN_DEATH'
+            ? ' No Shield reward in Sudden Death.'
+            : '';
+      return `${name} VS ${opponent}: ${winnerHand} beats ${loserHand}${drawText}. ${nameOf(outcome.winnerId)} wins; ${loss}${reward}`;
+    }
   }
 }
 

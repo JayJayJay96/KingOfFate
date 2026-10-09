@@ -27,6 +27,9 @@ async function addNames(user: User, names: string) {
   await user.click(screen.getByRole('button', { name: /add to roster/i }));
 }
 
+const findInLog = (text: string | RegExp) =>
+  within(screen.getByTestId('event-log')).findByText(text);
+
 const startButton = () => screen.getByRole('button', { name: /^start$/i });
 const randomButton = () => screen.getByRole('button', { name: /random: start the next turn/i });
 const eliminatedCount = () => document.querySelectorAll('[data-state="out"]').length;
@@ -105,10 +108,18 @@ describe('Setup flow', () => {
   });
 });
 
-describe('KO-only match', () => {
+// Normal preset strip (spread layout): KO at slot 0, VS at 2/7/12/17, Shield at 10.
+const KO = 0;
+const VS = 2;
+const SHIELD = 10;
+
+describe('Match', () => {
   it('plays from setup to the finale gate with only active fighters, then returns to setup', async () => {
-    // Living-list indices: turn 1 picks index 1 (Wei Jie); turn 2 picks index 0 (Aisyah).
-    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([1, 0]));
+    // Turn 1: living index 1 (Wei Jie) + KO; turn 2: living index 0 (Aisyah) + KO.
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng([1, KO, 0, KO]),
+    );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
     await user.click(screen.getByRole('button', { name: 'Mei Ling' })); // sits out
     await user.click(startButton());
@@ -119,7 +130,7 @@ describe('KO-only match', () => {
 
     await user.click(randomButton());
     expect(randomButton()).toBeDisabled();
-    await screen.findByText('Turn 1: Wei Jie takes a KO. Eliminated!');
+    await findInLog('Turn 1: Wei Jie takes a KO. Eliminated!');
     expect(screen.getByTestId('alive-count')).toHaveTextContent('3 / 4 alive');
 
     await user.click(randomButton());
@@ -146,14 +157,14 @@ describe('KO-only match', () => {
   });
 
   it('starts a turn with Space but ignores rapid repeats (one turn only)', async () => {
-    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0, 0]));
+    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0, KO]));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
     await user.click(startButton());
     await screen.findByRole('list', { name: 'Fighters' });
 
     (document.activeElement as HTMLElement | null)?.blur();
     await user.keyboard('[Space][Space][Enter]');
-    await screen.findByText(/Turn 1: Aisyah takes a KO/);
+    await findInLog(/Turn 1: Aisyah takes a KO/);
     expect(eliminatedCount()).toBe(1);
     expect(within(screen.getByTestId('event-log')).queryByText(/Turn 2/)).not.toBeInTheDocument();
     expect(randomButton()).toBeEnabled();
@@ -168,11 +179,11 @@ describe('KO-only match', () => {
       { players, winnerCount: 1, presetId: 'normal' },
       { matchId: 'm1', startedAt: '2026-10-09T07:00:00.000Z' },
     );
-    const repo = createMemoryMatchRepository(beginTurn(match, createScriptedRng([3]), 't1'));
+    const repo = createMemoryMatchRepository(beginTurn(match, createScriptedRng([3, KO]), 't1'));
 
     // If anything tried to sample again, this RNG would throw.
     await renderApp(repo, createScriptedRng([]));
-    await screen.findByText('Turn 1: Hafiz takes a KO. Eliminated!');
+    await findInLog('Turn 1: Hafiz takes a KO. Eliminated!');
     expect(eliminatedCount()).toBe(1);
 
     const saved = await repo.load();
@@ -213,7 +224,7 @@ describe('KO-only match', () => {
 });
 
 describe('Shuffle', () => {
-  it('reorders the grid between turns, logs it and persists the new order', async () => {
+  it('reorders the grid between turns without logging it, and persists the new order', async () => {
     const repo = createMemoryMatchRepository();
     const { user } = await renderApp(repo, createSeededRng(3));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
@@ -237,13 +248,78 @@ describe('Shuffle', () => {
   });
 
   it('is disabled while a spin is running', async () => {
-    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0]));
+    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0, KO]));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
     await user.click(startButton());
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
     expect(screen.getByRole('button', { name: 'Shuffle' })).toBeDisabled();
-    await screen.findByText(/Turn 1: Aisyah takes a KO/);
+    await findInLog(/Turn 1: Aisyah takes a KO/);
     expect(screen.getByRole('button', { name: 'Shuffle' })).toBeEnabled();
+  });
+});
+
+describe('Fates on screen', () => {
+  const EIGHT =
+    'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling{Enter}Arjun{Enter}Nurul{Enter}Jason';
+  const ROCK = 0;
+  const SCISSORS = 2;
+  const shielded = () =>
+    [...document.querySelectorAll('[data-shield="true"] .fighter__name')].map((n) => n.textContent);
+
+  it('shows the live odds on the Fate strip', async () => {
+    const { user } = await renderApp();
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
+    await user.click(startButton());
+    expect(await screen.findByTestId('fate-odds')).toHaveTextContent('KO 75% · VS 20% · Shield 5%');
+    expect(document.querySelectorAll('.fate-slot')).toHaveLength(20);
+  });
+
+  it('Shield: the fighter gets a Shield icon and the log says so', async () => {
+    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([2, SHIELD]));
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    await user.click(randomButton());
+    await findInLog('Turn 1: Kavitha gains a Shield.');
+    expect(shielded()).toEqual(['Kavitha']);
+  });
+
+  it('VS: plays back the committed duel, then applies the result', async () => {
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng([0, VS, 0, ROCK, ROCK, ROCK, SCISSORS]),
+    );
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    await user.click(randomButton());
+    expect(await screen.findByTestId('duel')).toHaveTextContent(/Aisyah.*VS.*Wei Jie/);
+    await findInLog(
+      'Turn 1: Aisyah VS Wei Jie: Rock beats Scissors after 1 draw. Aisyah wins; Wei Jie is eliminated! Aisyah earns a Shield.',
+    );
+    expect(shielded()).toEqual(['Aisyah']);
+    expect(eliminatedCount()).toBe(1);
+  });
+
+  it('Sudden Death after 3 turns without elimination swaps the visible odds', async () => {
+    // Living index, VS slot, opponent index, Rock vs Scissors — traced like the engine test:
+    // p0 beats p1 (out); then three protected losses in a row.
+    const turn = (living: number) => [living, VS, 0, ROCK, SCISSORS];
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng([...turn(0), ...turn(1), ...turn(0), ...turn(1)]),
+    );
+    await addNames(user, EIGHT);
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    for (let i = 1; i <= 4; i++) {
+      await user.click(randomButton());
+      await within(screen.getByTestId('event-log')).findByText(new RegExp('Turn ' + i + ':'));
+    }
+    expect(await screen.findByText(/^SUDDEN DEATH!/)).toBeInTheDocument();
+    expect(screen.getByTestId('sudden-death')).toBeInTheDocument();
+    expect(screen.getByTestId('fate-odds')).toHaveTextContent('KO 90% · VS 10%');
+    expect(document.querySelectorAll('.fate-slot--SHIELD')).toHaveLength(0);
   });
 });

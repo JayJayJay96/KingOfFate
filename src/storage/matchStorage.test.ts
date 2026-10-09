@@ -33,7 +33,8 @@ describe('IndexedDB match repository', () => {
 
   it('recovers a mid-spin checkpoint after "reload" without resampling or double-applying', async () => {
     const factory = new IDBFactory();
-    const spinning = beginTurn(newMatch(), createScriptedRng([2]), 't1');
+    // Draws: living index 2, Fate slot 0 (KO in the Normal strip).
+    const spinning = beginTurn(newMatch(), createScriptedRng([2, 0]), 't1');
     await createIndexedDbMatchRepository(factory).save(spinning);
 
     // New repository instance on the same database = page reload.
@@ -63,7 +64,7 @@ describe('IndexedDB match repository', () => {
 
   it('rejects checkpoints with a pending turn on a dead player', async () => {
     const repo = createIndexedDbMatchRepository(new IDBFactory());
-    const spinning = beginTurn(newMatch(), createScriptedRng([0]), 't1');
+    const spinning = beginTurn(newMatch(), createScriptedRng([0, 0]), 't1');
     const tampered = {
       ...spinning,
       players: spinning.players.map((p) => (p.id === 'p0' ? { ...p, alive: false } : p)),
@@ -87,5 +88,40 @@ describe('memory match repository', () => {
     const loaded = await repo.load();
     expect(loaded).toEqual({ status: 'loaded', match });
     expect((loaded as { match: MatchState }).match).not.toBe(match);
+  });
+});
+
+describe('schema v2 checks', () => {
+  it('discards a match saved by an older schema with an "outdated" status', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    await repo.save({ ...newMatch(), schemaVersion: 1 } as unknown as MatchState);
+    expect(await repo.load()).toEqual({ status: 'outdated' });
+    expect(await repo.load()).toEqual({ status: 'none' });
+  });
+
+  it('rejects a damaged Fate strip or a Shield slot during Sudden Death', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    await repo.save({ ...newMatch(), fateSlots: newMatch().fateSlots.slice(1) });
+    expect((await repo.load()).status).toBe('corrupt');
+    await repo.save({ ...newMatch(), suddenDeath: true });
+    expect((await repo.load()).status).toBe('corrupt'); // normal strip still has a Shield slot
+  });
+
+  it('rejects a VS turn without a decisive throw', async () => {
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    const m = newMatch();
+    const vsSlot = m.fateSlots.indexOf('VS');
+    const spinning = beginTurn(m, createScriptedRng([0, vsSlot, 0, 0, 2]), 't1');
+    expect(spinning.pendingTurn?.duel?.throws).toHaveLength(1);
+    await repo.save(spinning);
+    expect((await repo.load()).status).toBe('loaded');
+    await repo.save({
+      ...spinning,
+      pendingTurn: {
+        ...spinning.pendingTurn!,
+        duel: { opponentId: 'p1', throws: [{ challenger: 'ROCK', opponent: 'ROCK' }] },
+      },
+    });
+    expect((await repo.load()).status).toBe('corrupt');
   });
 });

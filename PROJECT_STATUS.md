@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-09  
-**Phase:** 2 — KO-only playable loop  
-**Overall status:** Phase 1 done (`bf7dfdd`). Phase 2 done (`876158a`) plus owner-requested sequential cursor + player Shuffle (121 unit/integration tests, 6 E2E green). Next: Phase 3. Not deployed.
+**Phase:** 3 — Complete Fate System  
+**Overall status:** Phases 1–2 done. **Phase 3 implemented and verified locally** (159 unit/integration tests, 6 E2E ×3 runs green); awaiting owner review. Not deployed.
 
 ## 1. Current snapshot
 
@@ -10,12 +10,12 @@
 |---|---|
 | Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
 | Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup: `localStorage` `kof.setup` (schema 1). Current match: IndexedDB db `kof` v1, store `current-match`, key `current` (schema 1); corrupt checkpoints moved to key `corrupt-backup`. |
+| Storage | Setup: `localStorage` `kof.setup` (schema 1). Current match: IndexedDB db `kof` v1, store `current-match`, key `current` (**match schema 2** since Phase 3; older saved matches are discarded with a notice); corrupt checkpoints moved to key `corrupt-backup`. |
 | RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
-| Normal / Sudden Death odds | Approved and encoded (Phase 3 uses them) |
+| Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
 | Finale rules (D2, D3) | Approved; Phase 4 |
 | Pause/skip (D4) | OPEN — before Phase 5 |
-| Git | `main`: `bf7dfdd` Phase 1. Phase 2 commit follows this update. |
+| Git | `main`; see `git log` (Phase 3 commit follows this update) |
 | Deployment | Not attempted |
 
 ## 2. Phase tracker
@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
-| 3 — Full Fate System | Not started | KO/VS/Shield, Fate strip, RPS duel, Sudden Death, probability tests |
+| 3 — Full Fate System | **Implemented; automated checks pass; awaiting owner review** | Owner plays matches on each preset; confirms P3 notes below |
 | 4 — Vietnamese-chant RPS Finale | Not started | W+1 handoff (gate exists), exactly W winners |
 | 5 — Retro Arcade Experience | Not started | Art/audio/shortcuts/visual polish; D4 resolved |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
@@ -32,7 +32,7 @@
 
 ## 3. Requirements that are already approved
 
-- Normal game: player and Fate animations run simultaneously; living player selected uniformly; Fate represented by 20 equal-chance slots; 4–5 second fixed spin; selected player may repeat; visual shuffle does not alter odds.
+- Normal game: player and Fate animations run simultaneously; living player selected uniformly; Fate represented by 20 equal-chance slots; random 4–10 s sequential-roulette spins (owner decision); selected player may repeat; visual shuffle does not alter odds.
 - KO, VS and Shield only for MVP; Shield cap one; duplicate Shield wasted; protected KO/VS loss consumes Shield and prevents elimination.
 - VS: random distinct living opponent; automatic one decisive RPS throw with rethrows on draw. Winner earns Shield when permitted.
 - 3 consecutive no-elimination turns activate Sudden Death; existing Shields remain, no new ones; D1 odds Fast 95/5/0, Normal 90/10/0, Chaotic 80/20/0.
@@ -46,8 +46,10 @@
 |---|---|---|---|
 | D4 | Esc pause behavior during finale chant; animation skip? | Safe pause/resume at beat/throw boundary; no outcome changes. | Phase 5 |
 | D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
-| P2-a | Keep **Abandon match** (confirm, not recorded) as the way to exit a match early? | Yes; otherwise an auto-restored match cannot be left until the finale. | Phase 2 acceptance |
-| P2-b | Refresh mid-spin **replays the spin to the same committed target** (instead of showing the result instantly). OK? | Yes; keeps drama, outcome cannot change. | Phase 2 acceptance |
+| P3-a | Fate strip starts **evenly spread** (e.g. Normal: VS at slots 3/8/13/18, Shield at 11); one **Shuffle** button shuffles fighters AND Fate slots. | Keep. | Phase 3 acceptance |
+| P3-b | Sudden Death flips slots **in place** (all Shield → KO, then the first extra VS → KO) so viewers see what changed. | Keep. | Phase 3 acceptance |
+| P3-c | VS opponent is shown directly in the duel panel (no separate opponent spin); result waits for both cursors, then a ~2–4 s duel (+0.9 s per draw). | Keep for MVP; Phase 5 can add flair. | Phase 3 acceptance |
+| P3-d | Placeholder icons are emoji (💥 ⚔️ 🛡️ ✊ ✋ ✌️) until Phase 5 art. | Keep. | Phase 5 |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
@@ -56,6 +58,16 @@
 2. Phase 3: 20-slot Fate strip with simultaneous cursor; KO/VS/Shield; normal VS RPS duel (rethrow on draw); Shield cap/waste; 3-turn no-elimination streak → Sudden Death with visible odds swap; seeded probability tests for slot weights and RPS parity.
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 3: Complete Fate System
+- **Owner input:** "feels good now, proceed to phase 3"; shuffle should not appear in the event log (done first: `5b5b1f9`; event kept in state for audit).
+- **Added:** `src/game/engine/fateSlots.ts` (even spread layout, in-place Sudden Death conversion, counts), `rps.ts` (gestures, uniform throws, rethrow draws until decisive), `src/animation/turnTimeline.ts` (player + Fate cursors together with separate seeded styles; VS duel beats), `src/hooks/useTurnAnimation.ts` (replaces `useSpinCursor`), `src/components/match/{FateStrip,DuelPanel}.tsx`, tests `fateSlots.test.ts`, `rps.test.ts`, `turnTimeline.test.ts`.
+- **Changed:** `matchTypes.ts` (schema 2: player `shield`, `fateSlots`, `suddenDeath`, committed turn incl. slot, Fate, VS opponent + all throws; `TURN_RESOLVED` with structured outcome; `SUDDEN_DEATH_STARTED`, `SHIELDS_CLEARED`, `POSITIONS_SHUFFLED`), `match.ts` (KO/Shield/VS rules, streak, Sudden Death, finale clears Shields, `shufflePositions`), `describeEvent.ts`, `matchStorage.ts` (v2 validation incl. duel consistency; `outdated` status), `useMatch.ts`, `MatchScreen`, `FighterGrid` (Shield icon, VS opponent highlight), `PreviewPanel` (outcome captions), CSS, `src/test/stats.ts` (weighted chi-square + p=0.001 critical values), App/E2E tests.
+- **Rules implemented exactly per PROJECT.md §4:** all randomness (player, slot, VS opponent, every throw) sampled and checkpointed before animation; KO consumes Shield else eliminates; Shield cap 1 / wasted; VS loser spends Shield or is eliminated, winner gains Shield unless already protected or Sudden Death; streak counts every completed non-eliminating turn, resets only on elimination; at 3 → Sudden Death (D1 odds, no Shield slots, existing Shields kept, persists until finale); finale gate at W+1 clears all Shields; never more than one elimination per turn.
+- **Tests:** `npm test` → **12 files, 159 passed**, incl. seeded chi-square at p=0.001: player uniformity; Fate frequencies vs weights for all 3 presets × normal/Sudden Death; VS opponent uniformity; RPS gesture parity, challenger win rate 0.5±0.01, draw rate 1/3±0.01; full seeded matches for every preset × W=1..5 × several N; owner 4-alive/2-winner example. `npm run e2e` → **6 passed**, repeated ×3 → **18/18** (real random Fates; refresh mid-turn snapshot identical after second reload; both cursors walk in order and the Fate cursor lands on the Fate the log reports). Typecheck + lint clean.
+- **Manual (browser pane):** Fate strip, live odds, streak pips, simultaneous cursors, KO/VS results, Shield icon, Chaotic odds checked. The duel panel was confirmed present via DOM during a real VS but not captured in a screenshot (it ended before the capture); its content is covered by the App test.
+- **Known/unverified:** 11 KOs in a row happened in manual play (≈4% chance at 75%); slot indices were checked and vary normally, and the seeded frequency tests pass. Phase 2 saved matches are discarded (schema change). Emoji rendering depends on system fonts.
+- **Next exact action:** owner plays Phase 3 (try Chaotic for VS/Shields; watch for Sudden Death) and confirms P3-a…P3-d → Phase 4 (Một Hai Ba Yo RPS finale + winners).
 
 ### 2026-10-09 — Phase 2 follow-up: 4–10 s spins, snap/crawl braking, honest dwell
 - **Owner feedback:** still too samey; "the last one that feels slow confirms it will move 1 more block". Asked for max 10 s and a longer, random deceleration: sometimes an immediate stop after a brief slow, sometimes slower and slower with doubt whether it stops or moves once more.

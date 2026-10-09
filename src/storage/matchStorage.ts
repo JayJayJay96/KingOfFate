@@ -1,11 +1,15 @@
 import { isWinnerCount } from '../game/config/limits';
-import { isFatePresetId } from '../game/config/presets';
+import { FATE_SLOT_COUNT, isFatePresetId } from '../game/config/presets';
+import { isFateKind } from '../game/engine/fateSlots';
 import { MATCH_SCHEMA_VERSION, type MatchState } from '../game/engine/matchTypes';
+import { isGesture } from '../game/engine/rps';
 
 export type MatchLoadResult =
   | { readonly status: 'none' }
   | { readonly status: 'loaded'; readonly match: MatchState }
   | { readonly status: 'corrupt' }
+  /** Saved by an older app version with different rules; discarded, never migrated. */
+  | { readonly status: 'outdated' }
   | { readonly status: 'unavailable'; readonly message: string };
 
 export type MatchSaveResult =
@@ -73,6 +77,18 @@ export function createIndexedDbMatchRepository(
         return { status: 'unavailable', message: messageOf(error) };
       }
       if (raw === undefined) return { status: 'none' };
+      if (
+        isRecord(raw) &&
+        typeof raw.schemaVersion === 'number' &&
+        raw.schemaVersion < MATCH_SCHEMA_VERSION
+      ) {
+        try {
+          await transact('readwrite', (store) => store.delete(CURRENT_KEY));
+        } catch {
+          // Best effort.
+        }
+        return { status: 'outdated' };
+      }
       if (!isMatchState(raw)) {
         try {
           await transact('readwrite', (store) => {
@@ -144,6 +160,8 @@ export function isMatchState(value: unknown): value is MatchState {
       typeof p.id !== 'string' ||
       typeof p.name !== 'string' ||
       typeof p.alive !== 'boolean' ||
+      typeof p.shield !== 'boolean' ||
+      (!p.alive && p.shield) ||
       ids.has(p.id)
     ) {
       return false;
@@ -152,15 +170,52 @@ export function isMatchState(value: unknown): value is MatchState {
   }
   const alive = value.players.filter((p) => (p as { alive: boolean }).alive) as { id: string }[];
   if (alive.length < value.winnerCount + 1) return false;
+  if (typeof value.suddenDeath !== 'boolean') return false;
+  if (
+    !Array.isArray(value.fateSlots) ||
+    value.fateSlots.length !== FATE_SLOT_COUNT ||
+    !value.fateSlots.every(isFateKind)
+  ) {
+    return false;
+  }
+  if (value.suddenDeath && value.fateSlots.includes('SHIELD')) return false;
 
   const pending = value.pendingTurn;
   if (value.phase === 'SPINNING') {
     if (!isRecord(pending) || typeof pending.turnId !== 'string') return false;
     if (!alive.some((p) => p.id === pending.playerId)) return false;
+    const slot = pending.fateSlotIndex;
+    if (
+      typeof slot !== 'number' ||
+      !Number.isInteger(slot) ||
+      slot < 0 ||
+      slot >= FATE_SLOT_COUNT
+    ) {
+      return false;
+    }
+    if (!isFateKind(pending.fate)) return false;
+    if (
+      pending.fate === 'VS'
+        ? !isValidDuel(pending.duel, pending.playerId, alive)
+        : pending.duel !== null
+    ) {
+      return false;
+    }
   } else if (pending !== null) {
     return false;
   }
   return true;
+}
+
+function isValidDuel(duel: unknown, playerId: unknown, alive: readonly { id: string }[]): boolean {
+  if (!isRecord(duel) || duel.opponentId === playerId) return false;
+  if (!alive.some((p) => p.id === duel.opponentId)) return false;
+  if (!Array.isArray(duel.throws) || duel.throws.length === 0) return false;
+  const ok = duel.throws.every(
+    (t) => isRecord(t) && isGesture(t.challenger) && isGesture(t.opponent),
+  );
+  const last = duel.throws.at(-1) as { challenger: string; opponent: string };
+  return ok && last.challenger !== last.opponent;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
