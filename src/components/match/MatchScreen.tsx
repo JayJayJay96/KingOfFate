@@ -4,7 +4,7 @@ import type { SfxName } from '../../audio/soundEngine';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
-import { alivePlayers } from '../../game/engine/match';
+import { alivePlayers, shieldSupplyFor } from '../../game/engine/match';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
 import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
 import { DuelPanel } from './DuelPanel';
@@ -196,7 +196,10 @@ export function MatchScreen({
         cursorIndex={animation.fateCursorIndex}
         lastSlotIndex={match.lastTurn?.turn.fateSlotIndex ?? null}
         suddenDeath={match.suddenDeath}
-        noEliminationStreak={match.noEliminationStreak}
+        shieldSupply={match.shieldSupply}
+        shieldSupplyTotal={shieldSupplyFor(match.players.length)}
+        suddenDeathAt={match.suddenDeathAt}
+        finaleAt={match.winnerCount + 1}
       />
 
       <section className="panel arena">

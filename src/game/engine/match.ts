@@ -15,8 +15,15 @@ import {
 } from './matchTypes';
 import { challengerWins, sampleDuelThrows } from './rps';
 
-/** Consecutive no-elimination ordinary turns that trigger Sudden Death (PROJECT.md §4). */
-export const SUDDEN_DEATH_STREAK = 3;
+/** Owner decision 2026-10-09: 1 Shield per 5 starting fighters (rounded up) for the whole match. */
+export function shieldSupplyFor(fighters: number): number {
+  return Math.ceil(fighters / 5);
+}
+
+/** Owner decision 2026-10-09: Sudden Death when one-third of the starting fighters remain. */
+export function suddenDeathAtFor(fighters: number): number {
+  return Math.round(fighters / 3);
+}
 
 export interface MatchLaunch {
   readonly players: readonly { readonly id: string; readonly name: string }[];
@@ -66,7 +73,8 @@ export function createMatch(
     completedTurns: 0,
     pendingTurn: null,
     lastTurn: null,
-    noEliminationStreak: 0,
+    shieldSupply: shieldSupplyFor(n),
+    suddenDeathAt: suddenDeathAtFor(n),
     suddenDeath: false,
     finale: null,
     completedAt: null,
@@ -141,6 +149,7 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
 
   let outcome: TurnOutcome;
   let eliminatedId: string | null = null;
+  let shieldSupply = state.shieldSupply;
   const selected = byId.get(turn.playerId)!;
 
   if (turn.fate === 'KO') {
@@ -153,10 +162,12 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
       outcome = { fate: 'KO', result: 'ELIMINATED' };
     }
   } else if (turn.fate === 'SHIELD') {
-    if (selected.shield) {
+    // A Shield slot only exists while the supply lasts (slots flip to KO when it runs out).
+    if (selected.shield || shieldSupply <= 0) {
       outcome = { fate: 'SHIELD', result: 'WASTED' };
     } else {
       update(selected.id, { shield: true });
+      shieldSupply--;
       outcome = { fate: 'SHIELD', result: 'GAINED' };
     }
   } else {
@@ -176,17 +187,18 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
       loserResult = 'ELIMINATED';
     }
 
-    let winnerShield: 'GAINED' | 'ALREADY' | 'SUDDEN_DEATH';
+    let winnerShield: 'GAINED' | 'ALREADY' | 'SUDDEN_DEATH' | 'NO_SUPPLY';
     if (state.suddenDeath) winnerShield = 'SUDDEN_DEATH';
     else if (winner.shield) winnerShield = 'ALREADY';
+    else if (shieldSupply <= 0) winnerShield = 'NO_SUPPLY';
     else {
       update(winnerId, { shield: true });
+      shieldSupply--;
       winnerShield = 'GAINED';
     }
     outcome = { fate: 'VS', winnerId, loserId, loserResult, winnerShield };
   }
 
-  const streak = eliminatedId ? 0 : state.noEliminationStreak + 1;
   let next: MatchState = {
     ...state,
     players: state.players.map((p) => byId.get(p.id)!),
@@ -194,7 +206,7 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
     completedTurns: turn.turnNumber,
     pendingTurn: null,
     lastTurn: { turn, outcome, eliminatedId },
-    noEliminationStreak: streak,
+    shieldSupply,
   };
   next = appendEvent(next, {
     type: 'TURN_RESOLVED',
@@ -208,14 +220,27 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
   const finale = enterFinaleIfReached(next);
   if (finale !== next) return finale;
 
-  if (!next.suddenDeath && streak >= SUDDEN_DEATH_STREAK) {
+  // Last Shield earned: Shield slots turn into KO right away (visible odds stay truthful).
+  if (shieldSupply === 0 && state.shieldSupply > 0 && next.fateSlots.includes('SHIELD')) {
+    const fateSlots = next.fateSlots.map((k) => (k === 'SHIELD' ? 'KO' : k));
+    next = appendEvent({ ...next, fateSlots }, { type: 'SHIELD_SUPPLY_EXHAUSTED', fateSlots });
+  }
+
+  // Sudden Death when only one-third of the starting fighters remain: every Shield shatters,
+  // none can be earned, and the strip switches to the approved D1 odds.
+  const aliveCount = alivePlayers(next).length;
+  if (!next.suddenDeath && aliveCount <= next.suddenDeathAt) {
+    const shatteredIds = next.players.filter((p) => p.shield).map((p) => p.id);
     const fateSlots = toSuddenDeathSlots(next.fateSlots, FATE_PRESETS[next.presetId].suddenDeath);
     next = appendEvent(
-      { ...next, suddenDeath: true, fateSlots },
       {
-        type: 'SUDDEN_DEATH_STARTED',
+        ...next,
+        suddenDeath: true,
+        shieldSupply: 0,
         fateSlots,
+        players: next.players.map((p) => (p.shield ? { ...p, shield: false } : p)),
       },
+      { type: 'SUDDEN_DEATH_STARTED', fateSlots, aliveCount, shatteredIds },
     );
   }
   return next;

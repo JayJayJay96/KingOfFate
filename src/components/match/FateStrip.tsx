@@ -1,5 +1,4 @@
 import type { FateKind } from '../../game/config/presets';
-import { SUDDEN_DEATH_STREAK } from '../../game/engine/match';
 import { countSlots } from '../../game/engine/fateSlots';
 import { FateIcon } from '../sprites/icons';
 
@@ -25,7 +24,13 @@ interface FateStripProps {
   /** Slot that decided the previous turn (shown when idle). */
   readonly lastSlotIndex: number | null;
   readonly suddenDeath: boolean;
-  readonly noEliminationStreak: number;
+  /** Shields still available to earn, out of the match's total supply. */
+  readonly shieldSupply: number;
+  readonly shieldSupplyTotal: number;
+  /** Living count at which Sudden Death starts. */
+  readonly suddenDeathAt: number;
+  /** Living count at which the finale starts (W + 1); it pre-empts Sudden Death. */
+  readonly finaleAt: number;
 }
 
 /** The 20 equally likely Fate slots. The odds shown are computed from the live strip. */
@@ -34,7 +39,10 @@ export function FateStrip({
   cursorIndex,
   lastSlotIndex,
   suddenDeath,
-  noEliminationStreak,
+  shieldSupply,
+  shieldSupplyTotal,
+  suddenDeathAt,
+  finaleAt,
 }: FateStripProps) {
   const counts = countSlots(slots);
   const odds = (['KO', 'VS', 'SHIELD'] as const)
@@ -56,26 +64,37 @@ export function FateStrip({
         </p>
         {suddenDeath ? (
           <p className="fate-strip__sudden-death" data-testid="sudden-death">
-            Sudden Death: no new Shields
+            Sudden Death: Shields shattered
           </p>
         ) : (
-          <p
-            className="fate-strip__streak"
-            data-testid="streak"
-            title={`Sudden Death starts after ${SUDDEN_DEATH_STREAK} turns in a row without an elimination.`}
-          >
-            No-KO streak{' '}
-            {Array.from({ length: SUDDEN_DEATH_STREAK }, (_, i) => (
-              <span
-                key={i}
-                className={i < noEliminationStreak ? 'pip pip--on' : 'pip'}
-                aria-hidden="true"
-              />
-            ))}
-            <span className="sr-only">
-              {noEliminationStreak} of {SUDDEN_DEATH_STREAK}
-            </span>
-          </p>
+          <>
+            <p
+              className="fate-strip__meter"
+              data-testid="shield-supply"
+              title="Each Shield earned (Shield Fate or VS win) uses one. When none are left, Shield slots turn into KO."
+            >
+              Shields left{' '}
+              {Array.from({ length: shieldSupplyTotal }, (_, i) => (
+                <span
+                  key={i}
+                  className={i < shieldSupply ? 'pip pip--shield' : 'pip'}
+                  aria-hidden="true"
+                />
+              ))}
+              <span className="sr-only">
+                {shieldSupply} of {shieldSupplyTotal}
+              </span>
+            </p>
+            <p
+              className="fate-strip__meter"
+              data-testid="sudden-death-at"
+              title="At this many fighters left, all Shields shatter and KO odds rise."
+            >
+              {suddenDeathAt > finaleAt
+                ? `Sudden Death at ${suddenDeathAt} left`
+                : `No Sudden Death: finale at ${finaleAt} left`}
+            </p>
+          </>
         )}
       </div>
       <ol className="fate-strip__slots" aria-label="Fate slots">

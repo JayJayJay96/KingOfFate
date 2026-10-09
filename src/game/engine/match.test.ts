@@ -10,8 +10,9 @@ import {
   createMatch,
   IllegalTransitionError,
   resolveTurn,
+  shieldSupplyFor,
   shufflePositions,
-  SUDDEN_DEATH_STREAK,
+  suddenDeathAtFor,
   type MatchLaunch,
 } from './match';
 import type { MatchState } from './matchTypes';
@@ -65,16 +66,10 @@ function stripOf(weights: Record<FateKind, number>): FateKind[] {
   return KINDS.flatMap((k) => Array<FateKind>(weights[k]).fill(k));
 }
 
-/**
- * Traced sequence on 8 fighters: three VS turns where the loser is protected by a Shield earned
- * in the previous VS → streak 3 → Sudden Death. Ends with p0 unshielded, p2 shielded.
- */
-function reachSuddenDeath(presetId: FatePresetId): MatchState {
-  let m = createMatch(launch(8, 1, presetId), ids);
-  m = vs(m, 0, 0, [ROCK, SCISSORS]); // p0 beats p1 → p1 out, p0 Shield. streak 0
-  m = vs(m, 1, 0, [ROCK, SCISSORS]); // p2 beats p0 → p0 blocked, p2 Shield. streak 1
-  m = vs(m, 0, 0, [ROCK, SCISSORS]); // p0 beats p2 → p2 blocked, p0 Shield. streak 2
-  return vs(m, 1, 0, [ROCK, SCISSORS]); // p2 beats p0 → p0 blocked, p2 Shield. streak 3
+/** KO the first living fighter `times` times. */
+function koFirst(state: MatchState, times: number): MatchState {
+  for (let i = 0; i < times; i++) state = ko(state, 0);
+  return state;
 }
 
 describe('createMatch', () => {
@@ -167,30 +162,65 @@ describe('KO', () => {
     );
   });
 
-  it('is absorbed by a Shield: Shield consumed, nobody eliminated, streak grows', () => {
-    let m = shieldUp(createMatch(launch(5), ids), 1);
+  it('is absorbed by a Shield: Shield consumed, nobody eliminated', () => {
+    let m = shieldUp(createMatch(launch(10), ids), 1);
     m = ko(m, 1);
     expect(player(m, 'p1')).toMatchObject({ alive: true, shield: false });
     expect(m.lastTurn?.outcome).toEqual({ fate: 'KO', result: 'BLOCKED' });
-    expect(m.noEliminationStreak).toBe(2);
   });
 });
 
-describe('SHIELD', () => {
-  it('grants one Shield; a second is wasted (cap 1)', () => {
-    let m = shieldUp(createMatch(launch(5), ids), 3);
+describe('Shield supply (owner decision: 1 per 5 fighters)', () => {
+  it('starts with ceil(N / 5) Shields; Sudden Death at round(N / 3) left', () => {
+    expect([2, 5, 6, 10, 20, 21, 32].map(shieldSupplyFor)).toEqual([1, 1, 2, 2, 4, 5, 7]);
+    expect([9, 10, 20, 21, 32].map(suddenDeathAtFor)).toEqual([3, 3, 7, 7, 11]);
+    const m = createMatch(launch(20), ids);
+    expect(m.shieldSupply).toBe(4);
+    expect(m.suddenDeathAt).toBe(7);
+  });
+
+  it('grants one Shield; a second is wasted (cap 1) and does not use supply', () => {
+    let m = shieldUp(createMatch(launch(10), ids), 3);
     expect(player(m, 'p3').shield).toBe(true);
     expect(m.lastTurn?.outcome).toEqual({ fate: 'SHIELD', result: 'GAINED' });
+    expect(m.shieldSupply).toBe(1);
     m = shieldUp(m, 3);
     expect(player(m, 'p3').shield).toBe(true);
     expect(m.lastTurn?.outcome).toEqual({ fate: 'SHIELD', result: 'WASTED' });
+    expect(m.shieldSupply).toBe(1);
     expect(describeEvent(m.events.at(-1)!, m)).toBe('Turn 2: Hafiz already has a Shield. Wasted!');
+  });
+
+  it('the last Shield turns every Shield slot into KO, visibly', () => {
+    let m = shieldUp(createMatch(launch(10), ids), 0); // supply 2 → 1
+    expect(m.fateSlots).toContain('SHIELD');
+    m = shieldUp(m, 1); // supply 1 → 0
+    expect(m.shieldSupply).toBe(0);
+    expect(m.fateSlots).not.toContain('SHIELD');
+    expect(countSlots(m.fateSlots)).toEqual({ KO: 16, VS: 4, SHIELD: 0 });
+    expect(m.events.at(-1)?.type).toBe('SHIELD_SUPPLY_EXHAUSTED');
+    expect(describeEvent(m.events.at(-1)!, m)).toBe(
+      'The last Shield has been taken! Shield slots turn into KO.',
+    );
+  });
+
+  it('VS winners draw from the same supply; once it is empty they get nothing', () => {
+    let m = shieldUp(createMatch(launch(10), ids), 0);
+    m = shieldUp(m, 1); // supply now 0
+    m = vs(m, 2, 2, [ROCK, SCISSORS]); // p2 vs others [p0, p1, p3, …] index 2 = p3
+    expect(m.lastTurn?.outcome).toMatchObject({
+      winnerId: 'p2',
+      loserResult: 'ELIMINATED',
+      winnerShield: 'NO_SUPPLY',
+    });
+    expect(player(m, 'p2').shield).toBe(false);
+    expect(describeEvent(m.events.at(-1)!, m)).toContain('No Shields left to earn.');
   });
 });
 
 describe('VS', () => {
   it('winner earns a Shield, unshielded loser is eliminated', () => {
-    const m = vs(createMatch(launch(5), ids), 0, 0, [ROCK, SCISSORS]); // p0 vs p1
+    const m = vs(createMatch(launch(10), ids), 0, 0, [ROCK, SCISSORS]); // p0 vs p1
     expect(m.lastTurn?.outcome).toEqual({
       fate: 'VS',
       winnerId: 'p0',
@@ -206,15 +236,15 @@ describe('VS', () => {
   });
 
   it('the selected fighter can lose; draws are counted in the log', () => {
-    const m = vs(createMatch(launch(5), ids), 0, 0, [ROCK, ROCK, ROCK, PAPER]);
+    const m = vs(createMatch(launch(10), ids), 0, 0, [ROCK, ROCK, ROCK, PAPER]);
     expect(m.lastTurn?.outcome).toMatchObject({ winnerId: 'p1', loserId: 'p0' });
     expect(player(m, 'p0').alive).toBe(false);
     expect(describeEvent(m.events.at(-1)!, m)).toContain('Paper beats Rock after 1 draw');
   });
 
   it('a shielded loser survives and loses the Shield; a winner who has one keeps exactly one', () => {
-    let m = shieldUp(createMatch(launch(5), ids), 1); // p1 Shield
-    m = shieldUp(m, 0); // p0 Shield
+    let m = shieldUp(createMatch(launch(10), ids), 1); // p1 Shield
+    m = shieldUp(m, 0); // p0 Shield (supply now 0, the VS slots remain)
     m = vs(m, 0, 0, [ROCK, SCISSORS]); // p0 beats p1
     expect(m.lastTurn?.outcome).toMatchObject({ loserResult: 'BLOCKED', winnerShield: 'ALREADY' });
     expect(player(m, 'p1')).toMatchObject({ alive: true, shield: false });
@@ -234,45 +264,51 @@ describe('VS', () => {
   });
 });
 
-describe('Sudden Death', () => {
+describe('Sudden Death (owner decision: one-third of the starting fighters left)', () => {
   it.each(FATE_PRESET_IDS)(
-    '%s: starts after exactly 3 no-elimination turns and swaps the strip to the D1 odds',
+    '%s: starts exactly when one-third remain and swaps the strip to the D1 odds',
     (presetId) => {
-      const m = reachSuddenDeath(presetId);
-      expect(m.noEliminationStreak).toBe(SUDDEN_DEATH_STREAK);
+      // 9 fighters, 1 winner: Sudden Death at 3 left (finale at 2).
+      let m = koFirst(createMatch(launch(9, 1, presetId), ids), 5);
+      expect(alivePlayers(m)).toHaveLength(4);
+      expect(m.suddenDeath).toBe(false);
+      m = ko(m, 0);
+      expect(alivePlayers(m)).toHaveLength(3);
       expect(m.suddenDeath).toBe(true);
+      expect(m.shieldSupply).toBe(0);
       expect(countSlots(m.fateSlots)).toEqual(FATE_PRESETS[presetId].suddenDeath);
-      expect(m.fateSlots).not.toContain('SHIELD');
-      expect(m.events.at(-1)?.type).toBe('SUDDEN_DEATH_STARTED');
-      expect(describeEvent(m.events.at(-1)!, m)).toMatch(/^SUDDEN DEATH!/);
+      expect(m.events.at(-1)).toMatchObject({ type: 'SUDDEN_DEATH_STARTED', aliveCount: 3 });
+      expect(describeEvent(m.events.at(-1)!, m)).toMatch(/^SUDDEN DEATH! Only 3 fighters left\./);
     },
   );
 
-  it('an elimination before the 3rd turn resets the streak (no Sudden Death)', () => {
-    let m = createMatch(launch(8), ids);
-    m = vs(m, 0, 0, [ROCK, SCISSORS]);
-    m = vs(m, 1, 0, [ROCK, SCISSORS]);
-    m = vs(m, 0, 0, [ROCK, SCISSORS]); // streak 2
-    m = ko(m, 2); // living [p0, p2, p3, …] → p3 unshielded → eliminated
-    expect(m.noEliminationStreak).toBe(0);
-    expect(m.suddenDeath).toBe(false);
+  it('every held Shield shatters when Sudden Death starts', () => {
+    let m = shieldUp(createMatch(launch(9), ids), 8); // p8 (P8) holds a Shield
+    m = koFirst(m, 6); // p0–p5 out → 3 left
+    expect(m.suddenDeath).toBe(true);
+    expect(player(m, 'p8').shield).toBe(false);
+    expect(m.events.at(-1)).toMatchObject({ shatteredIds: ['p8'] });
+    expect(describeEvent(m.events.at(-1)!, m)).toContain('Shields shatter (P8).');
   });
 
-  it('existing Shields still block; VS winners get no Shield; it persists after eliminations', () => {
-    let m = reachSuddenDeath('chaotic');
-    expect(player(m, 'p2').shield).toBe(true);
-    m = ko(m, 1); // living [p0, p2, …] → p2's existing Shield blocks
-    expect(m.lastTurn?.outcome).toEqual({ fate: 'KO', result: 'BLOCKED' });
-    m = vs(m, 2, 2, [ROCK, SCISSORS]); // p3 vs others [p0, p2, p4, …] index 2 = p4
+  it('in Sudden Death VS winners get no Shield, and it lasts until the finale', () => {
+    let m = koFirst(createMatch(launch(12), ids), 8); // Sudden Death at 4 left
+    expect(m.suddenDeath).toBe(true);
+    m = vs(m, 0, 0, [ROCK, SCISSORS]); // p8 beats p9 → 3 left
     expect(m.lastTurn?.outcome).toMatchObject({
-      winnerId: 'p3',
       loserResult: 'ELIMINATED',
       winnerShield: 'SUDDEN_DEATH',
     });
-    expect(player(m, 'p3').shield).toBe(false);
-    expect(m.noEliminationStreak).toBe(0);
     expect(m.suddenDeath).toBe(true);
-    expect(m.fateSlots).not.toContain('SHIELD');
+    expect(m.phase).toBe('READY');
+    m = ko(m, 0); // 2 left = W + 1
+    expect(m.phase).toBe('FINALE');
+  });
+
+  it('never starts when one-third is already the finale size (finale comes first)', () => {
+    const m = koFirst(createMatch(launch(5), ids), 3); // one-third of 5 → 2 = W + 1
+    expect(m.phase).toBe('FINALE');
+    expect(m.events.some((e) => e.type === 'SUDDEN_DEATH_STARTED')).toBe(false);
   });
 });
 

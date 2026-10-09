@@ -204,7 +204,11 @@ export function isMatchState(value: unknown): value is MatchState {
   if (typeof value.matchId !== 'string' || typeof value.startedAt !== 'string') return false;
   if (!isFatePresetId(value.presetId) || !isWinnerCount(value.winnerCount)) return false;
   if (typeof value.phase !== 'string' || !PHASES.has(value.phase)) return false;
-  if (!isNonNegativeInt(value.completedTurns) || !isNonNegativeInt(value.noEliminationStreak)) {
+  if (
+    !isNonNegativeInt(value.completedTurns) ||
+    !isNonNegativeInt(value.shieldSupply) ||
+    !isNonNegativeInt(value.suddenDeathAt)
+  ) {
     return false;
   }
   if (!Array.isArray(value.players) || !Array.isArray(value.events)) return false;

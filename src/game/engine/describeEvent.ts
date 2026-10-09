@@ -35,8 +35,14 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
       return `Turn ${event.turnNumber}: ${describeOutcome(event.outcome, event.playerId, event.duel, nameOf)}`;
     case 'SUDDEN_DEATH_STARTED': {
       const c = countSlots(event.fateSlots);
-      return `SUDDEN DEATH! 3 turns without a KO. No more Shields can be earned. Fate is now KO ${c.KO * 5}% · VS ${c.VS * 5}%.`;
+      const shattered =
+        event.shatteredIds.length > 0
+          ? ` Shields shatter (${joinNames(event.shatteredIds.map(nameOf))}).`
+          : '';
+      return `SUDDEN DEATH! Only ${event.aliveCount} fighters left.${shattered} No more Shields. Fate is now KO ${c.KO * 5}% · VS ${c.VS * 5}%.`;
     }
+    case 'SHIELD_SUPPLY_EXHAUSTED':
+      return 'The last Shield has been taken! Shield slots turn into KO.';
     case 'SHIELDS_CLEARED':
       return `Finale rules: all Shields removed (${joinNames(event.playerIds.map(nameOf))}).`;
     case 'FINALE_REACHED':
@@ -110,7 +116,9 @@ export function describeOutcome(
           ? ` ${nameOf(outcome.winnerId)} earns a Shield.`
           : outcome.winnerShield === 'SUDDEN_DEATH'
             ? ' No Shield reward in Sudden Death.'
-            : '';
+            : outcome.winnerShield === 'NO_SUPPLY'
+              ? ' No Shields left to earn.'
+              : '';
       return `${name} VS ${opponent}: ${winnerHand} beats ${loserHand}${drawText}. ${nameOf(outcome.winnerId)} wins; ${loss}${reward}`;
     }
   }

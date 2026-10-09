@@ -1,8 +1,11 @@
 import type { FateKind, FatePresetId } from '../config/presets';
 import type { DuelThrow, Gesture } from './rps';
 
-/** v3 (Phase 4): adds the automated RPS finale and completion. v2 added Fates/Shields. */
-export const MATCH_SCHEMA_VERSION = 3;
+/**
+ * v4: limited Shield supply + Sudden Death at one-third left (replaces the 3-turn streak).
+ * v3 added the automated RPS finale and completion; v2 added Fates/Shields.
+ */
+export const MATCH_SCHEMA_VERSION = 4;
 
 export interface MatchPlayer {
   readonly id: string;
@@ -90,7 +93,7 @@ export type TurnOutcome =
       readonly loserId: string;
       readonly loserResult: 'ELIMINATED' | 'BLOCKED';
       /** Winner's reward: gained a Shield, already had one, or none due to Sudden Death. */
-      readonly winnerShield: 'GAINED' | 'ALREADY' | 'SUDDEN_DEATH';
+      readonly winnerShield: 'GAINED' | 'ALREADY' | 'SUDDEN_DEATH' | 'NO_SUPPLY';
     };
 
 export interface ResolvedTurn {
@@ -121,7 +124,18 @@ export type MatchEvent =
       readonly outcome: TurnOutcome;
       readonly duel: CommittedDuel | null;
     })
-  | (EventBase & { readonly type: 'SUDDEN_DEATH_STARTED'; readonly fateSlots: readonly FateKind[] })
+  | (EventBase & {
+      readonly type: 'SUDDEN_DEATH_STARTED';
+      readonly fateSlots: readonly FateKind[];
+      readonly aliveCount: number;
+      /** Fighters whose Shields shattered. */
+      readonly shatteredIds: readonly string[];
+    })
+  /** The last Shield has been earned: Shield slots became KO. */
+  | (EventBase & {
+      readonly type: 'SHIELD_SUPPLY_EXHAUSTED';
+      readonly fateSlots: readonly FateKind[];
+    })
   | (EventBase & { readonly type: 'SHIELDS_CLEARED'; readonly playerIds: readonly string[] })
   | (EventBase & { readonly type: 'FINALE_REACHED'; readonly finalistIds: readonly string[] })
   | (EventBase & { readonly type: 'FINALE_STARTED' })
@@ -172,9 +186,11 @@ export interface MatchState {
   readonly completedTurns: number;
   readonly pendingTurn: CommittedTurn | null;
   readonly lastTurn: ResolvedTurn | null;
-  /** Consecutive completed ordinary turns without an elimination. */
-  readonly noEliminationStreak: number;
-  /** Active for the rest of the ordinary stage once the streak reaches 3. */
+  /** Shields that can still be earned this match (Shield Fate or VS win). 0 = none left. */
+  readonly shieldSupply: number;
+  /** Sudden Death starts when the living count drops to this (one-third of the start). */
+  readonly suddenDeathAt: number;
+  /** Active for the rest of the ordinary stage: all Shields shattered, none can be earned. */
   readonly suddenDeath: boolean;
   /** Present from the W + 1 handoff onwards. */
   readonly finale: FinaleState | null;

@@ -36,8 +36,9 @@ If documents conflict, **stop for clarification on the material conflict**. Do n
 - Each ordinary player spin samples uniformly among living players, independently of previous turns. Fate samples one of 20 equal-odds slots.
 - Player, then Fate (then VS opponent) cursors, each a random 2.5–6.5 seconds; the Fate cursor may start midway through the player spin but always stops after the player is revealed (owner decisions 2026-10-09); they stop at already-sampled results.
 - KO consumes Shield instead of killing; Shield cap = 1; duplicate Shield Fate is wasted.
-- VS randomly selects another living participant, rethrows identical RPS until decisive; loser spends Shield or is eliminated; winner obtains Shield unless already protected or Sudden Death.
-- Sudden Death starts after **3 consecutive ordinary turns with zero elimination**. Existing Shields remain; no fresh Shields; **preset-specific exact odds still need D1 approval**.
+- VS randomly selects another living participant, rethrows identical RPS until decisive; loser spends Shield or is eliminated; winner obtains Shield unless already protected, the supply is empty, or Sudden Death.
+- Shields are a limited supply of `ceil(N/5)` per match; each Shield earned (Fate or VS win) uses one; when empty, Shield slots become KO (owner decision 2026-10-09).
+- Sudden Death starts when the living count drops to **`round(N/3)`** (owner decision 2026-10-09, replaces the 3-turn streak). All Shields shatter; no fresh Shields; D1 approved odds apply.
 - Finale starts immediately when living count becomes `W+1`, including a match starting at that count. Shields are removed. No normal Fate spins in finale.
 - Finale is automated chant-driven RPS, first to 3; resolve draws and oversubscribed qualifiers according to `PROJECT.md`, subject to D2/D3 approval. Exactly W people win.
 - Never add hidden rigging/control into MVP. Never disguise nonfair outcomes as fair.

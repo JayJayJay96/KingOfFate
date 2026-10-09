@@ -389,23 +389,35 @@ describe('Fates on screen', () => {
     expect(eliminatedCount()).toBe(1);
   });
 
-  it('Sudden Death after 3 turns without elimination swaps the visible odds', async () => {
-    // Living index, VS slot, opponent index, Rock vs Scissors — traced like the engine test:
-    // p0 beats p1 (out); then three protected losses in a row.
-    const turn = (living: number) => [living, VS, 0, ROCK, SCISSORS];
-    const { user } = await renderApp(
-      createMemoryMatchRepository(),
-      createScriptedRng([...turn(0), ...turn(1), ...turn(0), ...turn(1)]),
-    );
-    await addNames(user, EIGHT);
+  it('says there is no Sudden Death when the finale comes first', async () => {
+    // 5 fighters, 1 winner: one-third left = 2 = finale count, so the finale pre-empts it.
+    const { user } = await renderApp();
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Siti');
     await user.click(startButton());
     await screen.findByRole('list', { name: 'Fighters' });
-    for (let i = 1; i <= 4; i++) {
+    expect(screen.getByTestId('shield-supply')).toHaveTextContent('1 of 1');
+    expect(screen.getByTestId('sudden-death-at')).toHaveTextContent(
+      'No Sudden Death: finale at 2 left',
+    );
+  });
+
+  it('shows the Shield supply, then Sudden Death at one-third left with the new odds', async () => {
+    // 9 fighters, 1 winner: 2 Shields in supply, Sudden Death at 3 left. Six KOs on index 0.
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng(Array.from({ length: 6 }, () => [0, KO]).flat()),
+    );
+    await addNames(user, `${EIGHT}{Enter}Siti`);
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    expect(screen.getByTestId('shield-supply')).toHaveTextContent('2 of 2');
+    expect(screen.getByTestId('sudden-death-at')).toHaveTextContent('Sudden Death at 3 left');
+    for (let i = 1; i <= 6; i++) {
       await user.click(randomButton());
       await within(screen.getByTestId('event-log')).findByText(new RegExp('Turn ' + i + ':'));
     }
-    expect(await screen.findByText(/^SUDDEN DEATH!/)).toBeInTheDocument();
-    expect(screen.getByTestId('sudden-death')).toBeInTheDocument();
+    expect(await screen.findByText(/^SUDDEN DEATH! Only 3 fighters left\./)).toBeInTheDocument();
+    expect(screen.getByTestId('sudden-death')).toHaveTextContent('Shields shattered');
     expect(screen.getByTestId('fate-odds')).toHaveTextContent('KO 90% · VS 10%');
     expect(document.querySelectorAll('.fate-slot--SHIELD')).toHaveLength(0);
   });

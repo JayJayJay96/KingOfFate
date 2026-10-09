@@ -54,17 +54,18 @@ Custom participant avatars/photos; elaborate fighter animations; additional Fate
 | Fate | Result | Notes |
 |---|---|---|
 | **KO** | Selected player loses one Shield if present; otherwise eliminated | Shield block is logged and counts as **no elimination**. |
-| **SHIELD** | Selected player gains one Shield if none; otherwise nothing (wasted Fate) | **At most one** Shield per participant; wasted outcome is still logged. |
-| **VS** | Randomly choose a distinct living opponent; fast RPS determines a winner and loser | Each gesture independently uniformly sampled from Rock/Paper/Scissors; identical hands draw and auto-reroll. Loser is eliminated unless protected, in which case Shield is consumed and they survive. Winner gets one Shield if unshielded, unless Sudden Death prohibits awarding. Existing Shield never stacks. |
+| **SHIELD** | Selected player gains one Shield if none and the match's Shield supply is not empty; otherwise nothing (wasted Fate) | **At most one** Shield per participant; wasted outcome is still logged. Each Shield earned uses one from the limited supply (see below). |
+| **VS** | Randomly choose a distinct living opponent; fast RPS determines a winner and loser | Each gesture independently uniformly sampled from Rock/Paper/Scissors; identical hands draw and auto-reroll. Loser is eliminated unless protected, in which case Shield is consumed and they survive. Winner gets one Shield if unshielded and the supply is not empty, unless Sudden Death prohibits awarding. Existing Shield never stacks. |
 
 VS opponent selection is uniform among **other living players**. With `aliveCount > W+1 >= 2`, there is always an opponent. RPS outcome is fair for both fighters, independently of player/Fate selection. A normal VS uses a quick ~2–4 second **decisive exchange** presentation; draws may extend it. Log duel participants, hands/attempts as appropriate, winner, Shield changes and whether elimination actually occurred.
 
-### Three consecutive no-elimination turns → Sudden Death
-- Increment `noEliminationStreak` for every **completed ordinary turn that eliminated nobody**, including protected KO/VS, wasted Shield and Shield grant. Reset to 0 only on an **actual elimination**.
-- Once streak reaches **3**, enter Sudden Death for the rest of the ordinary elimination stage. It does not automatically end after the next elimination; transition ends it when finale begins.
-- Existing Shields remain until consumed. **No new Shield may be awarded** through Fate or VS while Sudden Death is active. Therefore the active Fate pool contains **zero Shield slots**. Normal VS remains available, and winner Shield rewards are suppressed.
+### Limited Shield supply and Sudden Death (owner decision 2026-10-09, replaces the 3-turn streak)
+- **Shield supply:** each match has `ceil(N / 5)` Shields to earn (N = starting fighters). Every Shield gained — by Shield Fate or by winning a VS — uses one. A Shield Fate rolled while the supply is empty is wasted. A VS winner gets nothing when the supply is empty.
+- **Supply exhausted:** when the last Shield is earned, the Shield slots in the Fate row turn into **KO** before the next draw (logged and visible). Shields already owned keep working.
+- **Sudden Death** starts when the living count drops to `round(N / 3)` (one-third of the start), for the rest of the ordinary stage. **All Shields shatter** (logged by name), the supply is emptied, no new Shield may be awarded, and the Fate row switches to the D1 Sudden Death odds (zero Shield slots). Normal VS remains available; winner Shield rewards are suppressed.
+- The finale check comes first: if `round(N / 3) <= W + 1` the finale starts before Sudden Death can, and the match shows "No Sudden Death".
 - **Approved (D1, 2026-10-09):** distinct Sudden Death weights per preset, KO/VS only, 20 slots — **Fast 95/5/0 (19/1/0 slots), Normal 90/10/0 (18/2/0), Chaotic 80/20/0 (16/4/0)** (KO/VS/Shield).
-- Display the current Sudden Death state and **actual updated visible odds**; never silently change the probabilities behind a stale Fate row.
+- Display the remaining Shield supply, the Sudden Death threshold, the current Sudden Death state and the **actual updated visible odds**; never silently change the probabilities behind a stale Fate row.
 - Sudden Death raises the KO probability relative to each preset's normal KO chance, while retaining some VS possibility, unless the owner explicitly approves an exception.
 
 ### Normal Fate odds (confirmed)
@@ -75,7 +76,7 @@ VS opponent selection is uniform among **other living players**. With `aliveCoun
 | VS | 10% = 2 slots | 20% = 4 slots | 25% = 5 slots |
 | SHIELD | 0% = 0 slots | 5% = 1 slot | 15% = 3 slots |
 
-Twenty **equally likely** Fate slots comprise the visible row (rendered responsively). Random draw chooses a slot uniformly; duplicate Fate labels reflect weight. Shuffle only permutes slot positions. When Sudden Death begins, visibly replace the slot composition before the next draw. Tests must compare empirical frequencies to configured distributions.
+Twenty **equally likely** Fate slots comprise the visible row (rendered responsively). Random draw chooses a slot uniformly; duplicate Fate labels reflect weight. Shuffle only permutes slot positions. When the Shield supply runs out or Sudden Death begins, visibly replace the slot composition before the next draw. Tests must compare empirical frequencies to configured distributions.
 
 ## 5. Mandatory finale: Vietnamese automated RPS
 
@@ -124,7 +125,7 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 
 ## 8. Testing and release acceptance
 
-- Unit tests: state transitions, player eligibility, KO/Shield interaction, wasted Shield, VS ties and protected losses, Sudden Death activation after exactly 3 *consecutive* non-eliminations, and W+1 trigger.
+- Unit tests: state transitions, player eligibility, KO/Shield interaction, wasted Shield, VS ties and protected losses, limited Shield supply (exhaustion turns Shield slots into KO), Sudden Death activation at exactly one-third left with Shields shattered, and W+1 trigger.
 - Finale tests for W=1..5, N=W+1 and larger, draw cases (same / all three gestures), multiple winning hands, oversubscription, repeated tiebreaks, exactly W winners and no double lock.
 - Probability simulations with injected RNG: equal player selection, preset slot proportions and RPS gesture parity; seedable regression scenarios. Statistical tests need fixed tolerances to avoid flaky tests.
 - Integration tests: committed state and log consistency, interrupted spin/VS/finale recovery, once-only match completion, attendance toggle and configuration restore.
@@ -166,6 +167,7 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 - A typical real-life match is **at most ~20 participants**; still keep technical support through 32.
 - **Step-by-step reveal (approved 2026-10-09, revised same day):** fighter first, then Fate, then (VS) "VS!" → opponent cursor → rock-paper-scissors → result. The Fate cursor **starts midway through the fighter spin** (at half the fighter cursor's travel) to save time, but **always stops at least 0.4 s after the fighter is revealed**. Each cursor lands after 2.5–5 s, never more than 6.5 s; snap/crawl/dwell rhythm unchanged. All outcomes still committed before any animation.
 - **RPS hand signs (approved 2026-10-09):** shown below each fighter (not on the head) and larger, in VS duels and the finale. 4–6 finalists stand in two rows facing each other.
+- **Shield redesign (approved 2026-10-09):** Shields are a limited supply (1 per 5 fighters, rounded up) that carries fighters through the early/mid game; Sudden Death at one-third left shatters them. Replaces the earlier "3 consecutive no-elimination turns" trigger and "existing Shields remain in Sudden Death". See §4.
 - **Victory scene (approved 2026-10-09):** fighters knocked out during the match lie scattered (greyed, lying down) around the screen; finalists who lost lie knocked out beside the standing, crowned winners.
 - Full-length spins are **higher priority** than strict 3–5-minute match completion.
 - In the 4-player/2-winner VS example, only an **actual elimination** changes the living count from 4 to 3. Shield absorption does **not** start finale.

@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-09  
 **Phase:** 5 — Retro Arcade Experience  
-**Overall status:** Phases 1–4 done; Phase 5 accepted ("tested, all good") plus owner follow-ups (step-by-step reveal, VS opponent spin, fallen fighters on the victory screen) implemented and verified (229 unit/integration tests, 12 E2E ×3 runs green); follow-ups await owner review. Not deployed.
+**Overall status:** Phases 1–4 done; Phase 5 accepted ("tested, all good") plus owner follow-ups (step-by-step reveal, VS opponent spin, fallen fighters, Fate overlap, bigger hand signs, **Shield supply + one-third Sudden Death**) implemented and verified (234 unit/integration tests, 12 E2E green); Shield redesign awaits owner play-test. Not deployed.
 
 ## 1. Current snapshot
 
@@ -10,7 +10,7 @@
 |---|---|
 | Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
 | Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound settings `kof.audio` (replaces `kof.sound`, migrated). Custom music: IndexedDB db `kof-assets` v1 store `files` key `custom-music` (raw bytes + name/type/size/savedAt; local only). IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 3** since Phase 4; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
+| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound settings `kof.audio` (replaces `kof.sound`, migrated). Custom music: IndexedDB db `kof-assets` v1 store `files` key `custom-music` (raw bytes + name/type/size/savedAt; local only). IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 4** since the Shield redesign; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
 | RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
 | Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
 | Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
@@ -37,7 +37,7 @@
 - Victory scene: fighters knocked out during the match lie scattered around the screen; finale losers lie beside the crowned winners.
 - KO, VS and Shield only for MVP; Shield cap one; duplicate Shield wasted; protected KO/VS loss consumes Shield and prevents elimination.
 - VS: random distinct living opponent; automatic one decisive RPS throw with rethrows on draw. Winner earns Shield when permitted.
-- 3 consecutive no-elimination turns activate Sudden Death; existing Shields remain, no new ones; D1 odds Fast 95/5/0, Normal 90/10/0, Chaotic 80/20/0.
+- Shield supply `ceil(N/5)` per match (Fate or VS win uses one; empty → Shield slots become KO). Sudden Death at `round(N/3)` alive: all Shields shatter, no new ones; D1 odds Fast 95/5/0, Normal 90/10/0, Chaotic 80/20/0. If that count ≤ W+1 the finale comes first ("No Sudden Death"). (Owner decision 2026-10-09; replaced the 3-turn streak.)
 - Finale begins immediately upon `aliveCount == winners + 1`; automated chant RPS, first to three; D3 tiebreak among oversubscribed candidates only; D2 guard; Shields cleared at finale start.
 - 1–5 winners, `activeCount >= W+1`, max 32 active. D5 name rules (trim, drop blanks, ≤20 chars, case-insensitive duplicates rejected).
 - One default configuration; attendance toggles; auto-restore active match; no undo; return to setup after result.
@@ -51,21 +51,32 @@
 | P4-d | No Abandon during the finale (it must finish); Esc pause exists (D4). | Keep. | — |
 | P5-d | Turn length now: fighter (2.5–6.5 s) + Fate (2.5–6.5 s); VS adds ~1 s "VS!" + opponent (2.5–6.5 s) + duel (~2–4 s). Typical KO turn ≈ 8–10 s, typical VS turn ≈ 15–20 s. | Tune ranges if it drags. | Follow-up acceptance |
 | P5-c | Custom *chant recording* upload with cue sync (spec §5) not built; AI voice chosen instead. | Optional later. | Optional |
+| P5-e | Small matches: with 5 fighters there is 1 Shield in total and Sudden Death never happens (finale first). | Intended by the formula; revisit if Shields feel too rare. | Owner play-test |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner reviews the follow-ups (step-by-step reveal pacing, VS opponent spin, victory scene).
+1. Owner play-tests the Shield redesign (≥ 9 fighters to see 2 Shields and a real Sudden Death).
 2. Phase 6: History & Analytics (completed-match store already exists from Phase 4).
 
 ## 6. Session log
+
+### 2026-10-09 — Shield redesign: limited supply + Sudden Death at one-third left
+- **Owner decision:** "Supply + half-way break", "1 per 5 fighters", "One-third left". Replaces the 3-consecutive-no-elimination streak. Logged in `PROJECT.md` §4/§10 and the `AGENTS.md` invariants.
+- **Rules implemented:** supply `ceil(N/5)`; Shield Fate or VS win uses one; Shield Fate with empty supply is wasted, VS winner gets `NO_SUPPLY`; when the last Shield is earned the Shield slots become KO (`SHIELD_SUPPLY_EXHAUSTED`, logged). Sudden Death when alive ≤ `round(N/3)`: supply → 0, D1 odds, all owned Shields shatter (`SUDDEN_DEATH_STARTED` now carries `aliveCount`, `shatteredIds`). Finale check runs first. `noEliminationStreak` removed.
+- **Changed:** `matchTypes.ts` (schema 4: `shieldSupply`, `suddenDeathAt`; new event), `match.ts` (`shieldSupplyFor`, `suddenDeathAtFor`), `describeEvent.ts` (log text), `matchStorage.ts` (validation; schema-3 saves discarded with the "older version" notice), `FateStrip.tsx` (header: "Shields left" pips, "Sudden Death at N left" or "No Sudden Death: finale at N left"; class `fate-strip__streak` → `fate-strip__meter`), `MatchScreen.tsx`, `global.css` (`.pip--shield`), `match.test.ts`, `App.test.tsx`.
+- **Tests:** `npm test` → **20 files, 234 passed** (supply counts for several N, exhaustion converts slots, wasted Shield/NO_SUPPLY, exact one-third trigger, shattering, finale pre-empts Sudden Death, UI header + log text + 90/10 odds). `npm run e2e` → **12 passed**. Typecheck, lint, `npm run build` clean.
+- **Manual (browser pane):** old saved match discarded with the notice; 6-fighter match shows "Shields left 2 of 2". Header text for the finale-first case covered by the App test, not screenshotted.
+- **Assumption:** when `round(N/3) ≤ W+1` there is no Sudden Death (the finale starts first); shown in the header. Rounding is `Math.round` (e.g. 8 → 3, 10 → 3, 32 → 11).
+- **Next exact action:** owner play-tests (≥ 9 fighters), then `Phase 6: History & Analytics`.
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Fate overlap, bigger hand signs; Shield redesign proposed
 - **Owner input:** loves it; asked to start the Fate spin mid fighter spin to save time; hand signs near the head are hard to read → move below the avatar and enlarge; asked for a recommendation on redefining Shields and the streak (options: shields lose effect past a threshold; limited shield supply that turns into KO; shields stop working once a number are owned).
 - **Changed:** `src/animation/turnTimeline.ts` (`FATE_START_FRACTION` 0.5, `FATE_LANDS_AFTER_FIGHTER_MS` 400, `playerRevealMs`), `src/hooks/useTurnAnimation.ts` ("Fate is choosing…" switches at the fighter reveal), `DuelPanel.tsx` (hand 60 px below fighter), `FinaleStage.tsx` (hand 52 px below fighter, crown above winners), `finaleTimeline.ts` (`stagePositions`: triangle pulled in; 4–6 finalists in two rows), CSS (arena `max(480px, 62vh)`; hands in a framed box under the sprite), tests; docs `PROJECT.md` §10, `AGENTS.md` invariant. Commit `16a3adc`.
 - **Found while checking:** taller cards made the 6-finalist ring overlap on short screens → two-row layout (verified in the pane).
 - **Tests:** `npm test` → **20 files, 229 passed** (Fate starts ≥ half the fighter's travel and stops ≥ 0.4 s after the fighter reveal; most turns overlap; two-row layout). `npm run e2e` → 11/12 first (expected: one assertion still required the old non-overlapping order) → assertion updated to "Fate stops after the fighter" → ×2 repeat **24/24**. Typecheck + lint clean.
-- **Pending decision (owner):** Shield / Sudden Death redesign — proposal in chat (not implemented).
+- **Pending decision (owner):** Shield / Sudden Death redesign — proposal in chat (decided and implemented in the next entry).
 - **Next exact action:** owner chooses the Shield design → implement with tests → Phase 6.
 
 ### 2026-10-09 — Phase 5 accepted; owner follow-ups: step-by-step reveal, VS opponent spin, fallen fighters

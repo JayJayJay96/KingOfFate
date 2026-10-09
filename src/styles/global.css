@@ -714,7 +714,7 @@ textarea {
   font-weight: 700;
 }
 
-.fate-strip__streak,
+.fate-strip__meter,
 .fate-strip__sudden-death {
   margin: 0 0 0 auto;
   color: var(--muted);
@@ -1471,4 +1471,9 @@ label.button {
   .victory__fallen-field {
     opacity: 0.45;
   }
+}
+
+.pip--shield {
+  background: var(--cyan);
+  border-color: var(--cyan);
 }
