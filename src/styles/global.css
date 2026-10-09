@@ -2073,3 +2073,243 @@ label.button {
   opacity: 0.2;
   transition: opacity 0.2s;
 }
+
+/* ---------- arcade pack B: stages and looks (2026-10-10) ---------- */
+.stage-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.stage-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.stage-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 4, 16, 0.62);
+}
+
+.title-screen {
+  position: relative;
+  isolation: isolate;
+}
+
+.title-screen .stage-backdrop::after {
+  background: linear-gradient(rgba(8, 4, 16, 0.35), rgba(8, 4, 16, 0.75));
+}
+
+/* The preview is the cinematic zone: the stage shows behind the chosen fighter. */
+.preview {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.preview__stage {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+}
+
+.preview__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(27, 16, 48, 0.85) 0%, rgba(27, 16, 48, 0.2) 70%);
+}
+
+.finale-stage__arena {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.finale-stage__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  filter: brightness(0.55) saturate(1.1);
+}
+
+.finale-stage__backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 55%, transparent 25%, rgba(0, 0, 0, 0.65) 75%);
+}
+
+.victory {
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(58, 16, 48, 0.85) 0%, transparent 60%),
+    rgba(13, 7, 22, 0.55);
+}
+
+.stage-twinkle {
+  animation: stage-twinkle 1.6s steps(2) infinite;
+}
+
+.stage-twinkle:nth-of-type(3n) {
+  animation-delay: -0.8s;
+}
+
+@keyframes stage-twinkle {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.stage-drift {
+  animation: stage-drift 9s linear infinite;
+}
+
+.stage-drift-slow {
+  animation: stage-drift 40s linear infinite;
+}
+
+@keyframes stage-drift {
+  from {
+    transform: translateX(-80px);
+  }
+  to {
+    transform: translateX(80px);
+  }
+}
+
+.stage-steam {
+  animation: stage-steam 1.4s steps(3) infinite;
+}
+
+@keyframes stage-steam {
+  to {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+/* Stage choice in setup */
+.stage-select {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.stage-select select,
+.look-editor select {
+  font: inherit;
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--panel-edge);
+}
+
+/* Roster look button */
+.slot__toggle .fighter-sprite {
+  flex: none;
+}
+
+.slot__look {
+  border: 0;
+  border-left: 3px solid var(--panel-edge);
+  background: none;
+  cursor: pointer;
+  padding: 0 8px;
+  font-size: 1rem;
+}
+
+.slot__look:hover,
+.slot__look:focus-visible {
+  background: var(--panel-edge);
+}
+
+/* Change-look editor */
+.look-editor {
+  width: min(760px, 94vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.look-editor__body {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.look-editor__preview {
+  display: grid;
+  justify-items: center;
+  padding: 16px;
+  border: 3px solid var(--panel-edge);
+  background: #0b0613;
+}
+
+.look-editor__fields {
+  display: grid;
+  gap: 10px;
+}
+
+.look-editor__field {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.look-editor__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.look-editor__swatch-label {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.look-editor__swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid #000;
+  cursor: pointer;
+}
+
+.look-editor__swatch[aria-pressed='true'] {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.look-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.look-editor__spacer {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .look-editor__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-twinkle,
+  .stage-drift,
+  .stage-drift-slow,
+  .stage-steam {
+    animation: none;
+  }
+}

@@ -1,3 +1,4 @@
+import type { FighterLook } from '../config/looks';
 import type { FateKind, FatePresetId } from '../config/presets';
 import type { DuelThrow, Gesture } from './rps';
 
@@ -15,6 +16,8 @@ export interface MatchPlayer {
   readonly shield: boolean;
   /** Turn number on which the player was eliminated, or null while alive. */
   readonly eliminatedOnTurn: number | null;
+  /** Cosmetic: the custom look at match start, if the host picked one. Never affects play. */
+  readonly look?: FighterLook;
 }
 
 /**

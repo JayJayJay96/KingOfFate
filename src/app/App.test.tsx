@@ -662,3 +662,93 @@ describe('Arcade pack A: title, intro, announcer, impacts (owner decisions 2026-
     expect(calls).toContain('announce:Aisyah wins!');
   });
 });
+
+describe('Arcade pack B: looks and stages (owner decisions 2026-10-10)', () => {
+  const savedSetup = () => JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY) ?? '{}');
+
+  it('Change look: picks a tudung, saves it with the roster and carries it into the match', async () => {
+    const repo = createMemoryMatchRepository();
+    const { user } = await renderApp(repo);
+    await addNames(user, 'Aisyah{Enter}Wei Jie');
+    await user.click(screen.getByRole('button', { name: 'Change look for Aisyah' }));
+    const dialog = screen.getByRole('dialog', { name: 'Look: Aisyah' });
+    expect(within(dialog).getByText('Default look (from the name)')).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText('Headwear'), 'tudung');
+    await user.selectOptions(within(dialog).getByLabelText('Outfit'), 'baju-melayu');
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Accent / headwear colour: Beige' }),
+    );
+    expect(within(dialog).getByText('Custom look')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Save look' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    const aisyah = savedSetup().roster.find((p: { name: string }) => p.name === 'Aisyah');
+    expect(aisyah.look).toMatchObject({
+      headwear: 'tudung',
+      outfit: 'baju-melayu',
+      accent: 'beige',
+    });
+    expect(savedSetup().roster.find((p: { name: string }) => p.name === 'Wei Jie').look).toBe(
+      undefined,
+    );
+
+    await startMatch(user);
+    const loaded = await repo.load();
+    expect(loaded.status === 'loaded' && loaded.match.players[0]!.look).toMatchObject({
+      headwear: 'tudung',
+    });
+    expect(loaded.status === 'loaded' && loaded.match.players[1]!.look).toBe(undefined);
+  });
+
+  it('Use default removes a custom look; Cancel and Esc keep the old one', async () => {
+    const { user } = await renderApp();
+    await addNames(user, 'Hafiz');
+    const open = () => user.click(screen.getByRole('button', { name: 'Change look for Hafiz' }));
+
+    await open();
+    await user.selectOptions(screen.getByLabelText('Headwear'), 'songkok');
+    await user.click(screen.getByRole('button', { name: 'Save look' }));
+    expect(savedSetup().roster[0].look.headwear).toBe('songkok');
+
+    await open();
+    await user.selectOptions(screen.getByLabelText('Headwear'), 'cap');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(savedSetup().roster[0].look.headwear).toBe('songkok');
+
+    await open();
+    await user.selectOptions(screen.getByLabelText('Headwear'), 'cap');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(savedSetup().roster[0].look.headwear).toBe('songkok');
+
+    await open();
+    await user.click(screen.getByRole('button', { name: 'Use default' }));
+    expect(savedSetup().roster[0].look).toBe(undefined);
+  });
+
+  it('a pinned stage is saved and shown behind the match and the preview', async () => {
+    const { user } = await renderApp();
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
+    expect(screen.getByRole('combobox', { name: 'Stage' })).toHaveValue('random');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Stage' }), 'mamak');
+    expect(savedSetup().stage).toBe('mamak');
+    await startMatch(user);
+    expect(screen.getByTestId('stage-backdrop')).toHaveAttribute('data-stage', 'mamak');
+    expect(
+      screen.getByRole('region', { name: 'Selected fighter' }).querySelector('[data-stage]'),
+    ).toHaveAttribute('data-stage', 'mamak');
+  });
+
+  it('random stage: some stage is shown and it stays the same after a reload', async () => {
+    const repo = createMemoryMatchRepository();
+    const first = await renderApp(repo);
+    await addNames(first.user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
+    await startMatch(first.user);
+    const stage = screen.getByTestId('stage-backdrop').getAttribute('data-stage');
+    expect(stage).toMatch(/^(kl-night|mamak|pantry|pasar-malam|rooftop)$/);
+    first.unmount();
+    await renderApp(repo);
+    await screen.findByRole('list', { name: 'Fighters' });
+    expect(screen.getByTestId('stage-backdrop')).toHaveAttribute('data-stage', stage!);
+  });
+});

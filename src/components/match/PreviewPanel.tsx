@@ -1,7 +1,10 @@
+import { useContext } from 'react';
 import { describeOutcome } from '../../game/engine/describeEvent';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
 import type { TurnStage } from '../../hooks/useTurnAnimation';
 import { FighterSprite } from '../sprites/icons';
+import { StageArt } from '../stage/StageArt';
+import { StageContext } from '../stage/stageContext';
 
 interface PreviewPanelProps {
   readonly match: MatchState;
@@ -11,6 +14,7 @@ interface PreviewPanelProps {
 
 /** Large nameplate with the selected fighter's pixel portrait. */
 export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPanelProps) {
+  const stageId = useContext(StageContext);
   const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
 
@@ -37,6 +41,11 @@ export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPane
 
   return (
     <section className={`panel preview ${tone}`} aria-label="Selected fighter">
+      {stageId && (
+        <div className="preview__stage" aria-hidden="true">
+          <StageArt stage={stageId} crop="middle" />
+        </div>
+      )}
       {name ? (
         <span className="preview__portrait">
           <FighterSprite seed={name} size={136} idle={match.phase !== 'SPINNING'} />

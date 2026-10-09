@@ -1,4 +1,5 @@
 import { WINNER_COUNT_OPTIONS, type WinnerCount } from '../../game/config/limits';
+import { isStageChoice, STAGE_IDS, STAGE_LABELS, type StageChoice } from '../../game/config/stages';
 import {
   FATE_PRESET_IDS,
   FATE_PRESETS,
@@ -11,6 +12,8 @@ interface MatchOptionsProps {
   readonly presetId: FatePresetId;
   readonly onWinnerCountChange: (winnerCount: WinnerCount) => void;
   readonly onPresetChange: (presetId: FatePresetId) => void;
+  readonly stage: StageChoice;
+  readonly onStageChange: (stage: StageChoice) => void;
 }
 
 export function MatchOptions({
@@ -18,6 +21,8 @@ export function MatchOptions({
   presetId,
   onWinnerCountChange,
   onPresetChange,
+  stage,
+  onStageChange,
 }: MatchOptionsProps) {
   return (
     <section className="panel">
@@ -65,6 +70,23 @@ export function MatchOptions({
           })}
         </div>
       </fieldset>
+
+      <label className="fieldset stage-select">
+        <span className="panel__title">Stage</span>
+        <select
+          value={stage}
+          onChange={(e) => {
+            if (isStageChoice(e.target.value)) onStageChange(e.target.value);
+          }}
+        >
+          <option value="random">Random each match</option>
+          {STAGE_IDS.map((id) => (
+            <option key={id} value={id}>
+              {STAGE_LABELS[id]}
+            </option>
+          ))}
+        </select>
+      </label>
     </section>
   );
 }

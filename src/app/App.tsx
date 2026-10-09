@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { SoundEngine } from '../audio/soundEngine';
 import { SoundProvider } from '../audio/SoundProvider';
 import { HistoryScreen, type Downloader } from '../components/history/HistoryScreen';
 import { MatchScreen } from '../components/match/MatchScreen';
+import { LooksContext, looksByName } from '../components/sprites/looksContext';
+import { StageBackdrop } from '../components/stage/StageArt';
+import { StageContext } from '../components/stage/stageContext';
+import { stageForMatch } from '../game/config/stages';
 import { SetupScreen } from '../components/setup/SetupScreen';
 import { TitleScreen } from '../components/TitleScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
@@ -48,12 +52,18 @@ function Game({
   const game = useMatch(repository, matchRng);
   const [showHistory, setShowHistory] = useState(false);
   const [coinInserted, setCoinInserted] = useState(!titleScreen);
+  const matchPlayers = game.match?.players;
+  const matchLooks = useMemo(() => looksByName(matchPlayers ?? []), [matchPlayers]);
+  const roster = setup.config.roster;
+  const rosterLooks = useMemo(() => looksByName(roster), [roster]);
 
   function handleStart() {
     const { config } = setup;
     if (!validateSetup(config).canStart) return;
     void game.start({
-      players: activeParticipants(config.roster).map(({ id, name }) => ({ id, name })),
+      players: activeParticipants(config.roster).map(({ id, name, look }) =>
+        look ? { id, name, look } : { id, name },
+      ),
       winnerCount: config.winnerCount,
       presetId: config.presetId,
     });
@@ -72,19 +82,25 @@ function Game({
   }
 
   if (game.match) {
+    const stage = stageForMatch(setup.config.stage, game.match.matchId);
     return (
-      <MatchScreen
-        match={game.match}
-        timeScale={timeScale}
-        saveError={game.saveError}
-        onSpin={() => void game.spin()}
-        onShuffle={() => void game.shuffle()}
-        onSpinComplete={(turnId) => void game.completeSpin(turnId)}
-        onBeginFinale={() => void game.beginFinale()}
-        onNextFinaleRound={() => void game.nextFinaleRound()}
-        onResolveFinaleRound={(roundId) => void game.completeFinaleRound(roundId)}
-        onLeave={() => void game.leave()}
-      />
+      <StageContext.Provider value={stage}>
+        <LooksContext.Provider value={matchLooks}>
+          <StageBackdrop stage={stage} />
+          <MatchScreen
+            match={game.match}
+            timeScale={timeScale}
+            saveError={game.saveError}
+            onSpin={() => void game.spin()}
+            onShuffle={() => void game.shuffle()}
+            onSpinComplete={(turnId) => void game.completeSpin(turnId)}
+            onBeginFinale={() => void game.beginFinale()}
+            onNextFinaleRound={() => void game.nextFinaleRound()}
+            onResolveFinaleRound={(roundId) => void game.completeFinaleRound(roundId)}
+            onLeave={() => void game.leave()}
+          />
+        </LooksContext.Provider>
+      </StageContext.Provider>
     );
   }
 
@@ -99,11 +115,13 @@ function Game({
   }
 
   return (
-    <SetupScreen
-      store={setup}
-      onStart={handleStart}
-      onOpenHistory={() => setShowHistory(true)}
-      matchNotice={game.notice ?? game.saveError}
-    />
+    <LooksContext.Provider value={rosterLooks}>
+      <SetupScreen
+        store={setup}
+        onStart={handleStart}
+        onOpenHistory={() => setShowHistory(true)}
+        matchNotice={game.notice ?? game.saveError}
+      />
+    </LooksContext.Provider>
   );
 }

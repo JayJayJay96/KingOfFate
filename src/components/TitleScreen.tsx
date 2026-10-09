@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSound } from '../audio/soundContext';
 import { FighterSprite } from './sprites/icons';
+import { StageBackdrop } from './stage/StageArt';
 
 /** Generic attract-mode crowd (not real people). */
 const CROWD = ['Ryu-chan', 'Kiki', 'Bao', 'Mira', 'Tok Wan', 'Zed', 'Lulu'];
@@ -46,6 +47,7 @@ export function TitleScreen({ onStart, timeScale = 1 }: TitleScreenProps) {
 
   return (
     <main className="title-screen" aria-label="Title">
+      <StageBackdrop stage="kl-night" />
       <div className="title-screen__inner">
         <h1 className="title__logo title-screen__logo">King of Fate</h1>
         <p className="title-screen__edition">Office Arcade Edition</p>

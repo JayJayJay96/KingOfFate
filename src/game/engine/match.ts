@@ -1,3 +1,4 @@
+import { cleanLook, isFighterLook, type FighterLook } from '../config/looks';
 import { isWinnerCount, MAX_ACTIVE_PLAYERS, MIN_ACTIVE_PLAYERS } from '../config/limits';
 import { FATE_PRESETS, FATE_SLOT_COUNT, type FatePresetId } from '../config/presets';
 import type { Rng } from '../rng/rng';
@@ -26,7 +27,11 @@ export function suddenDeathAtFor(fighters: number): number {
 }
 
 export interface MatchLaunch {
-  readonly players: readonly { readonly id: string; readonly name: string }[];
+  readonly players: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly look?: FighterLook;
+  }[];
   readonly winnerCount: number;
   readonly presetId: FatePresetId;
 }
@@ -67,6 +72,7 @@ export function createMatch(
       alive: true,
       shield: false,
       eliminatedOnTurn: null,
+      ...(p.look && isFighterLook(p.look) ? { look: cleanLook(p.look) } : {}),
     })),
     fateSlots: spreadSlots(FATE_PRESETS[launch.presetId].normal),
     phase: 'READY',

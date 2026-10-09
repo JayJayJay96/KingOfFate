@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { ANNOUNCE } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import { FINALE_SPLASH_MS } from '../../animation/matchIntro';
+import { StageArt } from '../stage/StageArt';
+import { StageContext } from '../stage/stageContext';
 import { CHANT_LABEL, stagePositions, type ChantWord } from '../../animation/finaleTimeline';
 import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEvent';
 import { FINALE_TARGET_SCORE } from '../../game/engine/finale';
@@ -41,6 +43,7 @@ export function FinaleStage({
 }: FinaleStageProps) {
   const f = match.finale!;
   const { engine, settings, toggleMute } = useSound();
+  const stageId = useContext(StageContext);
   // "FINAL ROUND" splash while finalists walk in; decorative, Start works straight away.
   const [splash, setSplash] = useState(!f.started);
   useEffect(() => {
@@ -144,6 +147,11 @@ export function FinaleStage({
           .join(' ')}
         aria-label="Finalists"
       >
+        {stageId && (
+          <div className="finale-stage__backdrop" aria-hidden="true">
+            <StageArt stage={stageId} />
+          </div>
+        )}
         {f.finalistIds.map((id, i) => (
           <Finalist
             key={id}

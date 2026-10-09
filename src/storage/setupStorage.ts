@@ -1,5 +1,7 @@
 import { isWinnerCount, MAX_NAME_LENGTH } from '../game/config/limits';
+import { cleanLook, isFighterLook } from '../game/config/looks';
 import { isFatePresetId } from '../game/config/presets';
+import { isStageChoice } from '../game/config/stages';
 import { nameKey, nameLength, normalizeName, type Participant } from '../game/setup/roster';
 import { DEFAULT_SETUP, type SetupConfig } from '../game/setup/setupConfig';
 
@@ -12,6 +14,8 @@ interface StoredSetupV1 {
   readonly roster: readonly Participant[];
   readonly winnerCount: number;
   readonly presetId: string;
+  /** Added 2026-10-10 (optional, schema unchanged). */
+  readonly stage?: string;
 }
 
 /**
@@ -72,8 +76,12 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   if (isFatePresetId(parsed.presetId)) presetId = parsed.presetId;
   else repaired = true;
 
+  let stage = DEFAULT_SETUP.stage;
+  if (isStageChoice(parsed.stage)) stage = parsed.stage;
+  else if (parsed.stage !== undefined) repaired = true;
+
   return {
-    config: { roster: roster.entries, winnerCount, presetId },
+    config: { roster: roster.entries, winnerCount, presetId, stage },
     status: repaired ? 'repaired' : 'loaded',
   };
 }
@@ -85,9 +93,12 @@ export function saveSetup(
   if (!storage) return { ok: false, message: 'Browser storage is unavailable.' };
   const stored: StoredSetupV1 = {
     schemaVersion: SETUP_SCHEMA_VERSION,
-    roster: config.roster.map(({ id, name, active }) => ({ id, name, active })),
+    roster: config.roster.map(({ id, name, active, look }) =>
+      look ? { id, name, active, look: cleanLook(look) } : { id, name, active },
+    ),
     winnerCount: config.winnerCount,
     presetId: config.presetId,
+    stage: config.stage,
   };
   try {
     storage.setItem(SETUP_STORAGE_KEY, JSON.stringify(stored));
@@ -128,7 +139,12 @@ function sanitizeRoster(value: unknown): { entries: Participant[]; dropped: bool
     if (ids.has(item.id) || names.has(key)) continue;
     ids.add(item.id);
     names.add(key);
-    entries.push({ id: item.id, name, active: item.active });
+    // A damaged look is dropped (the person falls back to their neutral look).
+    entries.push(
+      isFighterLook(item.look)
+        ? { id: item.id, name, active: item.active, look: cleanLook(item.look) }
+        : { id: item.id, name, active: item.active },
+    );
   }
   return { entries, dropped: entries.length !== value.length };
 }

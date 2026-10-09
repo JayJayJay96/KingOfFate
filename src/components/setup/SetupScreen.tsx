@@ -77,6 +77,8 @@ export function SetupScreen({
             presetId={config.presetId}
             onWinnerCountChange={(winnerCount) => update((c) => ({ ...c, winnerCount }))}
             onPresetChange={(presetId) => update((c) => ({ ...c, presetId }))}
+            stage={config.stage}
+            onStageChange={(stage) => update((c) => ({ ...c, stage }))}
           />
 
           <SoundSettings />

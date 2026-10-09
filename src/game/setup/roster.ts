@@ -1,10 +1,13 @@
 import { MAX_NAME_LENGTH } from '../config/limits';
+import { cleanLook, type FighterLook } from '../config/looks';
 
 /** A stored roster entry. `id` is the identity; `name` is only a display label. */
 export interface Participant {
   readonly id: string;
   readonly name: string;
   readonly active: boolean;
+  /** Host-picked look; absent = neutral look from the name. */
+  readonly look?: FighterLook;
 }
 
 export type Roster = readonly Participant[];
@@ -72,6 +75,18 @@ export function addNamesToRoster(
 
 export function setParticipantActive(roster: Roster, id: string, active: boolean): Roster {
   return roster.map((p) => (p.id === id && p.active !== active ? { ...p, active } : p));
+}
+
+/** Sets (or with null, removes) a person's custom look. */
+export function setParticipantLook(roster: Roster, id: string, look: FighterLook | null): Roster {
+  return roster.map((p) => {
+    if (p.id !== id) return p;
+    if (!look) {
+      const { look: _removed, ...rest } = p;
+      return rest;
+    }
+    return { ...p, look: cleanLook(look) };
+  });
 }
 
 export function toggleParticipant(roster: Roster, id: string): Roster {

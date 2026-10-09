@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-10  
 **Phase:** Arcade enhancement packs (between 6 and 7)  
-**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). **Pack A (title, intro, announcer, impacts, idle) implemented and verified** (271 unit/integration tests, 13 E2E green); awaiting owner play-test. Packs B and C pending. Not deployed.
+**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Pack A done (owner: "tested, all good"). **Pack B (looks + stages) implemented and verified** (283 unit/integration tests, 14 E2E green); awaiting owner play-test. Pack C pending. Not deployed.
 
 ## 1. Current snapshot
 
@@ -29,8 +29,8 @@
 | 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
 | 5 — Retro Arcade Experience | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | — |
 | 6 — History & Analytics | **Done** (owner: "pretty perfect") | — |
-| Pack A — Arcade show | **Implemented**, awaiting play-test | Owner plays a match: title, intro, K.O. effects, final blow |
-| Pack B — Looks (sprites, stages) | Not started | — |
+| Pack A — Arcade show | **Done** (owner: "tested, all good") | — |
+| Pack B — Looks (sprites, stages) | **Implemented**, awaiting play-test | Owner changes a few looks, pins/randomises stages |
 | Pack C — Rivalries & badges | Not started | — |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
@@ -61,11 +61,22 @@
 
 ## 5. Planned next steps
 
-1. Owner play-tests Pack A.
-2. Pack B (costume variety + Change-look picker + stage backgrounds), then Pack C (rivalries, profile, badges).
+1. Owner play-tests Pack B.
+2. Pack C (rivalries, fighter profile, badges).
 3. Phase 7: Hardening & Vercel deployment.
 
 ## 6. Session log
+
+### 2026-10-10 — Arcade Pack B: looks and stages
+- **Owner input:** Pack A "tested, all good, proceed to pack B".
+- **Added:** `src/game/config/looks.ts` (10 hairstyles, 6 headwear incl. tudung/songkok, 5 face extras, 6 outfits incl. baju Melayu and shirt & tie; 6 skin, 8 hair, 12 outfit, 8 accent colours; `neutralLook` = stable random look from the name that **never** uses tudung/songkok; `isFighterLook`, `cleanLook`, `lookFor`), `src/game/config/stages.ts` (5 stages; `stageForMatch` = pinned, or picked from the match ID so a refresh keeps it), `src/components/stage/StageArt.tsx` (KL Night with twin towers, Mamak stall, Office pantry, Pasar malam, Rooftop sunset; original rect-drawn SVG; twinkle/drift/steam), `stageContext.ts`, `src/components/sprites/looksContext.ts`, `src/components/setup/LookEditor.tsx` (live preview, selects + swatches, Random, Use default, Cancel/Esc, Save), tests `stages.test.ts`, rewritten `fighterSprite.test.ts`.
+- **Changed:** `fighterSprite.ts` (layered renderer: head, hair, headwear, face, outfit), `icons.tsx` (`FighterSprite` uses the custom look from context or a `look` prop), `roster.ts` (`look?`, `setParticipantLook`), `setupConfig.ts`/`setupStorage.ts` (`stage` choice, per-person `look`; schema 1 kept, both optional; damaged look/stage dropped → "repaired"), `matchTypes.ts`/`match.ts` (match players keep a cosmetic snapshot of their look; no schema bump: the field is optional), `App.tsx` (looks + stage providers, full-screen dimmed backdrop), `MatchOptions` (Stage select), `RosterGrid` (thumbnail + 🎨 "Change look for X"), `PreviewPanel` (stage behind the chosen fighter), `FinaleStage` (stage in the arena, darker spotlight), `TitleScreen` (KL Night), CSS, tests (App: tudung saved and carried into the match, Use default/Cancel/Esc, pinned + random stage incl. reload), `e2e/polish.spec.ts` (look + stage survive reload and show in the match).
+- **Note:** everyone's default look changed once with the new generator (expected).
+- **Found while testing:** wrapping the select in its label gave it a muddled accessible name in Edge ("HeadwearNoneCap…") → explicit `htmlFor` labels. Dev server needed a restart once (stale HMR module mid-patch; not an app bug).
+- **Tests:** `npm test` → **25 files, 283 passed**; `npm run e2e` → **14 passed**. Typecheck, oxlint, Prettier clean.
+- **Manual:** headless Edge captures at 1280 px of the look editor, all 5 stages behind a match, and the Pasar Malam finale arena; preview strip uses the middle of the scene.
+- **Next exact action:** owner play-tests Pack B → Pack C.
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack A: title, intro, announcer, impacts, idle
 - **Owner input:** asked for enhancement ideas, then approved: announcer + impact FX, character-select intro, stage backgrounds, idle/KO animations, INSERT COIN title, costume/colour variety, rivalries, badges. Decisions (logged in `PROJECT.md` §10): intro ~4 s, Space/click skips; title once per page load; random neutral looks + per-person picker incl. tudung/songkok; stage random per match, host can pin.

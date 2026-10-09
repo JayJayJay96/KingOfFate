@@ -15,6 +15,7 @@ const sample: SetupConfig = {
   ],
   winnerCount: 2,
   presetId: 'chaotic',
+  stage: 'mamak',
 };
 
 function storeRaw(value: unknown) {
@@ -72,7 +73,44 @@ describe('setup storage', () => {
       ],
       winnerCount: DEFAULT_SETUP.winnerCount,
       presetId: DEFAULT_SETUP.presetId,
+      stage: DEFAULT_SETUP.stage,
     });
+  });
+
+  it('keeps custom looks and the pinned stage; drops a damaged look or stage', () => {
+    const look = {
+      hair: 'long',
+      hairColour: 'black',
+      headwear: 'tudung',
+      face: 'glasses',
+      outfit: 'baju-melayu',
+      outfitColour: 'teal',
+      skin: 'tan',
+      accent: 'beige',
+    } as const;
+    const withLook: SetupConfig = {
+      ...sample,
+      roster: [{ ...sample.roster[0]!, look }, sample.roster[1]!],
+    };
+    expect(saveSetup(withLook, localStorage).ok).toBe(true);
+    expect(loadSetup(localStorage)).toEqual({ config: withLook, status: 'loaded' });
+
+    storeRaw({
+      schemaVersion: 1,
+      roster: [{ id: 'p1', name: 'An', active: true, look: { ...look, headwear: 'crown' } }],
+      winnerCount: 1,
+      presetId: 'normal',
+      stage: 'moon',
+    });
+    const result = loadSetup(localStorage);
+    expect(result.status).toBe('repaired');
+    expect(result.config.roster).toEqual([{ id: 'p1', name: 'An', active: true }]);
+    expect(result.config.stage).toBe('random');
+  });
+
+  it('loads settings saved before stages existed', () => {
+    storeRaw({ schemaVersion: 1, roster: [], winnerCount: 1, presetId: 'normal' });
+    expect(loadSetup(localStorage)).toEqual({ config: DEFAULT_SETUP, status: 'loaded' });
   });
 
   it('reports storage as unavailable when there is no storage', () => {

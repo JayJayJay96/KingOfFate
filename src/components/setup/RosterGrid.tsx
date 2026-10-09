@@ -1,10 +1,13 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import {
   removeParticipant,
   setAllActive,
+  setParticipantLook,
   toggleParticipant,
   type Roster,
 } from '../../game/setup/roster';
+import { FighterSprite } from '../sprites/icons';
+import { LookEditor } from './LookEditor';
 
 interface RosterGridProps {
   readonly roster: Roster;
@@ -16,6 +19,8 @@ interface RosterGridProps {
 export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
   const titleId = useId();
   const activeCount = roster.filter((p) => p.active).length;
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = roster.find((p) => p.id === editingId) ?? null;
 
   return (
     <section className="panel" aria-labelledby={titleId}>
@@ -62,10 +67,20 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
                   }
                   onClick={() => onRosterChange((r) => toggleParticipant(r, p.id))}
                 >
+                  <FighterSprite seed={p.name} look={p.look} size={28} />
                   <span className="slot__name">{p.name}</span>
                   <span className="slot__status" aria-hidden="true">
                     {p.active ? 'IN' : 'OUT'}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  className="slot__look"
+                  aria-label={`Change look for ${p.name}`}
+                  title="Change look"
+                  onClick={() => setEditingId(p.id)}
+                >
+                  🎨
                 </button>
                 <button
                   type="button"
@@ -80,6 +95,13 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
             ))}
           </ul>
         </>
+      )}
+      {editing && (
+        <LookEditor
+          person={editing}
+          onSave={(look) => onRosterChange((r) => setParticipantLook(r, editing.id, look))}
+          onClose={() => setEditingId(null)}
+        />
       )}
     </section>
   );

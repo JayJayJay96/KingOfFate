@@ -117,3 +117,28 @@ test('keyboard shortcuts in a match: Esc menu, M mute, S shuffle', async ({ page
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Paused' })).toBeHidden();
 });
+
+test('a custom look and a pinned stage survive a reload and show in the match', async ({
+  page,
+}) => {
+  await page.getByLabel(/paste names/i).fill('Aisyah\nWei Jie\nKavitha');
+  await page.getByRole('button', { name: /add to roster/i }).click();
+  await page.getByRole('button', { name: 'Change look for Aisyah' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Look: Aisyah' });
+  await dialog.getByRole('combobox', { name: 'Headwear' }).selectOption('tudung');
+  await dialog.getByRole('button', { name: 'Save look' }).click();
+  await page.getByRole('combobox', { name: 'Stage' }).selectOption('pasar-malam');
+
+  await page.reload();
+  await insertCoin(page);
+  await expect(page.getByRole('combobox', { name: 'Stage' })).toHaveValue('pasar-malam');
+  await page.getByRole('button', { name: 'Change look for Aisyah' }).click();
+  await expect(page.getByRole('dialog').getByRole('combobox', { name: 'Headwear' })).toHaveValue(
+    'tudung',
+  );
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await skipIntro(page);
+  await expect(page.getByTestId('stage-backdrop')).toHaveAttribute('data-stage', 'pasar-malam');
+});

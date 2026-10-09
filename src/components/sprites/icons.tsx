@@ -1,6 +1,9 @@
+import { useContext } from 'react';
+import type { FighterLook } from '../../game/config/looks';
 import type { FateKind } from '../../game/config/presets';
 import type { Gesture } from '../../game/engine/rps';
 import { fighterSprite, idleDelayMs } from './fighterSprite';
+import { LooksContext, lookKey } from './looksContext';
 import { PixelArt, type PixelImage } from './PixelArt';
 
 /** Original pixel icons drawn for this project. */
@@ -119,15 +122,19 @@ export function FighterSprite({
   seed,
   size,
   idle = false,
+  look,
 }: {
   readonly seed: string;
   readonly size: number;
   /** Retro two-step breathing bob, offset per fighter. */
   readonly idle?: boolean;
+  /** Explicit look (e.g. the editor preview); otherwise the custom look on screen, if any. */
+  readonly look?: FighterLook | null;
 }) {
+  const looks = useContext(LooksContext);
   return (
     <PixelArt
-      image={fighterSprite(seed)}
+      image={fighterSprite(seed, look ?? looks.get(lookKey(seed)))}
       size={size}
       className={idle ? 'fighter-sprite fighter-sprite--idle' : 'fighter-sprite'}
       style={idle ? { animationDelay: `-${idleDelayMs(seed)}ms` } : undefined}
