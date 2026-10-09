@@ -57,6 +57,14 @@
 
 ## 6. Session log
 
+### 2026-10-09 — Phase 2 follow-up: unpredictable spin rhythm
+- **Owner request:** sequential cursor became predictable after a few rounds; add randomness.
+- **Cause:** every spin used identical timing (4.5 s, same curve, same min steps), so "how slow = how many steps left" was learnable.
+- **Changed:** `src/animation/spinPlan.ts` (`SpinStyle`, `spinStyleFor(turnId)` seeded via FNV-1a hash → mulberry32: duration 4000–5000 ms, minSteps 20–36, easePower 1.5–2.4, ~35% fake-out 1.4–2.0× on final move capped at 30% of spin), `src/hooks/useSpinCursor.ts`, `src/game/config/timing.ts` (`SPIN_DURATION_RANGE_MS`), `src/app/App.tsx`, `MatchScreen.tsx`, tests, `PROJECT.md` §10.
+- **Tests:** `npm test` → **9 files, 119 passed** (every start×target×40 sampled styles lands correctly; 200 sampled styles all decelerate, final move ≤30%, durations within 4–5 s, styles vary; deterministic per turn ID). `npm run e2e` → **6 passed**; cursor-order E2E repeated 5× → 5 passed. Typecheck + lint clean.
+- **Still true:** outcome sampled by crypto RNG and checkpointed before animation; cosmetic seed cannot affect it.
+- **Next exact action:** Phase 3.
+
 ### 2026-10-09 — Phase 2 follow-up: sequential cursor + player Shuffle
 - **Owner request:** cursor should walk boxes in order (1 2 3 … wrap … slow 3 … 4) instead of random jumps, for "one more step" tension; Shuffle button for visually fair positions. Owner said Phase 2 "seemed pretty solid" (P2-a Abandon and P2-b replay-on-restore treated as accepted; revisit if not).
 - **Changed:** `src/animation/spinPlan.ts` (deterministic sequential path: ≥24 moves, whole laps + distance to target, quadratic ease-out ≈80–110 ms first gaps → ≈0.8–1 s final gap; `spinStartId` = next living fighter after previous target), `src/hooks/useSpinCursor.ts`, `src/game/engine/{match,matchTypes,describeEvent}.ts` (`shufflePlayers`, `PLAYERS_SHUFFLED` event; identity draws redrawn), `src/hooks/useMatch.ts` (`shuffle`), `src/components/match/MatchScreen.tsx` (Shuffle button, start position), `src/app/App.tsx`, CSS, tests, `PROJECT.md` §10 (approved decisions).

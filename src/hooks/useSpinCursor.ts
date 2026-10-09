@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { buildSpinPlan } from '../animation/spinPlan';
+import { buildSpinPlan, spinStyleFor } from '../animation/spinPlan';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 
 /**
@@ -10,7 +10,8 @@ export function useSpinCursor(
   pendingTurn: CommittedTurn | null,
   orderedIds: readonly string[],
   startId: string | null,
-  durationMs: number,
+  minDurationMs: number,
+  maxDurationMs: number,
   holdMs: number,
   onComplete: (turnId: string) => void,
 ): string | null {
@@ -26,13 +27,14 @@ export function useSpinCursor(
 
   useEffect(() => {
     if (!turnId || !targetId || !startId) return;
-    const plan = buildSpinPlan(orderKey.split('\u0000'), startId, targetId, durationMs);
+    const style = spinStyleFor(turnId, [minDurationMs, maxDurationMs]);
+    const plan = buildSpinPlan(orderKey.split('\u0000'), startId, targetId, style);
     const timers = plan.map((step) =>
       setTimeout(() => setHighlight({ turnId, id: step.id }), step.atMs),
     );
-    timers.push(setTimeout(() => onCompleteRef.current(turnId), durationMs + holdMs));
+    timers.push(setTimeout(() => onCompleteRef.current(turnId), style.durationMs + holdMs));
     return () => timers.forEach(clearTimeout);
-  }, [turnId, targetId, startId, orderKey, durationMs, holdMs]);
+  }, [turnId, targetId, startId, orderKey, minDurationMs, maxDurationMs, holdMs]);
 
   return highlight && highlight.turnId === turnId ? highlight.id : null;
 }

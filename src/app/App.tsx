@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MatchScreen } from '../components/match/MatchScreen';
 import { SetupScreen } from '../components/setup/SetupScreen';
-import { REVEAL_HOLD_MS, SPIN_DURATION_MS } from '../game/config/timing';
+import { REVEAL_HOLD_MS, SPIN_DURATION_RANGE_MS } from '../game/config/timing';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
 import { activeParticipants } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
@@ -13,6 +13,7 @@ export interface AppProps {
   /** Injection points for tests; production uses IndexedDB, crypto RNG and the approved timing. */
   readonly matchRepository?: MatchRepository;
   readonly rng?: Rng;
+  /** Fixed spin length for tests; production picks per spin within SPIN_DURATION_RANGE_MS. */
   readonly spinDurationMs?: number;
   readonly revealHoldMs?: number;
 }
@@ -20,9 +21,11 @@ export interface AppProps {
 export function App({
   matchRepository,
   rng,
-  spinDurationMs = SPIN_DURATION_MS,
+  spinDurationMs,
   revealHoldMs = REVEAL_HOLD_MS,
 }: AppProps) {
+  const [minSpinMs, maxSpinMs] =
+    spinDurationMs === undefined ? SPIN_DURATION_RANGE_MS : [spinDurationMs, spinDurationMs];
   const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
   const [matchRng] = useState(() => rng ?? createCryptoRng());
   const setup = useSetupConfig();
@@ -50,7 +53,8 @@ export function App({
     return (
       <MatchScreen
         match={game.match}
-        spinDurationMs={spinDurationMs}
+        minSpinMs={minSpinMs}
+        maxSpinMs={maxSpinMs}
         revealHoldMs={revealHoldMs}
         saveError={game.saveError}
         onSpin={() => void game.spin()}
