@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-10  
-**Phase:** Arcade enhancement packs (between 6 and 7)  
-**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Packs A and B done (owner: "tested, all good"). **Pack C (rivalries, profiles, badges) implemented and verified** (297 unit/integration tests, 14 E2E green ×2); awaiting owner review. Then Phase 7. Not deployed.
+**Phase:** 7 — Hardening & Deployment  
+**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 hardening done and verified** (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans of every screen under the production CSP). **Not deployed yet: waiting for the owner's choice of deploy method/account.**
 
 ## 1. Current snapshot
 
@@ -31,8 +31,8 @@
 | 6 — History & Analytics | **Done** (owner: "pretty perfect") | — |
 | Pack A — Arcade show | **Done** (owner: "tested, all good") | — |
 | Pack B — Looks (sprites, stages) | **Done** (owner: "tested, all good") | — |
-| Pack C — Rivalries & badges | **Implemented**, awaiting review | Owner opens History: Rivalries tab, a profile, badges, victory awards |
-| 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
+| Pack C — Rivalries & badges | **Done** (owner: "tested, all good") | — |
+| 7 — Hardening & Deployment | **Hardening done** (`daa8a8e`); deployment pending owner | Owner picks deploy method; live Vercel URL smoke-tested |
 
 ## 3. Requirements that are already approved
 
@@ -61,10 +61,20 @@
 
 ## 5. Planned next steps
 
-1. Owner reviews Pack C.
-3. Phase 7: Hardening & Vercel deployment.
+1. Owner chooses how to deploy (Vercel CLI login, or GitHub repo + Vercel import) and approves going public.
+2. Deploy, smoke-test the live URL (title → match → finale → History), record the URL here.
 
 ## 6. Session log
+
+### 2026-10-10 — Phase 7: hardening (deployment pending)
+- **Owner input:** Pack C "tested, all good, proceed to phase 7".
+- **Added:** `vercel.json` (Vite static build; strict CSP `default-src 'self'` with `style-src 'unsafe-inline'` for React style attributes and `media-src blob:` for local custom music; `X-Frame-Options DENY`, `nosniff`, `no-referrer`, `Permissions-Policy`; immutable caching for `/assets/`), `src/app/ErrorBoundary.tsx` (crash screen + Reload; saved data untouched), `src/hooks/useOtherTabWarning.ts` (BroadcastChannel; banner while a second tab is open), `e2e/hardening.spec.ts` (axe WCAG 2.1 AA on title, setup, look editor, match, pause menu, finale, victory, luck board, rivalries, match details, profile, with zero console/CSP errors; no IndexedDB; blocked localStorage; no Web Audio/speech; reduced motion; 32 fighters without sideways scroll + a turn; second-tab warning), `src/utils/ids.test.ts`, a history performance test (300 matches × 20 fighters < 1 s), devDependency `@axe-core/playwright` (MPL-2.0, dev only).
+- **Changed:** `vite.config.ts` (preview serves the vercel.json headers so E2E runs under the production CSP; fonts never inlined as data: URLs), `ids.ts` (v4 UUID fallback when `crypto.randomUUID` is missing on plain-http LAN addresses), `main.tsx` (ErrorBoundary), `index.html` (description, theme-color, color-scheme, noscript), `App.tsx` (tab warning), `FinaleStage` (score pips `role="img"`), `VictoryScreen` (fallen field `role="group"`), `EventLog` + match-details log (keyboard-focusable scroll regions), `.button--danger` (#c4132f: 6.0:1 with white), README (deploy + known limitations), THIRD_PARTY_NOTICES (stages, announcer, dev-only tools), `tsconfig.json` formatting. Commit `daa8a8e`.
+- **Found by the new checks:** (1) **the CSP blocked 3 tiny font subsets** that Vite had inlined as data: URLs (would have broken some glyphs in production) → fonts always ship as files; (2) accessibility: finale pips aria-label without a role, victory fallen field aria-label without a role, scrollable event logs not keyboard-focusable, danger-button contrast 3.4:1.
+- **Tests:** `npm test` → **27 files, 301 passed**. `npm run e2e` → **21 passed**, run twice. Typecheck, oxlint, Prettier (`src`, `e2e`, root configs) clean; `npm run build` clean (JS ≈ 336 kB / ≈ 95 kB gzip; fonts as separate files).
+- **Not done / unverified:** no deployment yet (no Vercel CLI login and no Git remote on this machine; going public needs owner approval). Real-device checks (projector, Firefox/Safari) not run: E2E covers Edge only. No manual screen-reader pass (automated axe only).
+- **Next exact action:** owner chooses the deploy route → deploy → live smoke test → record the URL here.
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack C: rivalries, fighter profiles, badges
 - **Owner input:** Pack B "tested, all good, proceed to pack C".
