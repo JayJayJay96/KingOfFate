@@ -34,7 +34,7 @@ If documents conflict, **stop for clarification on the material conflict**. Do n
 ## Nonnegotiable game invariants
 - `2 <= N <= 32`; `1 <= W <= 5`; `N >= W+1` at start.
 - Each ordinary player spin samples uniformly among living players, independently of previous turns. Fate samples one of 20 equal-odds slots.
-- Simultaneous player and Fate animations are 4–5 seconds by default; stop at sampled results.
+- Simultaneous player and Fate animations take a random 4–10 seconds (owner decision 2026-10-09); stop at sampled results.
 - KO consumes Shield instead of killing; Shield cap = 1; duplicate Shield Fate is wasted.
 - VS randomly selects another living participant, rethrows identical RPS until decisive; loser spends Shield or is eliminated; winner obtains Shield unless already protected or Sudden Death.
 - Sudden Death starts after **3 consecutive ordinary turns with zero elimination**. Existing Shields remain; no fresh Shields; **preset-specific exact odds still need D1 approval**.

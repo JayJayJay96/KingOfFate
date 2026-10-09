@@ -1,3 +1,4 @@
+import { MAX_SPIN_MS, MIN_DWELL_MS, MIN_LAND_MS } from '../game/config/timing';
 import { createSeededRng } from '../game/rng/rng';
 
 export interface SpinStep {
@@ -6,85 +7,126 @@ export interface SpinStep {
   readonly atMs: number;
 }
 
-/** How one spin travels. Visual only: it never influences who is selected. */
-export interface SpinStyle {
-  /** Total time until the cursor lands (approved window: 4–5 s). */
-  readonly durationMs: number;
-  /** Fewest cursor moves; extra whole laps are added to reach it. */
-  readonly minSteps: number;
-  /** Ease-out strength: higher = brakes earlier and crawls longer at the end. */
-  readonly easePower: number;
-  /** ≥ 1. Stretches the final move ("fake-out": it lingers, then steps onto the target). */
-  readonly teaseFactor: number;
+export interface SpinPlan {
+  readonly steps: readonly SpinStep[];
+  /** When the cursor lands on the target (= last step). */
+  readonly landMs: number;
+  /** When the KO is revealed. The dwell before it looks like any other slow step. */
+  readonly revealMs: number;
 }
 
-/** The final move may take at most this share of the spin, even with a fake-out. */
-const MAX_FINAL_SHARE = 0.3;
+/**
+ * How one spin travels. Visual only: it never influences who is selected.
+ * Timeline: constant-speed cruise → geometric braking over `brakeSteps` → dwell → reveal.
+ */
+export interface SpinStyle {
+  /** Preferred landing time; actual is the nearest whole-lap fit within limits. */
+  readonly targetLandMs: number;
+  /** Gap between moves while cruising. */
+  readonly cruiseGapMs: number;
+  /** Moves spent braking: few = "snap" stop, many = long crawl. */
+  readonly brakeSteps: number;
+  /** Gap before the final move (the slowest move). */
+  readonly finalGapMs: number;
+  /** ≥ 1: extra linger on the box just before the target. */
+  readonly teaseFactor: number;
+  /** Dwell on the target = final gap × this (1.0–1.8), so stopping looks like "maybe one more". */
+  readonly dwellFactor: number;
+}
+
+const MIN_CRUISE_STEPS = 4;
+const MAX_BRAKE_MS = 6000;
 
 export const DEFAULT_SPIN_STYLE: SpinStyle = {
-  durationMs: 4500,
-  minSteps: 24,
-  easePower: 2,
+  targetLandMs: 6000,
+  cruiseGapMs: 60,
+  brakeSteps: 8,
+  finalGapMs: 800,
   teaseFactor: 1,
+  dwellFactor: 1.4,
 };
 
 /**
- * Picks a random-looking style for a turn, seeded from its (random, unguessable) turn ID so a
- * replay after refresh is identical. Cosmetic randomness only; outcomes use the crypto RNG.
+ * Random-looking style for a turn, seeded from its (random, unguessable) turn ID so a replay
+ * after refresh is identical. Cosmetic randomness only; outcomes use the crypto RNG.
  */
-export function spinStyleFor(
-  turnId: string,
-  durationRangeMs: readonly [number, number],
-): SpinStyle {
+export function spinStyleFor(turnId: string): SpinStyle {
   const rng = createSeededRng(hashString(turnId));
-  const [minMs, maxMs] = durationRangeMs;
+  const snap = rng.nextInt(100) < 40;
   return {
-    durationMs: minMs + rng.nextInt(Math.max(0, maxMs - minMs) + 1),
-    minSteps: 20 + rng.nextInt(17), // 20–36
-    easePower: 1.5 + rng.nextInt(10) / 10, // 1.5–2.4
-    teaseFactor: rng.nextInt(100) < 35 ? 1.4 + rng.nextInt(7) / 10 : 1, // ~1 in 3: 1.4–2.0×
+    targetLandMs: MIN_LAND_MS + rng.nextInt(4001), // 4–8 s
+    cruiseGapMs: 45 + rng.nextInt(31), // 45–75 ms
+    brakeSteps: snap ? 3 + rng.nextInt(3) : 7 + rng.nextInt(8), // snap 3–5, crawl 7–14
+    finalGapMs: snap ? 300 + rng.nextInt(301) : 600 + rng.nextInt(501), // 300–600 / 600–1100
+    teaseFactor: rng.nextInt(100) < 25 ? 1.3 + rng.nextInt(6) / 10 : 1, // ~1 in 4: 1.3–1.8×
+    dwellFactor: 1 + rng.nextInt(9) / 10, // 1.0–1.8×
   };
 }
 
 /**
  * Visual-only roulette path: the cursor walks the living fighters in grid order (wrapping),
- * starting on `startId` and decelerating until it stops on the ALREADY COMMITTED `targetId`.
+ * starting on `startId`, cruising, then braking until it stops on the ALREADY COMMITTED
+ * `targetId`. Gaps never shrink. The whole spin (to reveal) never exceeds MAX_SPIN_MS.
  */
 export function buildSpinPlan(
   orderedIds: readonly string[],
   startId: string,
   targetId: string,
   style: SpinStyle = DEFAULT_SPIN_STYLE,
-): SpinStep[] {
+): SpinPlan {
   const n = orderedIds.length;
   const start = orderedIds.indexOf(startId);
   const target = orderedIds.indexOf(targetId);
   if (start < 0 || target < 0) throw new Error('Spin start and target must be on the grid');
 
-  // Moves needed = distance to target plus whole laps, at least `minSteps`.
+  // Braking gaps grow geometrically from cruise speed to the final gap.
+  let brakeSteps = style.brakeSteps;
+  let brake = brakeGaps(style, brakeSteps);
+  while (sum(brake) > MAX_BRAKE_MS && brakeSteps > 3) brake = brakeGaps(style, --brakeSteps);
+  const brakeMs = sum(brake);
+
+  // Choose whole laps so the landing time is in bounds and closest to the preferred time.
   const offset = (target - start + n) % n;
-  const laps = Math.max(0, Math.ceil((style.minSteps - offset) / n));
-  const moves = offset + laps * n;
-  if (moves === 0) return [{ id: startId, atMs: style.durationMs }];
-
-  // Ease-out position curve s(x) = 1 - (1 - x)^(1/p): gaps between moves only ever grow.
-  const progress = (i: number) => 1 - (1 - i / moves) ** (1 / style.easePower);
-  const gaps = Array.from({ length: moves }, (_, k) => progress(k + 1) - progress(k));
-
-  // Fake-out: stretch the final move, capped so it never dominates the spin.
-  const finalShare = gaps[moves - 1]!;
-  const maxFactor = (MAX_FINAL_SHARE * (1 - finalShare)) / (finalShare * (1 - MAX_FINAL_SHARE));
-  gaps[moves - 1] = finalShare * Math.max(1, Math.min(style.teaseFactor, maxFactor));
-
-  const total = gaps.reduce((a, b) => a + b, 0);
-  const steps: SpinStep[] = [{ id: startId, atMs: 0 }];
-  let elapsed = 0;
-  for (let i = 1; i <= moves; i++) {
-    elapsed += gaps[i - 1]!;
-    const atMs = i === moves ? style.durationMs : Math.round((style.durationMs * elapsed) / total);
-    steps.push({ id: orderedIds[(start + i) % n]!, atMs });
+  const latestLand = MAX_SPIN_MS - MIN_DWELL_MS;
+  const landFor = (moves: number) => (moves - brakeSteps) * style.cruiseGapMs + brakeMs;
+  let laps = Math.max(0, Math.ceil((brakeSteps + MIN_CRUISE_STEPS - offset) / n));
+  let best = laps;
+  for (; landFor(offset + laps * n) <= latestLand; laps++) {
+    const land = landFor(offset + laps * n);
+    const bestLand = landFor(offset + best * n);
+    const inRange = (t: number) => t >= MIN_LAND_MS && t <= latestLand;
+    if (
+      (inRange(land) && !inRange(bestLand)) ||
+      (inRange(land) === inRange(bestLand) &&
+        Math.abs(land - style.targetLandMs) < Math.abs(bestLand - style.targetLandMs))
+    ) {
+      best = laps;
+    }
   }
-  return steps;
+  const moves = offset + best * n;
+
+  const steps: SpinStep[] = [{ id: startId, atMs: 0 }];
+  let t = 0;
+  for (let i = 1; i <= moves; i++) {
+    const brakeIndex = i - (moves - brakeSteps) - 1;
+    t += brakeIndex >= 0 ? brake[brakeIndex]! : style.cruiseGapMs;
+    steps.push({ id: orderedIds[(start + i) % n]!, atMs: Math.round(t) });
+  }
+  const landMs = steps.at(-1)!.atMs;
+  const lastGap = brake.at(-1)!;
+  const dwell = Math.max(MIN_DWELL_MS, Math.min(lastGap * style.dwellFactor, MAX_SPIN_MS - landMs));
+  return { steps, landMs, revealMs: Math.round(landMs + dwell) };
+}
+
+function brakeGaps(style: SpinStyle, brakeSteps: number): number[] {
+  const ratio = (style.finalGapMs / style.cruiseGapMs) ** (1 / brakeSteps);
+  const gaps = Array.from({ length: brakeSteps }, (_, j) => style.cruiseGapMs * ratio ** (j + 1));
+  gaps[brakeSteps - 1] = style.finalGapMs * Math.max(1, style.teaseFactor);
+  return gaps;
+}
+
+function sum(values: readonly number[]): number {
+  return values.reduce((a, b) => a + b, 0);
 }
 
 /**

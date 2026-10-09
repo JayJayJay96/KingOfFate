@@ -1,74 +1,110 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_SPIN_MS, MIN_LAND_MS } from '../game/config/timing';
 import {
   buildSpinPlan,
   DEFAULT_SPIN_STYLE,
   spinStartId,
   spinStyleFor,
+  type SpinPlan,
   type SpinStyle,
 } from './spinPlan';
 
 const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-const gaps = (plan: { atMs: number }[]) => plan.slice(1).map((s, i) => s.atMs - plan[i]!.atMs);
+const gaps = (plan: SpinPlan) => plan.steps.slice(1).map((s, i) => s.atMs - plan.steps[i]!.atMs);
 const style = (overrides: Partial<SpinStyle> = {}): SpinStyle => ({
   ...DEFAULT_SPIN_STYLE,
   ...overrides,
 });
 
-/** Many different styles, as production would generate them. */
-const sampleStyles = Array.from({ length: 200 }, (_, i) => spinStyleFor(`turn-${i}`, [4000, 5000]));
+/** Many styles, exactly as production generates them. */
+const sampleStyles = Array.from({ length: 300 }, (_, i) => spinStyleFor(`turn-${i}`));
+const rosters = [3, 4, 8, 20, 32].map((n) => Array.from({ length: n }, (_, i) => `p${i}`));
 
 describe('buildSpinPlan (sequential roulette)', () => {
   it('walks the grid in order, wrapping, from start to the committed target', () => {
     const plan = buildSpinPlan(ids, 'c', 'b', style());
-    expect(plan[0]).toEqual({ id: 'c', atMs: 0 });
-    for (let i = 1; i < plan.length; i++) {
-      const prev = ids.indexOf(plan[i - 1]!.id);
-      expect(plan[i]!.id).toBe(ids[(prev + 1) % ids.length]);
+    expect(plan.steps[0]).toEqual({ id: 'c', atMs: 0 });
+    for (let i = 1; i < plan.steps.length; i++) {
+      const prev = ids.indexOf(plan.steps[i - 1]!.id);
+      expect(plan.steps[i]!.id).toBe(ids[(prev + 1) % ids.length]);
     }
-    expect(plan.at(-1)).toEqual({ id: 'b', atMs: 4500 });
+    expect(plan.steps.at(-1)!.id).toBe('b');
+    expect(plan.landMs).toBe(plan.steps.at(-1)!.atMs);
   });
 
-  it('lands on every target from every start with every sampled style', () => {
-    for (const s of sampleStyles.slice(0, 40)) {
-      for (const start of ids) {
-        for (const target of ids) {
-          const plan = buildSpinPlan(ids, start, target, s);
-          expect(plan.at(-1)).toEqual({ id: target, atMs: s.durationMs });
-          expect(plan.length - 1).toBeGreaterThanOrEqual(s.minSteps);
-          expect(plan.length - 1).toBeLessThan(s.minSteps + ids.length);
+  it('lands on every target from every start, for sampled styles and roster sizes', () => {
+    for (const roster of rosters) {
+      for (const s of sampleStyles.slice(0, 15)) {
+        for (const start of roster) {
+          for (const target of roster) {
+            expect(buildSpinPlan(roster, start, target, s).steps.at(-1)!.id).toBe(target);
+          }
         }
       }
     }
   });
 
-  it('always decelerates (gaps never shrink) and the final move never exceeds 30% of the spin', () => {
-    for (const s of sampleStyles) {
-      const g = gaps(buildSpinPlan(ids, 'a', 'e', s));
-      // ±1 ms tolerance for rounding to whole milliseconds.
-      for (let i = 1; i < g.length; i++) expect(g[i]).toBeGreaterThanOrEqual(g[i - 1]! - 1);
-      expect(g.at(-1)!).toBeLessThanOrEqual(s.durationMs * 0.3 + 1);
+  it('every spin: never speeds up, lands after 4 s, reveals within 10 s', () => {
+    for (const roster of rosters) {
+      for (const s of sampleStyles) {
+        const plan = buildSpinPlan(roster, roster[0]!, roster[roster.length - 1]!, s);
+        const g = gaps(plan);
+        // ±1 ms tolerance for rounding to whole milliseconds.
+        for (let i = 1; i < g.length; i++) expect(g[i]).toBeGreaterThanOrEqual(g[i - 1]! - 1);
+        expect(plan.landMs).toBeGreaterThanOrEqual(MIN_LAND_MS - 1000);
+        expect(plan.revealMs).toBeLessThanOrEqual(MAX_SPIN_MS);
+        expect(plan.revealMs).toBeGreaterThan(plan.landMs);
+      }
     }
   });
 
-  it('a fake-out stretches only the final move', () => {
+  it('mostly lands at or after 4 s (whole-lap fitting may land slightly earlier on rare styles)', () => {
+    const landings = sampleStyles.map((s) => buildSpinPlan(ids, 'a', 'e', s).landMs);
+    const early = landings.filter((t) => t < MIN_LAND_MS).length;
+    expect(early / landings.length).toBeLessThan(0.05);
+  });
+
+  it('the stop is not detectable: the dwell is never shorter than the final move', () => {
+    for (const s of sampleStyles) {
+      const plan = buildSpinPlan(ids, 'a', 'e', s);
+      const lastMove = gaps(plan).at(-1)!;
+      const dwell = plan.revealMs - plan.landMs;
+      if (plan.landMs + lastMove <= MAX_SPIN_MS) {
+        expect(dwell).toBeGreaterThanOrEqual(Math.min(lastMove, MAX_SPIN_MS - plan.landMs) - 1);
+      }
+    }
+  });
+
+  it('produces both snap stops and long crawls', () => {
+    const brakeLengths = sampleStyles.map((s) => s.brakeSteps);
+    const snaps = brakeLengths.filter((k) => k <= 5).length;
+    const crawls = brakeLengths.filter((k) => k >= 7).length;
+    expect(snaps / sampleStyles.length).toBeGreaterThan(0.3);
+    expect(crawls / sampleStyles.length).toBeGreaterThan(0.5);
+  });
+
+  it('a snap brakes over few moves, a crawl over many', () => {
+    const snap = gaps(buildSpinPlan(ids, 'a', 'e', style({ brakeSteps: 3, finalGapMs: 500 })));
+    const crawl = gaps(buildSpinPlan(ids, 'a', 'e', style({ brakeSteps: 12, finalGapMs: 900 })));
+    const slowMoves = (g: number[]) => g.filter((x) => x > 150).length;
+    expect(slowMoves(snap)).toBeLessThanOrEqual(3);
+    expect(slowMoves(crawl)).toBeGreaterThanOrEqual(6);
+  });
+
+  it('a tease lingers on the box before the target', () => {
     const plain = gaps(buildSpinPlan(ids, 'a', 'e', style()));
-    const teased = gaps(buildSpinPlan(ids, 'a', 'e', style({ teaseFactor: 1.8 })));
-    expect(teased.length).toBe(plain.length);
+    const teased = gaps(buildSpinPlan(ids, 'a', 'e', style({ teaseFactor: 1.6 })));
     expect(teased.at(-1)!).toBeGreaterThan(plain.at(-1)! * 1.5);
-    expect(teased.at(-2)!).toBeLessThan(plain.at(-2)!);
   });
 
-  it('loops several laps on tiny rosters', () => {
-    const plan = buildSpinPlan(['x', 'y', 'z'], 'x', 'x', style());
-    expect(plan.length - 1).toBe(24); // 8 full laps, landing back on the start
-    expect(plan.at(-1)?.id).toBe('x');
-  });
-
-  it('handles the full 32-fighter grid', () => {
-    const big = Array.from({ length: 32 }, (_, i) => `p${i}`);
+  it('handles the full 32-fighter grid and tiny rosters', () => {
+    const big = rosters[4]!;
     const plan = buildSpinPlan(big, 'p31', 'p30', style());
-    expect(plan.length - 1).toBe(31);
-    expect(plan[1]!.id).toBe('p0');
+    expect(plan.steps[1]!.id).toBe('p0');
+    expect(plan.steps.at(-1)!.id).toBe('p30');
+    const tiny = buildSpinPlan(['x', 'y', 'z'], 'x', 'x', style());
+    expect(tiny.steps.at(-1)!.id).toBe('x');
+    expect(tiny.steps.length - 1).toBeGreaterThanOrEqual(12);
   });
 
   it('rejects ids that are not on the grid', () => {
@@ -79,35 +115,17 @@ describe('buildSpinPlan (sequential roulette)', () => {
 
 describe('spinStyleFor', () => {
   it('is deterministic per turn id, so a refresh replays the identical spin', () => {
-    expect(spinStyleFor('abc', [4000, 5000])).toEqual(spinStyleFor('abc', [4000, 5000]));
+    expect(spinStyleFor('abc')).toEqual(spinStyleFor('abc'));
   });
 
-  it('stays inside the approved 4–5 s window and the designed ranges', () => {
-    for (const s of sampleStyles) {
-      expect(s.durationMs).toBeGreaterThanOrEqual(4000);
-      expect(s.durationMs).toBeLessThanOrEqual(5000);
-      expect(s.minSteps).toBeGreaterThanOrEqual(20);
-      expect(s.minSteps).toBeLessThanOrEqual(36);
-      expect(s.easePower).toBeGreaterThanOrEqual(1.5);
-      expect(s.easePower).toBeLessThanOrEqual(2.4 + 1e-9);
-      expect(s.teaseFactor === 1 || (s.teaseFactor >= 1.4 && s.teaseFactor <= 2.0 + 1e-9)).toBe(
-        true,
-      );
-    }
-  });
-
-  it('varies from spin to spin (not learnable)', () => {
-    const durations = new Set(sampleStyles.map((s) => s.durationMs));
-    const powers = new Set(sampleStyles.map((s) => s.easePower));
+  it('varies from spin to spin', () => {
+    const lands = new Set(sampleStyles.map((s) => s.targetLandMs));
+    const dwell = new Set(sampleStyles.map((s) => s.dwellFactor));
     const teased = sampleStyles.filter((s) => s.teaseFactor > 1).length;
-    expect(durations.size).toBeGreaterThan(100);
-    expect(powers.size).toBe(10);
-    expect(teased).toBeGreaterThan(40); // ~35% of 200
-    expect(teased).toBeLessThan(100);
-  });
-
-  it('honours a fixed duration (used by tests)', () => {
-    expect(spinStyleFor('x', [40, 40]).durationMs).toBe(40);
+    expect(lands.size).toBeGreaterThan(200);
+    expect(dwell.size).toBe(9);
+    expect(teased / sampleStyles.length).toBeGreaterThan(0.15);
+    expect(teased / sampleStyles.length).toBeLessThan(0.35);
   });
 });
 

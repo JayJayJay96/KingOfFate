@@ -8,6 +8,8 @@ const channel = process.env.PW_CHANNEL ?? (process.platform === 'win32' ? 'msedg
 
 export default defineConfig({
   testDir: './e2e',
+  // Real spins last up to 10 s; a refresh-mid-spin test replays one.
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

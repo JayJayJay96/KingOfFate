@@ -11,9 +11,7 @@ import { PreviewPanel } from './PreviewPanel';
 
 interface MatchScreenProps {
   readonly match: MatchState;
-  readonly minSpinMs: number;
-  readonly maxSpinMs: number;
-  readonly revealHoldMs: number;
+  readonly timeScale: number;
   readonly saveError: string | null;
   readonly onSpin: () => void;
   readonly onShuffle: () => void;
@@ -25,9 +23,7 @@ const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"
 
 export function MatchScreen({
   match,
-  minSpinMs,
-  maxSpinMs,
-  revealHoldMs,
+  timeScale,
   saveError,
   onSpin,
   onShuffle,
@@ -40,9 +36,7 @@ export function MatchScreen({
     match.pendingTurn,
     alive.map((p) => p.id),
     spinStartId(match.players, match.lastTurn?.turn.playerId ?? null),
-    minSpinMs,
-    maxSpinMs,
-    revealHoldMs,
+    timeScale,
     onSpinComplete,
   );
   const canSpin = match.phase === 'READY' && !confirmingAbandon;

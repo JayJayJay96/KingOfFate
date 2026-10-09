@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const SPIN_BUDGET = 9_000; // 4.5 s spin + hold + margin
+const SPIN_BUDGET = 13_000; // spin + dwell is capped at 10 s, plus margin
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -100,7 +100,7 @@ test('cursor steps through the grid in order and slows down before stopping', as
     () => (window as unknown as { cursorLog: { name: string; t: number }[] }).cursorLog,
   );
 
-  expect(log.length).toBeGreaterThanOrEqual(20);
+  expect(log.length).toBeGreaterThanOrEqual(10); // move count varies per spin style
   for (let i = 1; i < log.length; i++) {
     const prev = gridOrder.indexOf(log[i - 1]!.name);
     expect(log[i]!.name).toBe(gridOrder[(prev + 1) % gridOrder.length]);

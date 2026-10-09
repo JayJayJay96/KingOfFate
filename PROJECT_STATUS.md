@@ -57,6 +57,14 @@
 
 ## 6. Session log
 
+### 2026-10-09 — Phase 2 follow-up: 4–10 s spins, snap/crawl braking, honest dwell
+- **Owner feedback:** still too samey; "the last one that feels slow confirms it will move 1 more block". Asked for max 10 s and a longer, random deceleration: sometimes an immediate stop after a brief slow, sometimes slower and slower with doubt whether it stops or moves once more.
+- **Root cause found:** (1) the previous "fake-out" stretched the wait on the box *before* the target, so a long pause always meant one more move; (2) after landing, the KO came after a fixed 0.4 s, shorter than the preceding slow gaps, so a short pause meant "stopped".
+- **Changed:** `src/animation/spinPlan.ts` rewritten (cruise → geometric braking; styles: snap 40% with 3–5 braking moves / crawl 60% with 7–14; final gap 300–1100 ms; ~25% tease on the pre-target box; whole laps chosen to land 4–8 s; **dwell on target = 1.0–1.8× last move**; reveal ≤ 10 s). `src/game/config/timing.ts` (`MIN_LAND_MS`, `MAX_SPIN_MS`, `MIN_DWELL_MS`; removed fixed hold). `useSpinCursor` + `MatchScreen` + `App` now take a single `timeScale` (tests 0.005). `playwright.config.ts` test timeout 60 s. Docs: `PROJECT.md` §1, §4, §9, §10 and `AGENTS.md` invariant now say random 4–10 s (owner decision, supersedes 4–5 s).
+- **Tests:** `npm test` → **9 files, 120 passed** (300 sampled styles × 5 roster sizes: never speeds up, reveal ≤ 10 s; dwell never shorter than final move; snap and crawl both frequent; lands on every target from every start). `npm run e2e` → **6 passed**; cursor-order E2E repeated 6× → 6 passed. One E2E failed first on an outdated "≥20 moves" assumption (snap spins make fewer); threshold lowered to 10.
+- **Impact:** average turn now ~6–9 s; a 20-player match spends roughly 2–3 min in spins (3–5 min target remains "not guaranteed").
+- **Next exact action:** owner feel-test; then Phase 3 (Fate cursor reuses this spin model with its own seed).
+
 ### 2026-10-09 — Phase 2 follow-up: unpredictable spin rhythm
 - **Owner request:** sequential cursor became predictable after a few rounds; add randomness.
 - **Cause:** every spin used identical timing (4.5 s, same curve, same min steps), so "how slow = how many steps left" was learnable.

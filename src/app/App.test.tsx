@@ -9,7 +9,8 @@ import { App } from './App';
 
 type User = ReturnType<typeof userEvent.setup>;
 
-const FAST = { spinDurationMs: 40, revealHoldMs: 10 };
+// Spins take up to 10 s in production; scale to <= 50 ms in tests.
+const FAST = { timeScale: 0.005 };
 
 async function renderApp(
   repo: MatchRepository = createMemoryMatchRepository(),

@@ -3,16 +3,15 @@ import { buildSpinPlan, spinStyleFor } from '../animation/spinPlan';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 
 /**
- * Drives the selection cursor for a committed turn and calls `onComplete(turnId)` once the
- * cursor has landed and held. Pure presentation: it cannot change the committed target.
+ * Drives the selection cursor for a committed turn and calls `onComplete(turnId)` at the reveal
+ * time. Pure presentation: it cannot change the committed target. `timeScale` < 1 speeds
+ * everything up proportionally (tests only).
  */
 export function useSpinCursor(
   pendingTurn: CommittedTurn | null,
   orderedIds: readonly string[],
   startId: string | null,
-  minDurationMs: number,
-  maxDurationMs: number,
-  holdMs: number,
+  timeScale: number,
   onComplete: (turnId: string) => void,
 ): string | null {
   const [highlight, setHighlight] = useState<{ turnId: string; id: string } | null>(null);
@@ -27,14 +26,13 @@ export function useSpinCursor(
 
   useEffect(() => {
     if (!turnId || !targetId || !startId) return;
-    const style = spinStyleFor(turnId, [minDurationMs, maxDurationMs]);
-    const plan = buildSpinPlan(orderKey.split('\u0000'), startId, targetId, style);
-    const timers = plan.map((step) =>
-      setTimeout(() => setHighlight({ turnId, id: step.id }), step.atMs),
+    const plan = buildSpinPlan(orderKey.split('\u0000'), startId, targetId, spinStyleFor(turnId));
+    const timers = plan.steps.map((step) =>
+      setTimeout(() => setHighlight({ turnId, id: step.id }), step.atMs * timeScale),
     );
-    timers.push(setTimeout(() => onCompleteRef.current(turnId), style.durationMs + holdMs));
+    timers.push(setTimeout(() => onCompleteRef.current(turnId), plan.revealMs * timeScale));
     return () => timers.forEach(clearTimeout);
-  }, [turnId, targetId, startId, orderKey, minDurationMs, maxDurationMs, holdMs]);
+  }, [turnId, targetId, startId, orderKey, timeScale]);
 
   return highlight && highlight.turnId === turnId ? highlight.id : null;
 }
