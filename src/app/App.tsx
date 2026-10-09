@@ -4,6 +4,7 @@ import { SoundProvider } from '../audio/SoundProvider';
 import { HistoryScreen, type Downloader } from '../components/history/HistoryScreen';
 import { MatchScreen } from '../components/match/MatchScreen';
 import { SetupScreen } from '../components/setup/SetupScreen';
+import { TitleScreen } from '../components/TitleScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
 import { activeParticipants } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
@@ -22,6 +23,8 @@ export interface AppProps {
   readonly assetStore?: AssetStore;
   /** Export file saver; tests capture files instead of downloading. */
   readonly download?: Downloader;
+  /** "INSERT COIN" title once per page load. Tests that are not about it turn it off. */
+  readonly titleScreen?: boolean;
 }
 
 export function App({ soundEngine, assetStore, ...rest }: AppProps) {
@@ -37,12 +40,14 @@ function Game({
   rng,
   timeScale = 1,
   download,
-}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale' | 'download'>) {
+  titleScreen = true,
+}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale' | 'download' | 'titleScreen'>) {
   const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
   const [matchRng] = useState(() => rng ?? createCryptoRng());
   const setup = useSetupConfig();
   const game = useMatch(repository, matchRng);
   const [showHistory, setShowHistory] = useState(false);
+  const [coinInserted, setCoinInserted] = useState(!titleScreen);
 
   function handleStart() {
     const { config } = setup;
@@ -52,6 +57,10 @@ function Game({
       winnerCount: config.winnerCount,
       presetId: config.presetId,
     });
+  }
+
+  if (!coinInserted) {
+    return <TitleScreen onStart={() => setCoinInserted(true)} timeScale={timeScale} />;
   }
 
   if (game.loading) {

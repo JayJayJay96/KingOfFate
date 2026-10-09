@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ANNOUNCE } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
+import { FINALE_SPLASH_MS } from '../../animation/matchIntro';
 import { CHANT_LABEL, stagePositions, type ChantWord } from '../../animation/finaleTimeline';
 import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEvent';
 import { FINALE_TARGET_SCORE } from '../../game/engine/finale';
@@ -21,6 +23,8 @@ interface FinaleStageProps {
   readonly onBegin: () => void;
   readonly onNextRound: () => void;
   readonly onResolveRound: (roundId: string) => void;
+  /** Slow-motion final blow after the deciding reveal (match already won and saved). */
+  readonly finishing?: boolean;
 }
 
 /** Full-screen Một Hai Ba Yo finale. Plays back committed reveals only. */
@@ -33,9 +37,20 @@ export function FinaleStage({
   onBegin,
   onNextRound,
   onResolveRound,
+  finishing = false,
 }: FinaleStageProps) {
   const f = match.finale!;
   const { engine, settings, toggleMute } = useSound();
+  // "FINAL ROUND" splash while finalists walk in; decorative, Start works straight away.
+  const [splash, setSplash] = useState(!f.started);
+  useEffect(() => {
+    if (!splash) return;
+    engine.announce(ANNOUNCE.finalRound);
+    const timer = setTimeout(() => setSplash(false), FINALE_SPLASH_MS * timeScale);
+    return () => clearTimeout(timer);
+    // Once per finale screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const show = useFinaleShow(
     match,
@@ -119,7 +134,16 @@ export function FinaleStage({
         </p>
       )}
 
-      <section className="finale-stage__arena" aria-label="Finalists">
+      <section
+        className={[
+          'finale-stage__arena',
+          splash && !f.started ? 'finale-stage__arena--entering' : '',
+          finishing ? 'finale-stage__arena--final-blow' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-label="Finalists"
+      >
         {f.finalistIds.map((id, i) => (
           <Finalist
             key={id}
@@ -132,6 +156,16 @@ export function FinaleStage({
             scored={showingResult && lastRound.scorerIds.includes(id)}
           />
         ))}
+        {splash && !f.started && (
+          <p className="finale-splash" data-testid="finale-splash" aria-hidden="true">
+            Final round
+          </p>
+        )}
+        {finishing && (
+          <p className="finale-finish" data-testid="final-blow" aria-hidden="true">
+            Finish!
+          </p>
+        )}
         <div className="finale-stage__center">
           <p className="finale-stage__chant" data-testid="chant" aria-hidden="true">
             {show.word ? CHANT_LABEL[show.word] : f.started ? '' : 'Một Hai Ba Yo!'}
@@ -196,7 +230,7 @@ function Finalist({ name, position, score, status, word, revealed, scored }: Fin
     >
       <div className="finalist__figure">
         {status === 'winner' && <CrownIcon size={26} />}
-        <FighterSprite seed={name} size={56} />
+        <FighterSprite seed={name} size={56} idle={status !== 'out'} />
         {/* Hand sits below the fighter (owner request), large enough to read on a screenshare. */}
         {status !== 'winner' && (
           <span

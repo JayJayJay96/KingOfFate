@@ -20,7 +20,9 @@ async function renderApp(
   timeScale = FAST.timeScale,
 ) {
   const user = userEvent.setup();
-  const utils = render(<App matchRepository={repo} rng={rng} timeScale={timeScale} />);
+  const utils = render(
+    <App matchRepository={repo} rng={rng} timeScale={timeScale} titleScreen={false} />,
+  );
   await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
   return { user, repo, ...utils };
 }
@@ -34,6 +36,18 @@ const findInLog = (text: string | RegExp) =>
   within(screen.getByTestId('event-log')).findByText(text);
 
 const startButton = () => screen.getByRole('button', { name: /^start$/i });
+
+/** Starts the match and waits until the ~4 s character-select intro (scaled) is over. */
+async function startMatch(user: User) {
+  await user.click(startButton());
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('list', { name: 'Fighters' }) ??
+        screen.queryByRole('main', { name: 'Finale' }),
+    ).not.toBeNull(),
+  );
+  await waitFor(() => expect(screen.queryByTestId('match-intro')).toBeNull());
+}
 const randomButton = () => screen.getByRole('button', { name: /random: start the next turn/i });
 const eliminatedCount = () => document.querySelectorAll('[data-state="out"]').length;
 
@@ -129,7 +143,7 @@ describe('Match', () => {
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
     await user.click(screen.getByRole('button', { name: 'Mei Ling' })); // sits out
-    await user.click(startButton());
+    await startMatch(user);
 
     const grid = await screen.findByRole('list', { name: 'Fighters' });
     expect(within(grid).getAllByRole('listitem')).toHaveLength(4);
@@ -175,7 +189,7 @@ describe('Match', () => {
   it('starts directly in the finale when N = W + 1', async () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie');
-    await user.click(startButton());
+    await startMatch(user);
     expect(await screen.findByRole('main', { name: 'Finale' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start the finale/i })).toBeInTheDocument();
   });
@@ -225,7 +239,7 @@ describe('Match', () => {
   it('starts a turn with Space but ignores rapid repeats (one turn only)', async () => {
     const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0, KO]));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
 
     (document.activeElement as HTMLElement | null)?.blur();
@@ -260,7 +274,7 @@ describe('Match', () => {
     const repo = createMemoryMatchRepository();
     const { user } = await renderApp(repo);
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
 
     // Abandon lives in the Esc menu.
@@ -300,7 +314,7 @@ describe('Shuffle', () => {
     const repo = createMemoryMatchRepository();
     const { user } = await renderApp(repo, createSeededRng(3));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
-    await user.click(startButton());
+    await startMatch(user);
     const grid = await screen.findByRole('list', { name: 'Fighters' });
     const order = () =>
       within(grid)
@@ -322,7 +336,7 @@ describe('Shuffle', () => {
   it('is disabled while a spin is running', async () => {
     const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0, KO]));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
     expect(screen.getByRole('button', { name: 'Shuffle' })).toBeDisabled();
@@ -342,7 +356,7 @@ describe('Fates on screen', () => {
   it('shows the live odds on the Fate strip', async () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
-    await user.click(startButton());
+    await startMatch(user);
     expect(await screen.findByTestId('fate-odds')).toHaveTextContent('KO 75% · VS 20% · Shield 5%');
     expect(document.querySelectorAll('.fate-slot')).toHaveLength(20);
   });
@@ -350,7 +364,7 @@ describe('Fates on screen', () => {
   it('Shield: the fighter gets a Shield icon and the log says so', async () => {
     const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([2, SHIELD]));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
     await findInLog('Turn 1: Kavitha gains a Shield.');
@@ -364,7 +378,7 @@ describe('Fates on screen', () => {
       0.1, // slow enough for each reveal step to be observed
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
     // 1. Fighter first, then Fate.
@@ -393,7 +407,7 @@ describe('Fates on screen', () => {
     // 5 fighters, 1 winner: one-third left = 2 = finale count, so the finale pre-empts it.
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Siti');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     expect(screen.getByTestId('shield-supply')).toHaveTextContent('1 of 1');
     expect(screen.getByTestId('sudden-death-at')).toHaveTextContent(
@@ -408,7 +422,7 @@ describe('Fates on screen', () => {
       createScriptedRng(Array.from({ length: 6 }, () => [0, KO]).flat()),
     );
     await addNames(user, `${EIGHT}{Enter}Siti`);
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     expect(screen.getByTestId('shield-supply')).toHaveTextContent('2 of 2');
     expect(screen.getByTestId('sudden-death-at')).toHaveTextContent('Sudden Death at 3 left');
@@ -434,6 +448,7 @@ function spyEngine() {
     setPaused: (p) => calls.push(`paused:${p}`),
     sfx: (name) => calls.push(`sfx:${name}`),
     chant: (word) => calls.push(`chant:${word}`),
+    announce: (text) => calls.push(`announce:${text}`),
     listVoices: () => [],
     onVoicesChanged: () => () => undefined,
     dispose: () => undefined,
@@ -454,11 +469,12 @@ describe('Phase 5: sound, shortcuts and pause', () => {
         rng={createScriptedRng([0, KO, ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS])}
         timeScale={0.005}
         soundEngine={engine}
+        titleScreen={false}
       />,
     );
     await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
-    await user.click(startButton());
+    await startMatch(user);
     await screen.findByRole('list', { name: 'Fighters' });
     expect(calls).toContain('music:select');
 
@@ -514,7 +530,7 @@ describe('Phase 5: sound, shortcuts and pause', () => {
   it('keyboard: S shuffles, M mutes, Esc opens the menu and blocks spinning', async () => {
     const { user } = await renderApp(createMemoryMatchRepository(), createSeededRng(9));
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
-    await user.click(startButton());
+    await startMatch(user);
     const grid = await screen.findByRole('list', { name: 'Fighters' });
     const order = () =>
       within(grid)
@@ -555,5 +571,94 @@ describe('Phase 5: sound, shortcuts and pause', () => {
       expect(screen.getByRole('radio', { name: /built-in chiptune/i })).toBeChecked(),
     );
     expect(screen.getByRole('radio', { name: /my music file/i })).toBeDisabled();
+  });
+});
+
+describe('Arcade pack A: title, intro, announcer, impacts (owner decisions 2026-10-10)', () => {
+  it('opens on INSERT COIN; any key inserts a coin, unlocks sound and goes to setup', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        timeScale={0.005}
+        soundEngine={engine}
+      />,
+    );
+    expect(screen.getByRole('main', { name: 'Title' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Insert coin' })).toBeInTheDocument();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('button', { name: /^start$/i });
+    expect(calls).toContain('unlock');
+    await waitFor(() => expect(calls).toContain('sfx:coin'));
+  });
+
+  it('plays the character-select intro; Space skips it without starting a turn', async () => {
+    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([]), 1);
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await user.click(startButton());
+    const intro = await screen.findByTestId('match-intro');
+    for (const name of ['Aisyah', 'Wei Jie', 'Kavitha', 'Hafiz']) {
+      expect(intro).toHaveTextContent(name);
+    }
+    expect(randomButton()).toBeDisabled();
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.keyboard('[Space]');
+    expect(screen.queryByTestId('match-intro')).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('event-log')).queryByText(/Turn 1/)).not.toBeInTheDocument();
+    expect(randomButton()).toBeEnabled();
+  });
+
+  it('announces ROUND 1 and FIGHT!, then K.O. with a stamp and the knock-back fall', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        rng={createScriptedRng([0, KO])}
+        timeScale={0.05}
+        soundEngine={engine}
+        titleScreen={false}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await startMatch(user);
+    expect(calls).toContain('announce:Round one!');
+    expect(calls).toContain('announce:Fight!');
+    expect(calls).toContain('sfx:fight');
+
+    await user.click(randomButton());
+    const impact = await screen.findByTestId('impact', {}, { timeout: 5000 });
+    expect(impact).toHaveAttribute('data-kind', 'ko');
+    expect(impact).toHaveTextContent('K.O.');
+    expect(document.querySelector('.fighter--falling')).toHaveTextContent('Aisyah');
+    expect(calls).toContain('announce:K. O.!');
+    await waitFor(() => expect(screen.queryByTestId('impact')).not.toBeInTheDocument());
+  });
+
+  it('plays the final blow and names the winner when the finale is won', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    const ROCK = 0;
+    const SCISSORS = 2;
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        rng={createScriptedRng([ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS])}
+        timeScale={0.005}
+        soundEngine={engine}
+        titleScreen={false}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie');
+    await startMatch(user);
+    expect(calls).toContain('announce:Final round!');
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await screen.findByTestId('final-blow');
+    await screen.findByRole('main', { name: 'Victory' });
+    expect(calls).toContain('announce:Finish!');
+    expect(calls).toContain('announce:Aisyah wins!');
   });
 });

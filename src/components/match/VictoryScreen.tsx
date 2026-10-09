@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { scatterFallen } from '../../animation/victoryLayout';
+import { victoryLine } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
@@ -30,8 +31,12 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
   const losersLeft = finaleLosers.filter((_, i) => i % 2 === 0);
   const losersRight = finaleLosers.filter((_, i) => i % 2 === 1);
 
+  const winnerLine = victoryLine(f.winnerIds.map(nameOf));
   useEffect(() => {
     engine.sfx('victory');
+    engine.announce(winnerLine);
+    // Once when the ceremony appears.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine]);
 
   return (
@@ -71,7 +76,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
             <li key={id}>
               <span className="victory__portrait">
                 <CrownIcon size={28} />
-                <FighterSprite seed={nameOf(id)} size={96} />
+                <FighterSprite seed={nameOf(id)} size={96} idle />
               </span>
               <span className="victory__name">{nameOf(id)}</span>
             </li>

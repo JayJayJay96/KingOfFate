@@ -44,6 +44,11 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
+/** Idle-animation offset so a crowd of fighters never breathes in sync (0–1190 ms). */
+export function idleDelayMs(seed: string): number {
+  return (hash(seed.trim().toLowerCase()) % 120) * 10;
+}
+
 /** Pick from a list using a different slice of the hash for each feature. */
 const pick = <T>(list: readonly T[], h: number, shift: number): T =>
   list[(h >>> shift) % list.length]!;

@@ -1,3 +1,4 @@
+import { insertCoin, skipIntro } from './helpers.ts';
 import { expect, test, type Page } from '@playwright/test';
 
 // Fighter + Fate cursors (≤ 6.5 s each), VS announce + opponent cursor + duel, plus margin.
@@ -13,6 +14,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.reload();
+  await insertCoin(page);
 });
 
 async function startMatch(
@@ -27,6 +29,7 @@ async function startMatch(
   await page.getByRole('radio', { name: new RegExp(preset, 'i') }).check({ force: true });
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.getByRole('list', { name: 'Fighters' })).toBeVisible();
+  await skipIntro(page);
 }
 
 const randomButton = (page: Page) =>
@@ -60,7 +63,15 @@ test('a real match runs full-length spins and hands off at W + 1', async ({ page
   expect(Date.now() - started).toBeGreaterThanOrEqual(4_000);
 
   // Shields/blocks can delay the handoff; keep playing until W + 1 remain.
-  for (let turn = 2; turn <= 8 && !(await finale.isVisible()); turn++) {
+  // After each turn the K.O. effect plays (~1 s) before either the next turn or the finale.
+  const settled = async () =>
+    (await finale.isVisible()) ||
+    (await randomButton(page)
+      .isEnabled()
+      .catch(() => false));
+  for (let turn = 2; turn <= 8; turn++) {
+    await expect.poll(settled, { timeout: 5_000 }).toBe(true);
+    if (await finale.isVisible()) break;
     await randomButton(page).click();
     // The finale screen shows the event log too, so the count works either way.
     await expect(turnLines(page)).toHaveCount(turn, { timeout: TURN_BUDGET });
@@ -78,6 +89,7 @@ test('refreshing mid-spin replays the committed turn and applies it exactly once
   await randomButton(page).click();
   await page.waitForTimeout(1_000);
   await page.reload();
+  await insertCoin(page);
 
   // Restored into the same match, which finishes the committed turn once.
   await expect(page.getByRole('list', { name: 'Fighters' })).toBeVisible();
@@ -87,6 +99,7 @@ test('refreshing mid-spin replays the committed turn and applies it exactly once
 
   // A second reload must not change or re-apply anything.
   await page.reload();
+  await insertCoin(page);
   await expect(turnLines(page)).toHaveCount(1);
   expect(await snapshot(page)).toEqual(before);
 });
@@ -193,6 +206,7 @@ test('shuffle reorders fighters and Fate slots; the order survives a reload', as
   await expect(page.getByTestId('fate-odds')).toHaveText('KO 75% · VS 20% · Shield 5%');
 
   await page.reload();
+  await insertCoin(page);
   await expect(names).toHaveText(afterNames);
   expect(await kinds()).toEqual(afterKinds);
 });

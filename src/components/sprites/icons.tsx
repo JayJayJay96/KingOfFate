@@ -1,6 +1,6 @@
 import type { FateKind } from '../../game/config/presets';
 import type { Gesture } from '../../game/engine/rps';
-import { fighterSprite } from './fighterSprite';
+import { fighterSprite, idleDelayMs } from './fighterSprite';
 import { PixelArt, type PixelImage } from './PixelArt';
 
 /** Original pixel icons drawn for this project. */
@@ -115,6 +115,22 @@ export function CrownIcon({ size = 24 }: { readonly size?: number }) {
   return <PixelArt image={CROWN} size={size} className="pixel-icon" />;
 }
 
-export function FighterSprite({ seed, size }: { readonly seed: string; readonly size: number }) {
-  return <PixelArt image={fighterSprite(seed)} size={size} className="fighter-sprite" />;
+export function FighterSprite({
+  seed,
+  size,
+  idle = false,
+}: {
+  readonly seed: string;
+  readonly size: number;
+  /** Retro two-step breathing bob, offset per fighter. */
+  readonly idle?: boolean;
+}) {
+  return (
+    <PixelArt
+      image={fighterSprite(seed)}
+      size={size}
+      className={idle ? 'fighter-sprite fighter-sprite--idle' : 'fighter-sprite'}
+      style={idle ? { animationDelay: `-${idleDelayMs(seed)}ms` } : undefined}
+    />
+  );
 }

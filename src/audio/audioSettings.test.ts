@@ -46,3 +46,14 @@ describe('audio settings', () => {
     expect(saveAudioSettings(DEFAULT_AUDIO_SETTINGS, null)).toBe(false);
   });
 });
+
+describe('announcer setting', () => {
+  it('is on by default and keeps an explicit off', () => {
+    expect(DEFAULT_AUDIO_SETTINGS.announcer).toBe(true);
+    localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify({ announcer: false }));
+    expect(loadAudioSettings(localStorage).announcer).toBe(false);
+    localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify({ announcer: 'yes' }));
+    expect(loadAudioSettings(localStorage).announcer).toBe(true);
+    localStorage.clear();
+  });
+});

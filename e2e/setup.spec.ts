@@ -1,3 +1,4 @@
+import { insertCoin } from './helpers.ts';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -10,6 +11,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.reload();
+  await insertCoin(page);
 });
 
 test('setup validates, survives a refresh and starts a match', async ({ page }) => {
@@ -32,6 +34,7 @@ test('setup validates, survives a refresh and starts a match', async ({ page }) 
   await expect(page.getByTestId('roster-count')).toHaveText('3 in · 4 total');
 
   await page.reload();
+  await insertCoin(page);
 
   await expect(page.getByTestId('roster-count')).toHaveText('3 in · 4 total');
   await expect(page.getByRole('button', { name: 'Muthu', exact: true })).toHaveAttribute(

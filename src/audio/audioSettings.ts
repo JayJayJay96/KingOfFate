@@ -9,6 +9,8 @@ export interface AudioSettings {
   readonly voiceURI: string | null;
   /** Match-screen music: the original built-in chiptune, or the host's own local file. */
   readonly musicSource: 'builtin' | 'custom';
+  /** English arcade announcer callouts ("K.O.!", "Round 1… Fight!"), on the voice volume. */
+  readonly announcer: boolean;
 }
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
@@ -18,6 +20,7 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   sfx: 0.7,
   voiceURI: null,
   musicSource: 'builtin',
+  announcer: true,
 };
 
 export const AUDIO_SETTINGS_KEY = 'kof.audio';
@@ -49,6 +52,8 @@ export function loadAudioSettings(storage: Storage | null = safeStorage()): Audi
     sfx: volumeOr(parsed.sfx, DEFAULT_AUDIO_SETTINGS.sfx),
     voiceURI: typeof parsed.voiceURI === 'string' ? parsed.voiceURI : null,
     musicSource: parsed.musicSource === 'custom' ? 'custom' : 'builtin',
+    announcer:
+      typeof parsed.announcer === 'boolean' ? parsed.announcer : DEFAULT_AUDIO_SETTINGS.announcer,
   };
 }
 

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { chantText, createChanter, isVietnamese, pickVoice, type VoiceInfo } from './voice';
+import {
+  chantText,
+  createChanter,
+  isVietnamese,
+  pickAnnouncerVoice,
+  pickVoice,
+  type VoiceInfo,
+} from './voice';
 
 const v = (name: string, lang: string): VoiceInfo => ({ voiceURI: name, name, lang });
 const DAVID = v('Microsoft David - English (United States)', 'en-US');
@@ -42,5 +49,13 @@ describe('createChanter', () => {
     expect(c.available).toBe(false);
     expect(c.listVoices()).toEqual([]);
     expect(() => c.speak('YO', null, 1)).not.toThrow();
+  });
+});
+
+describe('pickAnnouncerVoice', () => {
+  it('always picks English (natural first), never the Vietnamese chant voice', () => {
+    expect(pickAnnouncerVoice([HOAIMY, DAVID, ARIA])).toBe(ARIA);
+    expect(pickAnnouncerVoice([AN, DAVID])).toBe(DAVID);
+    expect(pickAnnouncerVoice([AN, FR])).toBeNull();
   });
 });

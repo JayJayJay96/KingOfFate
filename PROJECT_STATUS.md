@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
-**As of:** 2026-10-09  
-**Phase:** 6 — History & Analytics  
-**Overall status:** Phases 1–5 done (owner: "tested very nice so far", incl. Shield redesign). **Phase 6 implemented and verified** (261 unit/integration tests, 13 E2E green); awaiting owner review. Not deployed.
+**As of:** 2026-10-10  
+**Phase:** Arcade enhancement packs (between 6 and 7)  
+**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). **Pack A (title, intro, announcer, impacts, idle) implemented and verified** (271 unit/integration tests, 13 E2E green); awaiting owner play-test. Packs B and C pending. Not deployed.
 
 ## 1. Current snapshot
 
@@ -28,7 +28,10 @@
 | 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
 | 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
 | 5 — Retro Arcade Experience | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | — |
-| 6 — History & Analytics | **Implemented**, awaiting owner review | Owner opens History, checks the luck board, exports, deletes a test match |
+| 6 — History & Analytics | **Done** (owner: "pretty perfect") | — |
+| Pack A — Arcade show | **Implemented**, awaiting play-test | Owner plays a match: title, intro, K.O. effects, final blow |
+| Pack B — Looks (sprites, stages) | Not started | — |
+| Pack C — Rivalries & badges | Not started | — |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
 ## 3. Requirements that are already approved
@@ -58,10 +61,22 @@
 
 ## 5. Planned next steps
 
-1. Owner reviews Phase 6 (History button on setup).
-2. Phase 7: Hardening & Vercel deployment.
+1. Owner play-tests Pack A.
+2. Pack B (costume variety + Change-look picker + stage backgrounds), then Pack C (rivalries, profile, badges).
+3. Phase 7: Hardening & Vercel deployment.
 
 ## 6. Session log
+
+### 2026-10-10 — Arcade Pack A: title, intro, announcer, impacts, idle
+- **Owner input:** asked for enhancement ideas, then approved: announcer + impact FX, character-select intro, stage backgrounds, idle/KO animations, INSERT COIN title, costume/colour variety, rivalries, badges. Decisions (logged in `PROJECT.md` §10): intro ~4 s, Space/click skips; title once per page load; random neutral looks + per-person picker incl. tudung/songkok; stage random per match, host can pin.
+- **Added:** `src/components/TitleScreen.tsx` (INSERT COIN, any key/click, coin sfx, unlocks audio), `src/components/match/MatchIntro.tsx` + `src/animation/matchIntro.ts` (select-cursor sweep, ROUND 1, FIGHT!; constants for finale splash 2.6 s and final blow 1.4 s), `src/audio/announcer.ts` (lines, impact kinds), tests `matchIntro.test.ts`, `e2e/helpers.ts` (`insertCoin`, `skipIntro`).
+- **Changed:** `voice.ts` (`pickAnnouncerVoice`, `announce`: English voice, deep pitch, silent if none), `soundEngine.ts` (`announce`, sfx `coin`/`fight`), `audioSettings.ts` (`announcer` on by default; checkbox in Sound settings; Voice slider now "Voices"), `MatchScreen.tsx` (intro gate; K.O./Blocked/Shield/Wasted stamp + sparks + flash + screen shake; announcer callouts incl. Versus/Sudden death; K.O. that reaches W+1 shown ~1.1 s before the finale; slow-motion "Finish!" before the ceremony; effects derived in render so a restored match never replays them), `FighterGrid` (knock-back fall), `FinaleStage` (FINAL ROUND splash + walk-in; final-blow zoom), `VictoryScreen` ("X wins!"), `FighterSprite` (idle bob, per-fighter offset), `App.tsx` (`titleScreen` prop, default on), CSS (all motion off under reduced-motion), App/History tests (`startMatch` waits out the intro; `titleScreen={false}`), all E2E specs (insert coin after load/reload).
+- **Found while testing:** (1) first version set the K.O. hold in an effect → the finale screen flashed for one frame and swallowed the Start click → effects are now derived during render; (2) E2E turn loop clicked the disabled button during the K.O. hold → test waits for "button enabled or finale shown".
+- **Tests:** `npm test` → **24 files, 271 passed** (intro timeline, announcer mapping, English voice pick, announcer setting, title → setup with unlock + coin, intro lists everyone and Space skips without a turn, ROUND 1/FIGHT!/K.O. callouts + stamp + falling fighter, final blow + "Aisyah wins!"). `npm run e2e` → **13 passed**. Typecheck, oxlint, Prettier clean.
+- **Manual:** title screen in the pane; intro grid + ROUND 1 banner and K.O. stamp/sparks/knock-back captured headlessly (Edge, 1280 px). Announcer audio not heard by me (no speakers); covered by the engine spy.
+- **Pacing (approved):** +~4 s at match start (skippable), +~1.1 s before the finale handover, +1.4 s before the ceremony.
+- **Next exact action:** owner play-tests Pack A → Pack B.
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Phase 6: History & Analytics
 - **Owner input:** "okay tested very nice so far, move to next phase" (Phase 5 + Shield redesign accepted).

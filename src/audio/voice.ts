@@ -53,11 +53,19 @@ export function pickVoice(
   );
 }
 
+/** The announcer always speaks English (UI language), natural/online voices first. */
+export function pickAnnouncerVoice(voices: readonly VoiceInfo[]): VoiceInfo | null {
+  const english = voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
+  return english.find(prefersNatural) ?? english[0] ?? null;
+}
+
 export interface Chanter {
   readonly available: boolean;
   listVoices(): VoiceInfo[];
   onVoicesChanged(listener: () => void): () => void;
   speak(word: ChantWord, preferredURI: string | null, volume: number): void;
+  /** Announcer line in an English voice; silent when no English voice is installed. */
+  announce(text: string, volume: number): void;
   cancel(): void;
 }
 
@@ -71,6 +79,7 @@ export function createChanter(
       listVoices: () => [],
       onVoicesChanged: () => () => undefined,
       speak() {},
+      announce() {},
       cancel() {},
     };
   }
@@ -99,6 +108,23 @@ export function createChanter(
       utterance.pitch = word === 'YO' ? 1.15 : 1;
       utterance.volume = Math.min(1, Math.max(0, volume));
       synth.cancel(); // never let words queue up behind the beat
+      synth.speak(utterance);
+    },
+    announce(text, volume) {
+      if (volume <= 0) return;
+      const all = voices();
+      const info = pickAnnouncerVoice(
+        all.map((v) => ({ voiceURI: v.voiceURI, name: v.name, lang: v.lang })),
+      );
+      const voice = all.find((v) => v.voiceURI === info?.voiceURI);
+      if (!voice) return;
+      const utterance = new Utterance(text);
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+      utterance.rate = 1.05;
+      utterance.pitch = 0.7; // deep arcade announcer
+      utterance.volume = Math.min(1, Math.max(0, volume));
+      synth.cancel();
       synth.speak(utterance);
     },
     cancel() {

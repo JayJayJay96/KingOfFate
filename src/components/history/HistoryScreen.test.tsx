@@ -37,7 +37,13 @@ async function openHistory(repo: MatchRepository) {
   const user = userEvent.setup();
   const download = vi.fn();
   render(
-    <App matchRepository={repo} rng={createSeededRng(1)} timeScale={0.005} download={download} />,
+    <App
+      matchRepository={repo}
+      rng={createSeededRng(1)}
+      timeScale={0.005}
+      download={download}
+      titleScreen={false}
+    />,
   );
   await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
   await user.click(screen.getByRole('button', { name: 'History' }));
@@ -166,7 +172,9 @@ describe('History screen (Phase 6)', () => {
     const repo = createMemoryMatchRepository();
     await repo.save(won); // the victory checkpoint writes its record in the same save
     const user = userEvent.setup();
-    render(<App matchRepository={repo} rng={createSeededRng(1)} timeScale={0.005} />);
+    render(
+      <App matchRepository={repo} rng={createSeededRng(1)} timeScale={0.005} titleScreen={false} />,
+    );
     await screen.findByRole('main', { name: 'Victory' });
     expect(screen.getByTestId('result-saved')).toHaveTextContent('Result saved to History.');
     await user.click(screen.getByRole('button', { name: /return to setup/i }));

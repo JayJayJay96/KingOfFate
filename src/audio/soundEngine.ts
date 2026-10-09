@@ -16,7 +16,9 @@ export type SfxName =
   | 'score'
   | 'qualify'
   | 'suddenDeath'
-  | 'victory';
+  | 'victory'
+  | 'coin'
+  | 'fight';
 
 /**
  * All sound in the app. Everything is synthesized at runtime (Web Audio + browser speech), so no
@@ -33,6 +35,8 @@ export interface SoundEngine {
   setPaused(paused: boolean): void;
   sfx(name: SfxName): void;
   chant(word: ChantWord): void;
+  /** Arcade announcer line (English voice); no-op when muted, disabled or unavailable. */
+  announce(text: string): void;
   listVoices(): VoiceInfo[];
   onVoicesChanged(listener: () => void): () => void;
   dispose(): void;
@@ -262,6 +266,14 @@ export function createSoundEngine(): SoundEngine {
           osc(c, bus, 'sawtooth', f, f, now + i * 0.15, 0.2, 0.3),
         );
         break;
+      case 'coin':
+        osc(c, bus, 'square', 988, 988, now, 0.07, 0.3);
+        osc(c, bus, 'square', 1319, 1319, now + 0.07, 0.35, 0.3);
+        break;
+      case 'fight':
+        noiseHit(c, bus, now, 0.3, 0.9, 'lowpass', 900);
+        osc(c, bus, 'sawtooth', 110, 55, now, 0.5, 0.6);
+        break;
       case 'victory':
         [523, 659, 784, 1047, 784, 1047].forEach((f, i) =>
           osc(c, bus, 'square', f, f, now + i * 0.12, i === 5 ? 0.6 : 0.14, 0.3),
@@ -336,6 +348,11 @@ export function createSoundEngine(): SoundEngine {
           );
         }
       }
+      duck();
+    },
+    announce(text) {
+      if (settings && !settings.announcer) return;
+      chanter.announce(text, voiceLevel());
       duck();
     },
     listVoices: () => chanter.listVoices(),

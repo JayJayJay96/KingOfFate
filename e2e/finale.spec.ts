@@ -1,3 +1,4 @@
+import { insertCoin } from './helpers.ts';
 import { expect, test, type Page } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -10,6 +11,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.reload();
+  await insertCoin(page);
 });
 
 /** Starts a match whose roster is exactly W + 1, so it opens straight in the finale. */
@@ -59,6 +61,7 @@ test('a real Một Hai Ba Yo finale runs automatically to exactly one winner', a
   // A reload during the ceremony shows the same result and records nothing new.
   const winner = await page.getByRole('list', { name: 'Winners' }).textContent();
   await page.reload();
+  await insertCoin(page);
   await expect(victory).toBeVisible();
   await expect(page.getByRole('list', { name: 'Winners' })).toHaveText(winner ?? '');
   expect(await completedRecords(page)).toBe(1);
@@ -78,6 +81,7 @@ test('refreshing mid-finale continues the same finale without repeating or losin
 
   const before = await roundLines(page).allTextContents();
   await page.reload();
+  await insertCoin(page);
   await expect(page.getByRole('main', { name: /Finale|Victory/ })).toBeVisible();
   // Everything already resolved is still there, unchanged.
   expect((await roundLines(page).allTextContents()).slice(0, before.length)).toEqual(before);

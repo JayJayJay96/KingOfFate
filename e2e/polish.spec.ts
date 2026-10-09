@@ -1,3 +1,4 @@
+import { insertCoin, skipIntro } from './helpers.ts';
 import { expect, test, type Page } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -12,6 +13,7 @@ test.beforeEach(async ({ page }) => {
     }
   });
   await page.reload();
+  await insertCoin(page);
 });
 
 async function start(page: Page, names: string[], winners: number) {
@@ -19,6 +21,7 @@ async function start(page: Page, names: string[], winners: number) {
   await page.getByRole('button', { name: /add to roster/i }).click();
   await page.getByRole('radio', { name: String(winners), exact: true }).check({ force: true });
   await page.getByRole('button', { name: 'Start', exact: true }).click();
+  if (names.length > winners + 1) await skipIntro(page);
 }
 
 /** A tiny valid 8 kHz mono WAV (0.1 s of silence). */
@@ -83,6 +86,7 @@ test('sound settings and a custom music file persist in this browser', async ({ 
   await expect(page.getByRole('radio', { name: /my music file/i })).toBeChecked();
 
   await page.reload();
+  await insertCoin(page);
   await expect(music).toHaveValue('15');
   await expect(page.getByText('My music file: office-theme.wav')).toBeVisible();
   await expect(page.getByRole('radio', { name: /my music file/i })).toBeChecked();
@@ -90,6 +94,7 @@ test('sound settings and a custom music file persist in this browser', async ({ 
   await page.getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('radio', { name: /built-in chiptune/i })).toBeChecked();
   await page.reload();
+  await insertCoin(page);
   await expect(page.getByText(/My music file:/)).toHaveCount(0);
 });
 

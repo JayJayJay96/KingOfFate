@@ -4,7 +4,7 @@ import { isVietnamese, pickVoice } from '../../audio/voice';
 import type { ChantWord } from '../../animation/finaleTimeline';
 import { MAX_ASSET_BYTES } from '../../storage/assetStorage';
 
-const VOLUME_LABELS = { music: 'Music', voice: 'Voice (chant)', sfx: 'Effects' } as const;
+const VOLUME_LABELS = { music: 'Music', voice: 'Voices', sfx: 'Effects' } as const;
 const TEST_WORDS: ChantWord[] = ['MOT', 'HAI', 'BA', 'YO'];
 
 /** Sound settings for the host. Everything stays in this browser. */
@@ -102,6 +102,16 @@ export function SoundSettings() {
             ? 'Vietnamese voice found: the chant is spoken as “Một Hai Ba Yo!”.'
             : 'No Vietnamese voice on this computer: the chant is spoken phonetically. Edge on Windows usually includes one.'}
       </p>
+
+      <label className="sound-settings__toggle">
+        <input
+          type="checkbox"
+          checked={settings.announcer}
+          disabled={!engine.speech}
+          onChange={(e) => update({ announcer: e.target.checked })}
+        />{' '}
+        Announcer (“K.O.!”, “Round 1… Fight!”, English voice)
+      </label>
 
       <fieldset className="fieldset sound-settings__music">
         <legend className="field-label">Match music</legend>

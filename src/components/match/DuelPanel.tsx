@@ -75,7 +75,7 @@ function Side({
   return (
     <div className="duel__side">
       <span className="duel__figure">
-        <FighterSprite seed={name} size={72} />
+        <FighterSprite seed={name} size={72} idle />
         {showHand && (
           <span className="duel__hand">
             <HandIcon gesture={gesture ?? 'ROCK'} size={60} />

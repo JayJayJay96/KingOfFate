@@ -39,7 +39,7 @@ export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPane
     <section className={`panel preview ${tone}`} aria-label="Selected fighter">
       {name ? (
         <span className="preview__portrait">
-          <FighterSprite seed={name} size={136} />
+          <FighterSprite seed={name} size={136} idle={match.phase !== 'SPINNING'} />
         </span>
       ) : (
         <div className="preview__silhouette" aria-hidden="true" />

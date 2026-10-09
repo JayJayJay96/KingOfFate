@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { insertCoin } from './helpers.ts';
 import { expect, test, type Page } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -11,6 +12,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.reload();
+  await insertCoin(page);
 });
 
 /** Plays a real 2-fighter match (opens in the finale) to the victory screen. */
@@ -50,6 +52,7 @@ test('a finished match is in History, survives a reload, exports, and can be del
 
   // History lives in IndexedDB: a reload keeps it.
   await page.reload();
+  await insertCoin(page);
   await page.getByRole('button', { name: 'History' }).click();
   await page.getByRole('button', { name: 'Matches (1)' }).click();
   await expect(page.getByTestId('match-list')).toContainText(`Winner: ${winner}`);
@@ -72,6 +75,7 @@ test('a finished match is in History, survives a reload, exports, and can be del
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await expect(page.getByRole('button', { name: 'Matches (0)' })).toBeVisible();
   await page.reload();
+  await insertCoin(page);
   await page.getByRole('button', { name: 'History' }).click();
   await expect(page.getByText('No completed matches yet.')).toBeVisible();
 });

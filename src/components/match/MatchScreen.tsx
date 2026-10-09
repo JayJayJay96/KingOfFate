@@ -1,17 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  ANNOUNCE,
+  IMPACT_LINE,
+  IMPACT_STAMP,
+  turnImpact,
+  type ImpactKind,
+} from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
-import type { SfxName } from '../../audio/soundEngine';
+import { FINAL_BLOW_MS } from '../../animation/matchIntro';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
 import { alivePlayers, shieldSupplyFor } from '../../game/engine/match';
-import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
+import type { MatchState } from '../../game/engine/matchTypes';
 import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
 import { DuelPanel } from './DuelPanel';
 import { EventLog } from './EventLog';
 import { FateStrip } from './FateStrip';
 import { FighterGrid } from './FighterGrid';
 import { FinaleStage } from './FinaleStage';
+import { MatchIntro } from './MatchIntro';
 import { PauseMenu } from './PauseMenu';
 import { PreviewPanel } from './PreviewPanel';
 import { VictoryScreen } from './VictoryScreen';
@@ -31,12 +39,8 @@ interface MatchScreenProps {
 
 const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"]';
 
-function outcomeSfx(last: ResolvedTurn): SfxName {
-  const o = last.outcome;
-  if (o.fate === 'KO') return o.result === 'ELIMINATED' ? 'ko' : 'blocked';
-  if (o.fate === 'SHIELD') return o.result === 'GAINED' ? 'shield' : 'wasted';
-  return o.loserResult === 'ELIMINATED' ? 'ko' : 'blocked';
-}
+/** How long the K.O. stamp / sparks / shake stay on screen after a turn resolves. */
+const IMPACT_MS = 1100;
 
 export function MatchScreen({
   match,
@@ -54,14 +58,35 @@ export function MatchScreen({
   /** Normal play: Esc menu open. Finale: pause requested (D4). */
   const [paused, setPaused] = useState(false);
   const { engine, toggleMute } = useSound();
+  /** Intro shown (or skipped) for this match; it plays once per match screen at turn 0. */
+  const [introDoneFor, setIntroDoneFor] = useState<string | null>(null);
+  // Effects are derived during render (no one-frame flash of the next screen). A turn or victory
+  // that was already on screen when the match was restored from storage plays no effect.
+  const lastTurnId = match.lastTurn?.turn.turnId ?? null;
+  const [impactDoneFor, setImpactDoneFor] = useState(lastTurnId);
+  const impact =
+    match.lastTurn && lastTurnId !== impactDoneFor
+      ? {
+          turnId: lastTurnId!,
+          kind: turnImpact(match.lastTurn),
+          fallenId: match.lastTurn.eliminatedId,
+        }
+      : null;
+  /** Slow-motion final blow between the last finale reveal and the ceremony. */
+  const [finishedFor, setFinishedFor] = useState(match.phase === 'VICTORY' ? match.matchId : null);
+  const finishing = match.phase === 'VICTORY' && finishedFor !== match.matchId;
   const alive = alivePlayers(match);
+  const showIntro =
+    match.phase === 'READY' && match.completedTurns === 0 && introDoneFor !== match.matchId;
   const duel = match.pendingTurn?.duel ?? null;
 
   const onCue = (cue: TurnCue) => {
     if (cue.kind === 'player' || cue.kind === 'opponent') engine.sfx('tick');
     else if (cue.kind === 'fate') engine.sfx('fateTick');
-    else if (cue.kind === 'vsAnnounce') engine.sfx('vs');
-    else if (cue.kind === 'duelIntro') engine.sfx('clash');
+    else if (cue.kind === 'vsAnnounce') {
+      engine.sfx('vs');
+      engine.announce(ANNOUNCE.versus);
+    } else if (cue.kind === 'duelIntro') engine.sfx('clash');
     else {
       const t = duel?.throws[cue.index];
       engine.sfx(t && t.challenger === t.opponent ? 'draw' : 'clash');
@@ -81,7 +106,7 @@ export function MatchScreen({
   const stage = animation.stage;
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const inOrdinaryPlay = match.phase === 'READY' || match.phase === 'SPINNING';
-  const canSpin = match.phase === 'READY' && !confirmingAbandon && !paused;
+  const canSpin = match.phase === 'READY' && !confirmingAbandon && !paused && !showIntro;
 
   // Background music follows the phase; it holds while paused.
   const finaleStarted = !!match.finale?.started;
@@ -95,20 +120,35 @@ export function MatchScreen({
     engine.setPaused(paused);
   }, [engine, paused]);
 
-  // Outcome sounds for newly resolved turns (not for a match restored from storage).
-  const lastTurnId = match.lastTurn?.turn.turnId ?? null;
-  const seenTurn = useRef(lastTurnId);
+  // Outcome sound, announcer and K.O. effects for a newly resolved turn.
+  const impactKind = impact?.kind ?? null;
+  const impactTurnId = impact?.turnId ?? null;
   useEffect(() => {
-    if (lastTurnId && lastTurnId !== seenTurn.current && match.lastTurn) {
-      engine.sfx(outcomeSfx(match.lastTurn));
-    }
-    seenTurn.current = lastTurnId;
-  }, [engine, lastTurnId, match.lastTurn]);
+    if (!impactTurnId || !impactKind) return;
+    engine.sfx(impactKind);
+    engine.announce(IMPACT_LINE[impactKind]);
+    const timer = setTimeout(() => setImpactDoneFor(impactTurnId), IMPACT_MS * timeScale);
+    return () => clearTimeout(timer);
+  }, [engine, impactTurnId, impactKind, timeScale]);
   const seenSuddenDeath = useRef(match.suddenDeath);
   useEffect(() => {
-    if (match.suddenDeath && !seenSuddenDeath.current) engine.sfx('suddenDeath');
+    if (match.suddenDeath && !seenSuddenDeath.current) {
+      engine.sfx('suddenDeath');
+      engine.announce(ANNOUNCE.suddenDeath);
+    }
     seenSuddenDeath.current = match.suddenDeath;
   }, [engine, match.suddenDeath]);
+
+  // The finale's last reveal gets a slow-motion final blow before the ceremony. The result is
+  // already committed and saved; this only delays the victory screen.
+  const matchId = match.matchId;
+  useEffect(() => {
+    if (!finishing) return;
+    engine.announce(ANNOUNCE.finish);
+    engine.sfx('ko');
+    const timer = setTimeout(() => setFinishedFor(matchId), FINAL_BLOW_MS * timeScale);
+    return () => clearTimeout(timer);
+  }, [engine, finishing, matchId, timeScale]);
 
   // Keyboard: Space/Enter spin, S shuffle, M mute, Esc menu / finale pause.
   useEffect(() => {
@@ -124,6 +164,12 @@ export function MatchScreen({
         return;
       }
       if (inControl) return;
+      if (showIntro && (key === ' ' || key === 'enter')) {
+        // Space/Enter skips the intro (owner decision); it does not also start a turn.
+        event.preventDefault();
+        setIntroDoneFor(match.matchId);
+        return;
+      }
       if (key === 'm') toggleMute();
       else if (key === 's' && canSpin) onShuffle();
       else if ((key === ' ' || key === 'enter') && canSpin) {
@@ -133,11 +179,25 @@ export function MatchScreen({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canSpin, onSpin, onShuffle, toggleMute, inOrdinaryPlay, match.phase, finaleStarted]);
+  }, [
+    canSpin,
+    onSpin,
+    onShuffle,
+    toggleMute,
+    inOrdinaryPlay,
+    match.phase,
+    match.matchId,
+    finaleStarted,
+    showIntro,
+  ]);
 
-  if (match.phase === 'FINALE') {
+  // The K.O. that reaches W + 1 is shown before the screen hands over to the finale.
+  const holdForImpact = match.phase === 'FINALE' && impact !== null;
+
+  if ((match.phase === 'FINALE' && !holdForImpact) || (match.phase === 'VICTORY' && finishing)) {
     return (
       <FinaleStage
+        finishing={finishing}
         match={match}
         timeScale={timeScale}
         saveError={saveError}
@@ -154,7 +214,7 @@ export function MatchScreen({
   }
 
   return (
-    <main className="match">
+    <main className={impact?.kind === 'ko' ? 'match match--shake' : 'match'}>
       <header className="match__bar">
         <span className="match__logo">King of Fate</span>
         <span>Turn {match.completedTurns + 1}</span>
@@ -188,7 +248,10 @@ export function MatchScreen({
           throwIndex={animation.duelThrowIndex ?? -1}
         />
       ) : (
-        <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
+        <div className="preview-wrap">
+          <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
+          {impact && <ImpactBurst key={impact.turnId} kind={impact.kind} />}
+        </div>
       )}
 
       <FateStrip
@@ -208,6 +271,7 @@ export function MatchScreen({
           highlightId={highlightId}
           opponentId={animation.opponentCursorId}
           lastTargetId={match.lastTurn?.turn.playerId ?? null}
+          fallingId={impact?.fallenId ?? null}
         />
         <div className="arena__controls">
           <div className="arena__buttons">
@@ -237,6 +301,14 @@ export function MatchScreen({
       </section>
 
       <EventLog match={match} />
+
+      {showIntro && (
+        <MatchIntro
+          players={match.players}
+          timeScale={timeScale}
+          onDone={() => setIntroDoneFor(match.matchId)}
+        />
+      )}
 
       {paused && (
         <PauseMenu
@@ -273,5 +345,29 @@ export function MatchScreen({
         </PauseMenu>
       )}
     </main>
+  );
+}
+
+/** Big stamp, hit sparks and a flash over the preview. Decorative only. */
+function ImpactBurst({ kind }: { readonly kind: ImpactKind }) {
+  return (
+    <div
+      className={`impact impact--${kind}`}
+      data-testid="impact"
+      data-kind={kind}
+      aria-hidden="true"
+    >
+      {kind === 'ko' && <span className="impact__flash" />}
+      {(kind === 'ko' || kind === 'blocked') &&
+        Array.from({ length: 10 }, (_, i) => {
+          const angle = (i / 10) * Math.PI * 2;
+          const style = {
+            '--dx': `${Math.round(Math.cos(angle) * 120)}px`,
+            '--dy': `${Math.round(Math.sin(angle) * 80)}px`,
+          } as CSSProperties;
+          return <span key={i} className="impact__spark" style={style} />;
+        })}
+      <span className="impact__stamp">{IMPACT_STAMP[kind]}</span>
+    </div>
   );
 }
