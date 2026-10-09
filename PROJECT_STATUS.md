@@ -60,6 +60,14 @@
 
 ## 6. Session log
 
+### 2026-10-09 — Fate overlap, bigger hand signs; Shield redesign proposed
+- **Owner input:** loves it; asked to start the Fate spin mid fighter spin to save time; hand signs near the head are hard to read → move below the avatar and enlarge; asked for a recommendation on redefining Shields and the streak (options: shields lose effect past a threshold; limited shield supply that turns into KO; shields stop working once a number are owned).
+- **Changed:** `src/animation/turnTimeline.ts` (`FATE_START_FRACTION` 0.5, `FATE_LANDS_AFTER_FIGHTER_MS` 400, `playerRevealMs`), `src/hooks/useTurnAnimation.ts` ("Fate is choosing…" switches at the fighter reveal), `DuelPanel.tsx` (hand 60 px below fighter), `FinaleStage.tsx` (hand 52 px below fighter, crown above winners), `finaleTimeline.ts` (`stagePositions`: triangle pulled in; 4–6 finalists in two rows), CSS (arena `max(480px, 62vh)`; hands in a framed box under the sprite), tests; docs `PROJECT.md` §10, `AGENTS.md` invariant. Commit `16a3adc`.
+- **Found while checking:** taller cards made the 6-finalist ring overlap on short screens → two-row layout (verified in the pane).
+- **Tests:** `npm test` → **20 files, 229 passed** (Fate starts ≥ half the fighter's travel and stops ≥ 0.4 s after the fighter reveal; most turns overlap; two-row layout). `npm run e2e` → 11/12 first (expected: one assertion still required the old non-overlapping order) → assertion updated to "Fate stops after the fighter" → ×2 repeat **24/24**. Typecheck + lint clean.
+- **Pending decision (owner):** Shield / Sudden Death redesign — proposal in chat (not implemented).
+- **Next exact action:** owner chooses the Shield design → implement with tests → Phase 6.
+
 ### 2026-10-09 — Phase 5 accepted; owner follow-ups: step-by-step reveal, VS opponent spin, fallen fighters
 - **Owner input:** Phase 5 "tested, all good". Requests: (1) Fate should start only after the fighter is known, with shorter spins to compensate; (2) VS: show "VS" first, then spin for P2, then RPS and result; (3) victory screen: knocked-out fighters scattered lying dead, finale losers lying beside the winners.
 - **Changed:** `src/game/config/timing.ts` (per-cursor: land 2.5–5 s, cap 6.5 s, braking ≤ 3.5 s), `src/animation/spinPlan.ts` (uses new limits), `src/animation/turnTimeline.ts` (sequential: fighter → Fate → VS announce 1 s → opponent cursor over the other living fighters, starting after the challenger → throws), `src/hooks/useTurnAnimation.ts` (stages player/fate/vs/opponent/duel, opponent cursor, cues), `MatchScreen.tsx`, `PreviewPanel.tsx` ("Choosing a fighter…" → "Fate is choosing…"), `DuelPanel.tsx` (announce/pick/fight modes, mystery opponent), `VictoryScreen.tsx` + new `src/animation/victoryLayout.ts` (+test; deterministic scatter in side bands), CSS, tests; docs `PROJECT.md` §1/§4/§9/§10, `AGENTS.md` invariant.
