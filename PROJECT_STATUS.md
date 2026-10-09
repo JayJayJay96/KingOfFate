@@ -1,33 +1,31 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-09  
-**Phase:** 1 — Foundation & Setup  
-**Overall status:** Phase 1 implemented and verified locally (typecheck, lint, unit/integration, build, E2E). Not committed, not deployed. **Phase 1 awaits owner acceptance** (manual review) before Phase 2 starts.
+**Phase:** 2 — KO-only playable loop  
+**Overall status:** Phase 1 accepted by owner and committed (`bf7dfdd`). Phase 2 implemented and verified locally (typecheck, lint, 109 unit/integration tests, build, 4 E2E). **Phase 2 awaits owner review.** Not deployed.
 
 ## 1. Current snapshot
 
 | Item | State |
 |---|---|
-| Baseline documents | **Accepted by owner 2026-10-09** |
-| Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup config in `localStorage` key `kof.setup` (schemaVersion 1). IndexedDB not yet used (Phase 2 match state). |
-| Normal Fate odds | Approved and encoded: Fast 90/10/0; Normal 75/20/5; Chaotic 60/25/15 |
-| Sudden Death odds (D1) | **Approved 2026-10-09** and encoded: Fast 95/5/0; Normal 90/10/0; Chaotic 80/20/0 |
-| Finale rules (D2, D3) | **Approved 2026-10-09** (not yet implemented; Phase 4) |
-| Roster identity (D5) | **Approved 2026-10-09** and implemented |
-| Pause/skip (D4) | OPEN — needed before Phase 5 |
-| Source code | Phase 1 only |
-| Git | Repo initialised on `main`; **no commits yet** |
+| Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
+| Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
+| Storage | Setup: `localStorage` `kof.setup` (schema 1). Current match: IndexedDB db `kof` v1, store `current-match`, key `current` (schema 1); corrupt checkpoints moved to key `corrupt-backup`. |
+| RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
+| Normal / Sudden Death odds | Approved and encoded (Phase 3 uses them) |
+| Finale rules (D2, D3) | Approved; Phase 4 |
+| Pause/skip (D4) | OPEN — before Phase 5 |
+| Git | `main`: `bf7dfdd` Phase 1. Phase 2 commit follows this update. |
 | Deployment | Not attempted |
 
 ## 2. Phase tracker
 
 | Phase | Status | Next acceptance goal |
 |---|---|---|
-| 1 — Foundation & Setup | **Implemented; automated checks pass; awaiting owner review** | Owner manually checks setup screen and accepts |
-| 2 — KO-only playable loop | Not started | Fair eligible player selection; correct elimination/checkpointing |
-| 3 — Full Fate System | Not started | KO/VS/Shield/Sudden Death and tests (D1 approved) |
-| 4 — Vietnamese RPS Finale | Not started | W+1 trigger and exactly W winners (D2/D3 approved) |
+| 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
+| 2 — KO-only playable loop | **Implemented; automated checks pass; awaiting owner review** | Owner plays a few matches, tries refresh mid-spin |
+| 3 — Full Fate System | Not started | KO/VS/Shield, Fate strip, RPS duel, Sudden Death, probability tests |
+| 4 — Vietnamese-chant RPS Finale | Not started | W+1 handoff (gate exists), exactly W winners |
 | 5 — Retro Arcade Experience | Not started | Art/audio/shortcuts/visual polish; D4 resolved |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
@@ -37,55 +35,58 @@
 - Normal game: player and Fate animations run simultaneously; living player selected uniformly; Fate represented by 20 equal-chance slots; 4–5 second fixed spin; selected player may repeat; visual shuffle does not alter odds.
 - KO, VS and Shield only for MVP; Shield cap one; duplicate Shield wasted; protected KO/VS loss consumes Shield and prevents elimination.
 - VS: random distinct living opponent; automatic one decisive RPS throw with rethrows on draw. Winner earns Shield when permitted.
-- 3 consecutive no-elimination turns activate Sudden Death; existing Shields remain, no new ones; D1 odds above.
-- Finale begins immediately upon `aliveCount == winners + 1`. Example: from 4 players/2 winners, a VS kill leaves 3 and triggers finale; a Shield block leaves 4 and ordinary turns continue.
-- Finale: automated full-screen Vietnamese chant, first to three points, simultaneous uniform RPS; D3 tiebreak among oversubscribed candidates only; D2 auto-qualify guard; clear Shields at finale start.
-- 1–5 winners, validate `activeCount >= W+1`. Typical office count <=20, maximum 32. Keep 4–5s spin even if game exceeds target 3–5 minutes.
-- D5: trim, drop blank lines, reject >20 characters and case-insensitive duplicates with inline warning, internal UUIDs.
-- One default configuration; newline-paste roster; attendance toggles; auto-restore active match; no undo; basic logs early, detailed history/export Phase 6. Completed result stored before victory animation.
-- Host uses mouse plus Space/Enter/Esc; normal rounds manually initiated, finale automatically cycles; return to setup after result.
+- 3 consecutive no-elimination turns activate Sudden Death; existing Shields remain, no new ones; D1 odds Fast 95/5/0, Normal 90/10/0, Chaotic 80/20/0.
+- Finale begins immediately upon `aliveCount == winners + 1`; automated chant RPS, first to three; D3 tiebreak among oversubscribed candidates only; D2 guard; Shields cleared at finale start.
+- 1–5 winners, `activeCount >= W+1`, max 32 active. D5 name rules (trim, drop blanks, ≤20 chars, case-insensitive duplicates rejected).
+- One default configuration; attendance toggles; auto-restore active match; no undo; return to setup after result.
 
 ## 4. Open decisions (owner follow-up)
 
 | ID | Question | Recommendation | Blocks |
 |---|---|---|---|
-| D4 | What is Esc pause behavior during chant, and should animation-skip exist? | Safe pause/resume at beat/throw boundary; no outcome changes. | Phase 5 polish |
-| D6 | Future Fate presets/odds must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
+| D4 | Esc pause behavior during finale chant; animation skip? | Safe pause/resume at beat/throw boundary; no outcome changes. | Phase 5 |
+| D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
+| P2-a | Keep **Abandon match** (confirm, not recorded) as the way to exit a match early? | Yes; otherwise an auto-restored match cannot be left until the finale. | Phase 2 acceptance |
+| P2-b | Refresh mid-spin **replays the spin to the same committed target** (instead of showing the result instantly). OK? | Yes; keeps drama, outcome cannot change. | Phase 2 acceptance |
+| D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner reviews Phase 1 in the browser (`npm run dev`) and accepts, or lists fixes.
-2. Owner decides whether to commit Phase 1 (suggested message: `feat: phase 1 setup, roster and local config`).
-3. Then Phase 2: pure engine (state machine, crypto RNG with unbiased bounded sampling + seeded test RNG), KO-only turns, 4–5 s player cursor, event log, IndexedDB checkpoint/recovery, refresh-during-spin tests.
+1. Owner plays Phase 2 (`npm run dev`): start, spin with `?`/Space, refresh during a spin, abandon, reach the finale gate. Confirm P2-a / P2-b.
+2. Phase 3: 20-slot Fate strip with simultaneous cursor; KO/VS/Shield; normal VS RPS duel (rethrow on draw); Shield cap/waste; 3-turn no-elimination streak → Sudden Death with visible odds swap; seeded probability tests for slot weights and RPS parity.
 
 ## 6. Session log
 
-### 2026-10-09 — Phase 1: Foundation & Setup
-- **Objective:** Get owner decisions, then implement Phase 1 only.
-- **Decisions obtained (owner, in chat):** baseline accepted; Phase 1 authorized; D1 = 95/5/0, 90/10/0, 80/20/0; D2 and D3 approved as recommended; D5 approved (trim / drop blanks / reject >20 chars and case-insensitive duplicates). Logged in `PROJECT.md` §3, §4, §5, §10, §11.
-- **Analysis noted:** D2 cannot actually trigger. W+1 finalists for W slots means unqualified players always exceed open slots by ≥1, also in D3 tiebreaks. It is kept as a defensive guard.
-- **Files added:** `package.json`, `package-lock.json`, `index.html`, `vite.config.ts`, `playwright.config.ts`, `tsconfig*.json`, `.oxlintrc.json`, `.gitignore`, `README.md`, `.claude/launch.json`, `public/favicon.svg` (original), `src/main.tsx`, `src/app/App.tsx`, `src/app/App.test.tsx`, `src/game/config/{limits,presets}.ts`, `src/game/config/presets.test.ts`, `src/game/setup/{roster,setupConfig,validation}.ts` + tests, `src/storage/setupStorage.ts` + test, `src/hooks/useSetupConfig.ts`, `src/components/setup/{SetupScreen,RosterInput,RosterGrid,MatchOptions}.tsx`, `src/components/MatchPlaceholder.tsx`, `src/styles/global.css`, `src/test/setup.ts`, `e2e/setup.spec.ts`.
-- **Files changed:** `PROJECT.md` (approved decisions), this file.
-- **Functionality completed:** newline paste roster with D5 rules and inline rejection list (rejected names stay in the box); attendance toggles (IN/OUT, All in/All out); remove fighter; winners 1–5; Fate preset picker showing real normal + Sudden Death odds; start validation (2–32 active, N ≥ W+1, N = W rejected) with actionable messages and "opens in finale" note at N = W+1; versioned localStorage with corrupt-backup, partial repair, unavailable/write-failure banners; Start → clearly labelled Phase 1 placeholder listing active lineup → Back to setup.
-- **Assumptions (minor, UX-internal):** internal whitespace runs collapse to one space; names NFC-normalised and length counted in code points; default winners = 1, preset = Normal; stored roster size is not capped (only active count is validated).
+### 2026-10-09 — Phase 2: KO-only playable loop
+- **Objective:** Commit Phase 1 (owner tested + approved), then implement Phase 2 only.
+- **Owner input:** "tested phase 1, its good … can commit and proceed"; audience is Malaysian, Vietnamese chant only liked as countdown (recorded in `PROJECT.md` §10).
+- **Commits:** `bf7dfdd feat: phase 1 setup, roster and local config`. Phase 2 commit made right after this file update.
+- **Files added:** `.gitattributes` (LF normalisation); `src/game/rng/rng.ts` + test; `src/game/config/timing.ts`; `src/game/engine/{matchTypes,match,describeEvent}.ts` + `match.test.ts`; `src/animation/spinPlan.ts` + test; `src/storage/matchStorage.ts` + test; `src/hooks/{useMatch,useSpinCursor}.ts`; `src/components/match/{MatchScreen,FighterGrid,PreviewPanel,EventLog,FinaleGate}.tsx`; `src/test/stats.ts`; `e2e/match.spec.ts`.
+- **Files changed:** `src/app/App.tsx` (loading, DI for repo/RNG/timing, match routing), `src/app/App.test.tsx` (Malaysian names, match flows), `src/components/setup/SetupScreen.tsx` (match notice banner), `src/test/setup.ts` (fresh fake IndexedDB per test), `src/styles/global.css`, `e2e/setup.spec.ts`, `tsconfig.node.json` (DOM lib for e2e), `package.json` (+fake-indexeddb), `PROJECT.md`, `README.md`, `AGENTS.md` (status line, earlier).
+- **Files removed:** `src/components/MatchPlaceholder.tsx` (replaced by real match screen).
+- **Functionality completed:**
+  - Pure engine: `createMatch` → `READY`; `beginTurn` samples uniformly among living players with injected RNG and commits `SPINNING` + pending turn; `resolveTurn` applies KO once (idempotent by turnId; stale/duplicate calls are no-ops); stops at exactly W+1 alive → `FINALE_GATE`; N = W+1 at start goes straight to the gate. Deterministic event IDs `matchId#seq`.
+  - Commit-before-animation: each transition is written to IndexedDB (one atomic put, awaited) before it is rendered; spin starts only after the checkpoint.
+  - Recovery: reload auto-restores the match; a mid-spin reload replays the cursor to the same committed target and applies it once. Corrupt checkpoints are discarded with a notice; IndexedDB failure shows a banner and play continues unsaved (never claims it saved).
+  - UI: preview nameplate with placeholder silhouette, 4.5 s decelerating cursor + 0.4 s hold, fighter grid (eliminated greyed, struck through, faint ✕), central `?` button + Space/Enter (ignored when a control has focus; repeats ignored; transitions serialised), screen-reader announcement of results only, chronological auto-scrolling event log that never spoils an unrevealed turn, Abandon match with confirm, Phase 2 finale gate placeholder listing finalists.
+- **Assumptions (flagged as P2-a, P2-b above):** Abandon match control; replay-on-restore. Turn label shows the upcoming/current turn number. Cosmetic cursor path uses `Math.random` (visual only, cannot affect outcomes).
 - **Commands run + observed results:**
-  - `npm run typecheck` → pass (no errors).
-  - `npm run lint` (oxlint) → 0 warnings after fixes.
-  - `npm test` → **5 files, 54 tests passed**.
-  - `npm run build` → pass (JS 231 kB / 72 kB gzip, CSS 5 kB).
-  - `npm run e2e` (Edge, production build via `vite preview`) → **1 passed**. Two earlier runs failed on test-locator ambiguity (fixed with `exact: true`), not app bugs.
-  - Manual: dev server in browser pane; pasted 12 names; layout, rejection feedback and roster grid render correctly at 800 px width.
-- **Unrun checks:** Playwright bundled Chromium not installed (needs ~150 MB download; Edge used instead); no screen-reader pass; no check at 32 names or on a projector/screenshare.
-- **Risks / notes:** 20-char limit rejects many full Vietnamese names (e.g. "Nguyễn Thị Phương Thảo Vy" = 25). Hosts must use short names, or the owner can revisit D5. A corrupt/repaired notice re-appears on each load until the first setup change re-saves clean data.
-- **Build/run condition at handoff:** builds and runs (`npm run dev`); all automated checks green.
-- **Next exact action:** owner review of Phase 1 → (optional) commit → start Phase 2 with `npm test` green as baseline.
+  - `npm run typecheck` → pass.
+  - `npm run lint` → 0 warnings.
+  - `npm test` → **9 files, 109 tests passed** (incl. seeded chi-square uniformity: 7 buckets/70k draws and 8 players/80k turns; full KO-only playouts for every W=1..5 and N=W+1..32; IndexedDB reload/idempotency tests).
+  - `npm run e2e` (fresh build, Edge) → **4 passed**: setup persistence → finale gate; real spin ≥4 s → W+1 handoff; reload 1 s into spin → exactly one elimination, stable across second reload; 5× Space → one turn.
+  - One unit failure mid-session was a test query matching the new header "Turn 2" (fixed by scoping to the event log). Not an app bug.
+  - Manual (browser pane): played turns; checked spin highlight, KO reveal, X-mark readability (fixed: name was hidden under ✕), header turn label (fixed).
+- **Unrun checks:** bundled Chromium E2E; screen-reader pass; 32-player layout on projector; IndexedDB-blocked browser (covered only by unit test with null factory); multi-tab use (two tabs on one match is unsupported/untested).
+- **Risks / tech debt:** Multi-tab play could race on the single checkpoint (last write wins; idempotent resolve limits damage). `useSpinCursor` schedules ~33 timeouts per spin (fine at 32 players). Bundle 243 kB raw / ~75 kB gzip.
+- **Build/run condition at handoff:** builds and runs; all automated checks green.
+- **Next exact action:** owner review of Phase 2 → answer P2-a/P2-b → start Phase 3 (Fate strip + KO/VS/Shield).
 
----
+### 2026-10-09 — Phase 1: Foundation & Setup
+- Decisions: baseline accepted; D1, D2, D3, D5 approved. Implemented roster paste (D5), attendance, winners, presets with real odds, start validation, versioned localStorage. Verified: typecheck, lint, 54 tests, build, 1 E2E. Owner tested and approved; committed `bf7dfdd`.
 
 ### 2026-10-09 — Specification consolidation
-- **Objective:** Reconcile all interview rounds and final owner approvals; prepare the three Markdown source-of-truth documents only.
-- **Code changes:** None. **Tests:** none (no application). **Deployment:** none.
-- **Risks:** W+1 finale may run long with repeated RPS ties. Browser-only data does not sync between devices.
+- Documentation only; no code, tests or deployment.
 
 ---
 

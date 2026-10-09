@@ -20,10 +20,16 @@ Chromium, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`.
 
 ```
 src/
-  game/        pure TypeScript domain (no React): config/limits, Fate presets, setup roster + validation
-  storage/     versioned localStorage persistence for the one default setup
-  hooks/       React glue (useSetupConfig)
-  components/  UI (setup screen, Phase 1 match placeholder)
-  app/         App shell
+  game/        pure TypeScript domain (no React)
+    config/    limits, Fate presets, timing
+    rng/       crypto RNG (unbiased bounded sampling) + seeded/scripted test RNGs
+    setup/     roster + start validation
+    engine/    match state machine (createMatch / beginTurn / resolveTurn), event log text
+  animation/   visual-only spin paths (never decide outcomes)
+  storage/     localStorage setup + IndexedDB current-match checkpoint
+  hooks/       React glue (useSetupConfig, useMatch, useSpinCursor)
+  components/  UI (setup/, match/)
+  app/         App shell (injects repository, RNG and timing for tests)
+  test/        test setup and statistics helpers
 e2e/           Playwright specs
 ```

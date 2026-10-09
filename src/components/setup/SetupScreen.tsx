@@ -9,6 +9,8 @@ import { RosterInput } from './RosterInput';
 interface SetupScreenProps {
   readonly store: SetupStore;
   readonly onStart: () => void;
+  /** Problem with the saved/in-progress match (corrupt checkpoint, storage unavailable). */
+  readonly matchNotice?: string | null;
 }
 
 const LOAD_NOTICES: Partial<Record<SetupLoadStatus, string>> = {
@@ -17,7 +19,7 @@ const LOAD_NOTICES: Partial<Record<SetupLoadStatus, string>> = {
   repaired: 'Some saved settings were invalid and have been reset or removed.',
 };
 
-export function SetupScreen({ store, onStart }: SetupScreenProps) {
+export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenProps) {
   const { config, update, loadStatus, saveError } = store;
   const validation = validateSetup(config);
   const issuesId = useId();
@@ -39,6 +41,11 @@ export function SetupScreen({ store, onStart }: SetupScreenProps) {
       {saveError && (
         <p className="banner banner--error" role="alert">
           Settings are not being saved. {saveError}
+        </p>
+      )}
+      {matchNotice && (
+        <p className="banner banner--warn" role="status">
+          {matchNotice}
         </p>
       )}
 
