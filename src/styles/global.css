@@ -1109,10 +1109,17 @@ textarea {
   }
 }
 
-/* Keep confetti behind the ceremony content. */
-.victory > :not(.victory__confetti) {
+/* Keep confetti and the fallen fighters (both fixed layers) behind the ceremony content. */
+.victory > :not(.victory__confetti):not(.victory__fallen-field) {
   position: relative;
   z-index: 1;
+}
+
+/* On wide screens keep the ceremony in the centre column so the fallen at the sides show. */
+@media (min-width: 1000px) {
+  .victory {
+    padding-inline: 26vw;
+  }
 }
 
 /* ---------- Phase 5: retro presentation ---------- */
@@ -1363,4 +1370,107 @@ svg.pixel-icon {
 
 label.button {
   display: inline-block;
+}
+
+/* ---------- sequential reveal + fallen fighters ---------- */
+.preview--chosen {
+  border-color: var(--gold);
+}
+
+.preview--chosen .preview__caption {
+  color: var(--gold);
+  animation: pulse 0.8s steps(2) infinite;
+}
+
+.duel__mystery {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 96px;
+  border: 3px dashed var(--panel-edge);
+  font-family: var(--font-pixel);
+  font-size: 2rem;
+  color: var(--muted);
+}
+
+.duel--announce .duel__vs {
+  font-size: 3.2rem;
+  animation: vs-pop 0.5s steps(4) 1;
+}
+
+@keyframes vs-pop {
+  from {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.fighter--opponent {
+  transform: scale(1.06);
+}
+
+/* victory scene */
+.victory__fallen-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.fallen {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  opacity: 0.75;
+}
+
+.fallen__body,
+.finale-loser__body {
+  display: block;
+  filter: grayscale(1) brightness(0.75);
+}
+
+.fallen__name {
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.victory__podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 24px 32px;
+}
+
+.finale-loser {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding-bottom: 8px;
+}
+
+.finale-loser__body {
+  transform: rotate(90deg) translateX(18px);
+}
+
+.finale-loser__name {
+  font-weight: 900;
+  color: var(--muted);
+}
+
+.finale-loser__tag {
+  font-size: 0.7rem;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 700px) {
+  .victory__fallen-field {
+    opacity: 0.45;
+  }
 }

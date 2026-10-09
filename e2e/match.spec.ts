@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Cursors ≤ 10 s, plus a VS duel (~2–4 s, longer with draws), plus margin.
-const TURN_BUDGET = 20_000;
+// Fighter + Fate cursors (≤ 6.5 s each), VS announce + opponent cursor + duel, plus margin.
+const TURN_BUDGET = 35_000;
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -107,7 +107,10 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
 
   // Record every cursor move with a timestamp, straight from the DOM.
   await page.evaluate(() => {
-    type Log = { player: { name: string; t: number }[]; fate: { index: number; kind: string }[] };
+    type Log = {
+      player: { name: string; t: number }[];
+      fate: { index: number; kind: string; t: number }[];
+    };
     const w = window as unknown as { cursorLog: Log };
     w.cursorLog = { player: [], fate: [] };
     new MutationObserver(() => {
@@ -119,7 +122,11 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
       if (slot) {
         const index = [...slot.parentElement!.children].indexOf(slot);
         if (w.cursorLog.fate.at(-1)?.index !== index) {
-          w.cursorLog.fate.push({ index, kind: slot.getAttribute('data-kind') ?? '' });
+          w.cursorLog.fate.push({
+            index,
+            kind: slot.getAttribute('data-kind') ?? '',
+            t: performance.now(),
+          });
         }
       }
     }).observe(document.body, { subtree: true, attributes: true, childList: true });
@@ -133,7 +140,7 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
         window as unknown as {
           cursorLog: {
             player: { name: string; t: number }[];
-            fate: { index: number; kind: string }[];
+            fate: { index: number; kind: string; t: number }[];
           };
         }
       ).cursorLog,
@@ -145,6 +152,8 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
     const prev = gridOrder.indexOf(log.player[i - 1]!.name);
     expect(log.player[i]!.name).toBe(gridOrder[(prev + 1) % gridOrder.length]);
   }
+  // Owner request: the Fate cursor only starts once the fighter has been chosen.
+  expect(log.fate[0]!.t).toBeGreaterThanOrEqual(log.player.at(-1)!.t);
   const firstGap = log.player[1]!.t - log.player[0]!.t;
   const lastGap = log.player.at(-1)!.t - log.player.at(-2)!.t;
   expect(lastGap).toBeGreaterThan(firstGap * 3);

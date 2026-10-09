@@ -1,14 +1,16 @@
 import { describeOutcome } from '../../game/engine/describeEvent';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
+import type { TurnStage } from '../../hooks/useTurnAnimation';
 import { FighterSprite } from '../sprites/icons';
 
 interface PreviewPanelProps {
   readonly match: MatchState;
   readonly highlightId: string | null;
+  readonly stage?: TurnStage;
 }
 
 /** Large nameplate with the selected fighter's pixel portrait. */
-export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
+export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPanelProps) {
   const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
 
@@ -17,7 +19,9 @@ export function PreviewPanel({ match, highlightId }: PreviewPanelProps) {
   let tone = '';
   if (match.phase === 'SPINNING') {
     name = highlightId ? nameOf(highlightId) : null;
-    caption = 'Fate is choosing…';
+    // The fighter is revealed first; only then does Fate decide what happens to them.
+    caption = stage === 'fate' ? 'Fate is choosing…' : 'Choosing a fighter…';
+    if (stage === 'fate') tone = 'preview--chosen';
   } else if (last) {
     name = nameOf(last.turn.playerId);
     ({ caption, tone } = shortOutcome(last, nameOf));

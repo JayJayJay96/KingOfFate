@@ -154,6 +154,12 @@ describe('Match', () => {
         .map((li) => li.textContent),
     ).toEqual(['Kavitha']);
     expect(screen.getByTestId('result-saved')).toBeInTheDocument();
+    // Knocked-out fighters lie scattered; the finale loser lies beside the winner.
+    expect(screen.getAllByTestId('fallen').map((el) => el.textContent)).toEqual([
+      'Wei Jie',
+      'Aisyah',
+    ]);
+    expect(screen.getByTestId('finale-loser')).toHaveTextContent('Hafiz');
     expect(await repo.listCompleted()).toHaveLength(1);
     await findInLog('Winner: Kavitha!');
 
@@ -355,15 +361,29 @@ describe('Fates on screen', () => {
     const { user } = await renderApp(
       createMemoryMatchRepository(),
       createScriptedRng([0, VS, 0, ROCK, ROCK, ROCK, SCISSORS]),
-      0.05, // slow enough for the duel panel to be observed
+      0.1, // slow enough for each reveal step to be observed
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
     await user.click(startButton());
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
-    expect(await screen.findByTestId('duel')).toHaveTextContent(/Aisyah.*VS.*Wei Jie/);
-    await findInLog(
+    // 1. Fighter first, then Fate.
+    await screen.findByText('Fate is choosing…', {}, { timeout: 3000 });
+    // 2. VS! with a mystery opponent.
+    const duel = await screen.findByTestId('duel', {}, { timeout: 3000 });
+    expect(duel).toHaveTextContent(/Aisyah.*VS!.*\?\?\?/);
+    expect(duel).toHaveTextContent('Aisyah must fight… who?');
+    // 3. Opponent cursor lands on Wei Jie, then the throws.
+    await waitFor(
+      () => expect(screen.getByTestId('duel')).toHaveTextContent(/Aisyah.*VS.*Wei Jie/),
+      {
+        timeout: 3000,
+      },
+    );
+    await within(screen.getByTestId('event-log')).findByText(
       'Turn 1: Aisyah VS Wei Jie: Rock beats Scissors after 1 draw. Aisyah wins; Wei Jie is eliminated! Aisyah earns a Shield.',
+      {},
+      { timeout: 5000 },
     );
     expect(shielded()).toEqual(['Aisyah']);
     expect(eliminatedCount()).toBe(1);

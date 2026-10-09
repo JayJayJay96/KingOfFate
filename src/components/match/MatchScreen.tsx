@@ -58,9 +58,10 @@ export function MatchScreen({
   const duel = match.pendingTurn?.duel ?? null;
 
   const onCue = (cue: TurnCue) => {
-    if (cue.kind === 'player') engine.sfx('tick');
+    if (cue.kind === 'player' || cue.kind === 'opponent') engine.sfx('tick');
     else if (cue.kind === 'fate') engine.sfx('fateTick');
-    else if (cue.kind === 'duelIntro') engine.sfx('vs');
+    else if (cue.kind === 'vsAnnounce') engine.sfx('vs');
+    else if (cue.kind === 'duelIntro') engine.sfx('clash');
     else {
       const t = duel?.throws[cue.index];
       engine.sfx(t && t.challenger === t.opponent ? 'draw' : 'clash');
@@ -77,6 +78,7 @@ export function MatchScreen({
     onCue,
   );
   const highlightId = animation.playerCursorId;
+  const stage = animation.stage;
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const inOrdinaryPlay = match.phase === 'READY' || match.phase === 'SPINNING';
   const canSpin = match.phase === 'READY' && !confirmingAbandon && !paused;
@@ -177,15 +179,16 @@ export function MatchScreen({
         </p>
       )}
 
-      {duel && animation.duelThrowIndex !== null ? (
+      {duel && (stage === 'vs' || stage === 'opponent' || stage === 'duel') ? (
         <DuelPanel
+          mode={stage === 'vs' ? 'announce' : stage === 'opponent' ? 'pick' : 'fight'}
           challengerName={nameOf(match.pendingTurn!.playerId)}
-          opponentName={nameOf(duel.opponentId)}
+          opponentName={animation.opponentCursorId ? nameOf(animation.opponentCursorId) : null}
           duel={duel}
-          throwIndex={animation.duelThrowIndex}
+          throwIndex={animation.duelThrowIndex ?? -1}
         />
       ) : (
-        <PreviewPanel match={match} highlightId={highlightId} />
+        <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
       )}
 
       <FateStrip
@@ -200,7 +203,7 @@ export function MatchScreen({
         <FighterGrid
           players={match.players}
           highlightId={highlightId}
-          opponentId={animation.duelThrowIndex !== null ? (duel?.opponentId ?? null) : null}
+          opponentId={animation.opponentCursorId}
           lastTargetId={match.lastTurn?.turn.playerId ?? null}
         />
         <div className="arena__controls">

@@ -16,7 +16,7 @@
 | Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
 | Pause/skip (D4) | **Approved and implemented (Phase 5)**: Esc pauses at the next finale round boundary; resume continues; no skip. |
 | Audio | AI chant via browser text-to-speech; original chiptune loops + synthesized SFX (Web Audio); music/voice/SFX volumes; optional local custom music. See `THIRD_PARTY_NOTICES.md`. |
-| Git | `main`; see `git log` (Phase 5 commit follows this update) |
+| Git | `main`; see `git log` (follow-up commit follows this update) |
 | Deployment | Not attempted |
 
 ## 2. Phase tracker
@@ -27,13 +27,14 @@
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
 | 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
 | 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
-| 5 — Retro Arcade Experience | **Implemented; automated checks pass; awaiting owner review** | Owner listens (voice, music, SFX), tries Esc pause in a finale, custom music file |
+| 5 — Retro Arcade Experience | **Done** (owner: "tested, all good", `dbde9a6`); follow-ups implemented, awaiting review | Owner tries the step-by-step reveal, a VS, and the victory scene |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
 ## 3. Requirements that are already approved
 
-- Normal game: player and Fate animations run simultaneously; living player selected uniformly; Fate represented by 20 equal-chance slots; random 4–10 s sequential-roulette spins (owner decision); selected player may repeat; visual shuffle does not alter odds.
+- Normal game: fighter cursor, then Fate cursor (then for VS: "VS!", opponent cursor, throws), one after another; living player selected uniformly; Fate represented by 20 equal-chance slots; each cursor a random 2.5–6.5 s sequential roulette (owner decisions); selected player may repeat; visual shuffle does not alter odds.
+- Victory scene: fighters knocked out during the match lie scattered around the screen; finale losers lie beside the crowned winners.
 - KO, VS and Shield only for MVP; Shield cap one; duplicate Shield wasted; protected KO/VS loss consumes Shield and prevents elimination.
 - VS: random distinct living opponent; automatic one decisive RPS throw with rethrows on draw. Winner earns Shield when permitted.
 - 3 consecutive no-elimination turns activate Sudden Death; existing Shields remain, no new ones; D1 odds Fast 95/5/0, Normal 90/10/0, Chaotic 80/20/0.
@@ -48,17 +49,25 @@
 | D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
 | P4-c | Pacing: ~3.4 s per finale round; big finales (4–6 finalists, many draws) can take a few minutes. | Watch in play; tune if needed. | Optional |
 | P4-d | No Abandon during the finale (it must finish); Esc pause exists (D4). | Keep. | — |
-| P5-a | Abandon match moved into the Esc menu (header now shows "Menu (Esc)"). | Keep. | Phase 5 acceptance |
-| P5-b | Speech timing: browser voices (esp. online/natural ones) can lag the beat by a few hundred ms; drums stay on the beat. | Accept; tune beat length if it feels off. | Phase 5 acceptance |
+| P5-d | Turn length now: fighter (2.5–6.5 s) + Fate (2.5–6.5 s); VS adds ~1 s "VS!" + opponent (2.5–6.5 s) + duel (~2–4 s). Typical KO turn ≈ 8–10 s, typical VS turn ≈ 15–20 s. | Tune ranges if it drags. | Follow-up acceptance |
 | P5-c | Custom *chant recording* upload with cue sync (spec §5) not built; AI voice chosen instead. | Optional later. | Optional |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner reviews Phase 5 with sound on (Edge recommended for the Vietnamese voice): Test voice in Sound settings, play a match, pause a finale with Esc, optionally pick a custom music file.
+1. Owner reviews the follow-ups (step-by-step reveal pacing, VS opponent spin, victory scene).
 2. Phase 6: History & Analytics (completed-match store already exists from Phase 4).
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 5 accepted; owner follow-ups: step-by-step reveal, VS opponent spin, fallen fighters
+- **Owner input:** Phase 5 "tested, all good". Requests: (1) Fate should start only after the fighter is known, with shorter spins to compensate; (2) VS: show "VS" first, then spin for P2, then RPS and result; (3) victory screen: knocked-out fighters scattered lying dead, finale losers lying beside the winners.
+- **Changed:** `src/game/config/timing.ts` (per-cursor: land 2.5–5 s, cap 6.5 s, braking ≤ 3.5 s), `src/animation/spinPlan.ts` (uses new limits), `src/animation/turnTimeline.ts` (sequential: fighter → Fate → VS announce 1 s → opponent cursor over the other living fighters, starting after the challenger → throws), `src/hooks/useTurnAnimation.ts` (stages player/fate/vs/opponent/duel, opponent cursor, cues), `MatchScreen.tsx`, `PreviewPanel.tsx` ("Choosing a fighter…" → "Fate is choosing…"), `DuelPanel.tsx` (announce/pick/fight modes, mystery opponent), `VictoryScreen.tsx` + new `src/animation/victoryLayout.ts` (+test; deterministic scatter in side bands), CSS, tests; docs `PROJECT.md` §1/§4/§9/§10, `AGENTS.md` invariant.
+- **Bugs found + fixed:** (a) scatter used a poorly mixed hash bit, so all bodies landed on one side (caught by a unit test) → alternate sides; (b) the victory "keep content above confetti" CSS rule also hit the fallen layer and stacked every body at one spot (caught visually in the pane) → rule excludes fixed layers; ceremony kept in the centre column on wide screens.
+- **Unchanged:** engine, sampling and storage. All outcomes (fighter, slot, VS opponent, throws) are still committed before any animation; only presentation order changed.
+- **Tests:** `npm test` → **20 files, 229 passed** (Fate cursor starts only after the fighter's reveal; each cursor ≤ 6.5 s; VS: announce → opponent cursor over the others starting after the challenger → throws; deterministic replay; scatter bounds/both sides/deterministic; App: "Choosing a fighter…" → "Fate is choosing…" → "VS!" with "???" → opponent → result; victory shows 2 fallen + 1 finale loser). `npm run e2e` → **12 passed**, ×2 → **24/24** (incl. real-browser check that the first Fate move comes after the last fighter move). Typecheck + lint clean.
+- **Manual (browser pane):** order fighter → Fate confirmed in DOM; VS pick stage detected live; victory scene at 1500×900 with 6 fallen fighters on both sides and the finale loser beside 3 crowned winners.
+- **Next exact action:** owner review of the follow-ups → Phase 6.
 
 ### 2026-10-09 — Phase 5: Retro Arcade Experience
 - **Owner input:** chant = "ai sound"; music = would download the KOF character-select song or accept something similar; sprites = "you do it". Explained the KOF song is copyrighted and cannot be bundled; built an original chiptune plus a local-only "my music file" option (recorded in `PROJECT.md` §5 and `THIRD_PARTY_NOTICES.md`).

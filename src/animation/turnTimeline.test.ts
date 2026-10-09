@@ -7,6 +7,7 @@ import {
   DUEL_RESULT_HOLD_MS,
   DUEL_THROW_MS,
   fateStartIndex,
+  VS_ANNOUNCE_MS,
 } from './turnTimeline';
 
 const alive = ['a', 'b', 'c', 'd', 'e'];
@@ -19,23 +20,34 @@ const koTurn: CommittedTurn = {
   suddenDeath: false,
   duel: null,
 };
+const vsTurn: CommittedTurn = {
+  ...koTurn,
+  fate: 'VS',
+  duel: {
+    opponentId: 'a',
+    throws: [
+      { challenger: 'ROCK', opponent: 'ROCK' },
+      { challenger: 'PAPER', opponent: 'ROCK' },
+    ],
+  },
+};
 
-describe('buildTurnTimeline', () => {
-  it('both cursors land on the committed player and slot, within 10 s', () => {
+describe('buildTurnTimeline (one step at a time)', () => {
+  it('the Fate cursor only starts after the fighter has landed and been revealed', () => {
     for (let i = 0; i < 100; i++) {
       const turn = { ...koTurn, turnId: `turn-${i}`, fateSlotIndex: i % 20 };
       const t = buildTurnTimeline(turn, alive, 'a', 0);
       expect(t.playerSteps.at(-1)!.id).toBe('c');
+      expect(t.fateStartMs).toBeGreaterThan(t.playerSteps.at(-1)!.atMs);
+      expect(t.fateSteps[0]!.atMs).toBe(t.fateStartMs);
       expect(t.fateSteps.at(-1)!.id).toBe(String(i % 20));
-      expect(t.cursorsDoneMs).toBeLessThanOrEqual(MAX_SPIN_MS);
-      expect(t.completeMs).toBe(t.cursorsDoneMs);
-      expect(t.duelThrowsAtMs).toEqual([]);
+      // Each cursor stays within its own cap.
+      expect(t.fateStartMs).toBeLessThanOrEqual(MAX_SPIN_MS);
+      expect(t.fateDoneMs - t.fateStartMs).toBeLessThanOrEqual(MAX_SPIN_MS);
+      expect(t.completeMs).toBe(t.fateDoneMs);
+      expect(t.vsAnnounceMs).toBeNull();
+      expect(t.opponentSteps).toEqual([]);
     }
-  });
-
-  it('player and Fate cursors get different rhythms', () => {
-    const t = buildTurnTimeline(koTurn, alive, 'a', 0);
-    expect(t.playerSteps.at(-1)!.atMs).not.toBe(t.fateSteps.at(-1)!.atMs);
   });
 
   it('the Fate cursor walks the strip in order, wrapping', () => {
@@ -43,31 +55,31 @@ describe('buildTurnTimeline', () => {
     expect(t.fateSteps.slice(0, 4).map((s) => s.id)).toEqual(['18', '19', '0', '1']);
   });
 
-  it('VS adds a duel after both cursors: intro, one beat per throw, result hold', () => {
-    const turn: CommittedTurn = {
-      ...koTurn,
-      fate: 'VS',
-      duel: {
-        opponentId: 'a',
-        throws: [
-          { challenger: 'ROCK', opponent: 'ROCK' },
-          { challenger: 'PAPER', opponent: 'ROCK' },
-        ],
-      },
-    };
-    const t = buildTurnTimeline(turn, alive, 'a', 0);
-    expect(t.duelThrowsAtMs).toEqual([
-      t.cursorsDoneMs + DUEL_INTRO_MS,
-      t.cursorsDoneMs + DUEL_INTRO_MS + DUEL_THROW_MS,
-    ]);
-    expect(t.completeMs).toBe(t.duelThrowsAtMs.at(-1)! + DUEL_RESULT_HOLD_MS);
-    // A decisive first throw keeps the duel within ~2–4 s.
-    expect(DUEL_INTRO_MS + DUEL_RESULT_HOLD_MS).toBeGreaterThanOrEqual(2000);
+  it('VS: "VS!" announce, then an opponent spin over the OTHER fighters, then the throws', () => {
+    for (let i = 0; i < 50; i++) {
+      const t = buildTurnTimeline({ ...vsTurn, turnId: `vs-${i}` }, alive, 'a', 0);
+      expect(t.vsAnnounceMs).toBe(t.fateDoneMs);
+      expect(t.opponentStartMs).toBe(t.fateDoneMs + VS_ANNOUNCE_MS);
+      expect(t.opponentSteps[0]).toEqual({ id: 'd', atMs: t.opponentStartMs }); // after 'c'
+      expect(t.opponentSteps.every((s) => s.id !== 'c')).toBe(true);
+      expect(t.opponentSteps.at(-1)!.id).toBe('a');
+      expect(t.duelStartMs! - t.opponentStartMs!).toBeLessThanOrEqual(MAX_SPIN_MS);
+      expect(t.duelThrowsAtMs).toEqual([
+        t.duelStartMs! + DUEL_INTRO_MS,
+        t.duelStartMs! + DUEL_INTRO_MS + DUEL_THROW_MS,
+      ]);
+      expect(t.completeMs).toBe(t.duelThrowsAtMs.at(-1)! + DUEL_RESULT_HOLD_MS);
+    }
+  });
+
+  it('the opponent cursor wraps from the last fighter to the first', () => {
+    const turn = { ...vsTurn, playerId: 'e', duel: { ...vsTurn.duel!, opponentId: 'b' } };
+    expect(buildTurnTimeline(turn, alive, 'a', 0).opponentSteps[0]!.id).toBe('a');
   });
 
   it('is deterministic (refresh replays the identical show)', () => {
-    expect(buildTurnTimeline(koTurn, alive, 'a', 0)).toEqual(
-      buildTurnTimeline(koTurn, alive, 'a', 0),
+    expect(buildTurnTimeline(vsTurn, alive, 'a', 0)).toEqual(
+      buildTurnTimeline(vsTurn, alive, 'a', 0),
     );
   });
 });

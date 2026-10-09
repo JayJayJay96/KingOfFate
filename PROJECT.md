@@ -13,7 +13,7 @@ This is an original custom pixel-arcade visual identity; reference images commun
 ### Audiences and constraints
 - Primarily one host on a desktop browser, often screenshared to office colleagues; no multiuser or audience input.
 - Typical group <=20; **supported range 2–32**, with **1–5 winners** and at least `winners + 1` active players.
-- Target playtime **3–5 minutes**, **not guaranteed**, particularly with larger rosters, shields and repeated RPS draws. Normal selection spins take a **random 4–10 s** (owner decision 2026-10-09, superseding fixed 4–5 s) regardless of roster size; do not accelerate secretly.
+- Target playtime **3–5 minutes**, **not guaranteed**, particularly with larger rosters, shields and repeated RPS draws. Each turn reveals the fighter, then the Fate (then, for VS, the opponent) one after another; each cursor takes a **random 2.5–6.5 s** (owner decisions 2026-10-09, superseding fixed 4–5 s and later 4–10 s simultaneous) regardless of roster size; do not accelerate secretly.
 - Fun and chaotic presentation; unbiased default outcomes. **Hidden/director control is deferred beyond MVP**, and future manipulated games must never be represented as fair.
 - Mouse and keyboard; host manually initiates each ordinary turn. The finale automatically repeats RPS cycles to completion.
 
@@ -44,7 +44,7 @@ Custom participant avatars/photos; elaborate fighter animations; additional Fate
 `SETUP -> READY -> SPINNING -> RESOLVING -> ROUND_COMPLETE -> READY` for ordinary turns. Before **each next ordinary turn**, evaluate survival. At `aliveCount == W+1`: `FINALE_INTRO -> FINALE_CHANT -> FINALE_REVEAL -> FINALE_SCORE -> [next chant / tiebreak / VICTORY]`. Victory writes a **single** committed completion record **before** the victory animation, then presents results, then host returns to Setup.
 
 - Only living, enabled match participants are eligible for main player selection. **Equal probability among eligible living players**, independent each turn. Repeat selection of the same person is permitted.
-- Player and Fate outcomes are **sampled independently and committed before animation**, using equal-probability indexed Fate slots. Both cursor animations run **simultaneously**, last a random 4–10 seconds (see §10), slow down into their preselected targets and accurately show that outcome. UI position shuffle is **visual only**: it changes no weights, participants or odds.
+- Player and Fate outcomes are **sampled independently and committed before animation**, using equal-probability indexed Fate slots. The cursors run **one after another** (owner decision 2026-10-09, superseding "simultaneously"): the fighter cursor lands first, then the Fate cursor; on VS a "VS!" announce is followed by an opponent cursor over the other living fighters, then the throws. Each cursor takes a random 2.5–6.5 s (see §10), slows down into its preselected target and accurately shows that outcome. UI position shuffle is **visual only**: it changes no weights, participants or odds.
 - After each committed Fate resolution, re-evaluate remaining players. **Do not spin another ordinary round if `aliveCount == W+1`.** No single normal event can eliminate more than one participant in MVP.
 - Concrete example requested by owner: with **4 living and 2 winners**, if a normal VS between players 3 and 4 eliminates its loser, **3 survive** and the finale begins. If the losing player spends a Shield and survives, **4 still live** and normal turns continue until 3 live.
 - Pauses, skipping animations, refreshing and browser recovery must never reroll or duplicate committed outcomes. Ordinary next turn is host-triggered, not autoplay.
@@ -136,10 +136,10 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 | Phase | Deliverables | Acceptance gate |
 |---|---|---|
 | **1 — Foundation & Setup** | Vite/React/TS app; roster paste, toggles, validations, winners, presets, initial storage | Setup survives refresh; invalid matches blocked; tests/build pass |
-| **2 — KO-only playable loop** | Pure engine; fair player RNG; main cursor, 4–10s spin, KO, event log, checkpoint/recovery | Complete KO-only matches; double-spin and refresh don't corrupt results |
-| **3 — Complete Fate System** | 20-slot Fate cursor, simultaneous spins, KO/VS/Shield, RPS duel, shields, Sudden Death, probability tests | All Fate interactions and supported odds verified; open Sudden Death ratios approved before finalization |
+| **2 — KO-only playable loop** | Pure engine; fair player RNG; main cursor, randomized spin, KO, event log, checkpoint/recovery | Complete KO-only matches; double-spin and refresh don't corrupt results |
+| **3 — Complete Fate System** | 20-slot Fate cursor (revealed after the fighter, see §10), KO/VS/Shield, RPS duel, shields, Sudden Death, probability tests | All Fate interactions and supported odds verified; open Sudden Death ratios approved before finalization |
 | **4 — Vietnamese RPS Finale** | W+1 handoff, full-screen stage, auto chanting/cue animation with placeholder audio, scoring/tiebreak, victory | Fully playable MVP with exact W winners for all supported counts |
-| **5 — Retro Presentation** | Pixel-arcade polish, large preview, licensed/custom sprites, audio layering, actual/custom chant, shortcuts | Visual/audio acceptance; readable at 2–32 participants; normal 4–10s spins |
+| **5 — Retro Presentation** | Pixel-arcade polish, large preview, licensed/custom sprites, audio layering, actual/custom chant, shortcuts | Visual/audio acceptance; readable at 2–32 participants; normal randomized spins |
 | **6 — History & Analytics** | Completed match store, event log viewer, participant statistics, leaderboard interpretation, CSV/JSON exports | Stored/exported data consistent and survives refresh |
 | **7 — Hardening & Vercel** | Comprehensive E2E/performance/accessibility/storage/audio fallback checks; Vercel deployment | Production deployment, regression suite green and limitations documented |
 
@@ -164,7 +164,9 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 - **Unpredictable spin rhythm (approved 2026-10-09, revised same day):** each spin gets its own style seeded from the turn ID (refresh replays it identically). Cursor lands after 4–8 s; button-to-KO reveal **never exceeds 10 s**. Constant-speed cruise, then braking: ~40% **snap** (3–5 braking moves) or ~60% **crawl** (7–14 moves, each slower). ~1 in 4 spins lingers extra on the box before the target. After landing the cursor **dwells 1.0–1.8× the last move** before the KO, so a pause never reveals whether it has stopped or will move once more. Order rule and outcome sampling unchanged; purely visual.
 - **Player Shuffle (approved 2026-10-09):** between turns the host may shuffle grid positions (crypto RNG, logged, persisted). Visual fairness only; odds unchanged. Fate-strip shuffle follows with the Fate strip in Phase 3.
 - A typical real-life match is **at most ~20 participants**; still keep technical support through 32.
-- Full-length spins (now random 4–10 s) are **higher priority** than strict 3–5-minute match completion.
+- **Step-by-step reveal (approved 2026-10-09):** fighter first, then Fate, then (VS) "VS!" → opponent cursor → rock-paper-scissors → result. To compensate for the longer turn each cursor is shorter: lands after 2.5–5 s, never more than 6.5 s; snap/crawl/dwell rhythm unchanged. All outcomes still committed before any animation.
+- **Victory scene (approved 2026-10-09):** fighters knocked out during the match lie scattered (greyed, lying down) around the screen; finalists who lost lie knocked out beside the standing, crowned winners.
+- Full-length spins are **higher priority** than strict 3–5-minute match completion.
 - In the 4-player/2-winner VS example, only an **actual elimination** changes the living count from 4 to 3. Shield absorption does **not** start finale.
 - The visible Fate composition always represents the real active probabilities and is updated for Sudden Death.
 - Winner-count shortage is uncommon, but the previously approved validation rule `N >= W+1` remains.

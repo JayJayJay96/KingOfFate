@@ -1,13 +1,18 @@
 /**
- * Selection spin timing. Owner decision 2026-10-09: spins vary randomly between 4 s and a
- * hard maximum of 10 s (supersedes the earlier fixed 4–5 s), so the rhythm is not learnable.
+ * Selection spin timing. Owner decisions 2026-10-09:
+ * - spins vary randomly so the rhythm is not learnable;
+ * - the fighter, then the Fate (and for VS, the opponent) are revealed ONE AFTER ANOTHER, so each
+ *   individual spin is shorter: it lands after 2.5–5 s and never exceeds 6.5 s.
  */
 
-/** Earliest the cursor may land. */
-export const MIN_LAND_MS = 4000;
+/** Earliest a cursor may land. */
+export const MIN_LAND_MS = 2500;
 
-/** Hard ceiling from button press to KO reveal (cursor travel + final dwell). */
-export const MAX_SPIN_MS = 10_000;
+/** Hard ceiling for one cursor, from its start to its reveal (travel + final dwell). */
+export const MAX_SPIN_MS = 6500;
 
-/** Shortest dwell on the landed fighter before the KO is revealed. */
+/** Longest a cursor may spend braking (keeps long crawls inside the cap). */
+export const MAX_BRAKE_MS = 3500;
+
+/** Shortest dwell on the landed box before the reveal. */
 export const MIN_DWELL_MS = 350;

@@ -1,4 +1,4 @@
-import { MAX_SPIN_MS, MIN_DWELL_MS, MIN_LAND_MS } from '../game/config/timing';
+import { MAX_BRAKE_MS, MAX_SPIN_MS, MIN_DWELL_MS, MIN_LAND_MS } from '../game/config/timing';
 import { createSeededRng } from '../game/rng/rng';
 
 export interface SpinStep {
@@ -35,10 +35,9 @@ export interface SpinStyle {
 }
 
 const MIN_CRUISE_STEPS = 4;
-const MAX_BRAKE_MS = 6000;
 
 export const DEFAULT_SPIN_STYLE: SpinStyle = {
-  targetLandMs: 6000,
+  targetLandMs: 4000,
   cruiseGapMs: 60,
   brakeSteps: 8,
   finalGapMs: 800,
@@ -54,7 +53,7 @@ export function spinStyleFor(turnId: string): SpinStyle {
   const rng = createSeededRng(hashString(turnId));
   const snap = rng.nextInt(100) < 40;
   return {
-    targetLandMs: MIN_LAND_MS + rng.nextInt(4001), // 4–8 s
+    targetLandMs: MIN_LAND_MS + rng.nextInt(2501), // 2.5–5 s
     cruiseGapMs: 45 + rng.nextInt(31), // 45–75 ms
     brakeSteps: snap ? 3 + rng.nextInt(3) : 7 + rng.nextInt(8), // snap 3–5, crawl 7–14
     finalGapMs: snap ? 300 + rng.nextInt(301) : 600 + rng.nextInt(501), // 300–600 / 600–1100
