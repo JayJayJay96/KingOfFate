@@ -159,6 +159,8 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 
 ### Owners' latest clarifications (binding)
 - **Audience is a Malaysian office (2026-10-09).** The Vietnamese "Một Hai Ba Yo" chant is kept purely as the finale countdown flavor; UI language stays English. Participant names will typically be Malaysian (Malay/Chinese/Indian).
+- **Sequential roulette cursor (approved 2026-10-09):** the player cursor steps through living fighters **in grid order** (wrapping, skipping eliminated), starting after the previous turn's target, fast at first and decelerating to a crawl before stopping on the pre-committed target (4.5 s total). Purpose: participants can follow it and "pray it moves one more step". Outcome sampling is unchanged (uniform, committed before animation).
+- **Player Shuffle (approved 2026-10-09):** between turns the host may shuffle grid positions (crypto RNG, logged, persisted). Visual fairness only; odds unchanged. Fate-strip shuffle follows with the Fate strip in Phase 3.
 - A typical real-life match is **at most ~20 participants**; still keep technical support through 32.
 - Fixed 4–5-second selection is **higher priority** than strict 3–5-minute match completion.
 - In the 4-player/2-winner VS example, only an **actual elimination** changes the living count from 4 to 3. Shield absorption does **not** start finale.

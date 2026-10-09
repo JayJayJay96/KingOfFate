@@ -18,6 +18,8 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
       return `Turn ${event.turnNumber}: ${nameOf(event.playerId)} takes a KO. Eliminated!`;
     case 'FINALE_REACHED':
       return `Finale! ${joinNames(event.finalistIds.map(nameOf))} advance.`;
+    case 'PLAYERS_SHUFFLED':
+      return 'Fighters shuffled into new positions.';
   }
 }
 

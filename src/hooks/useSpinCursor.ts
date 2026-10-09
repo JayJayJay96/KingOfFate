@@ -8,7 +8,8 @@ import type { CommittedTurn } from '../game/engine/matchTypes';
  */
 export function useSpinCursor(
   pendingTurn: CommittedTurn | null,
-  candidateIds: readonly string[],
+  orderedIds: readonly string[],
+  startId: string | null,
   durationMs: number,
   holdMs: number,
   onComplete: (turnId: string) => void,
@@ -21,17 +22,17 @@ export function useSpinCursor(
 
   const turnId = pendingTurn?.turnId ?? null;
   const targetId = pendingTurn?.playerId ?? null;
-  const candidatesKey = candidateIds.join('\u0000');
+  const orderKey = orderedIds.join('\u0000');
 
   useEffect(() => {
-    if (!turnId || !targetId) return;
-    const plan = buildSpinPlan(candidatesKey.split('\u0000'), targetId, durationMs);
+    if (!turnId || !targetId || !startId) return;
+    const plan = buildSpinPlan(orderKey.split('\u0000'), startId, targetId, durationMs);
     const timers = plan.map((step) =>
       setTimeout(() => setHighlight({ turnId, id: step.id }), step.atMs),
     );
     timers.push(setTimeout(() => onCompleteRef.current(turnId), durationMs + holdMs));
     return () => timers.forEach(clearTimeout);
-  }, [turnId, targetId, candidatesKey, durationMs, holdMs]);
+  }, [turnId, targetId, startId, orderKey, durationMs, holdMs]);
 
   return highlight && highlight.turnId === turnId ? highlight.id : null;
 }

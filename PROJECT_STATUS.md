@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-09  
 **Phase:** 2 — KO-only playable loop  
-**Overall status:** Phase 1 accepted by owner and committed (`bf7dfdd`). Phase 2 implemented and verified locally (typecheck, lint, 109 unit/integration tests, build, 4 E2E). **Phase 2 awaits owner review.** Not deployed.
+**Overall status:** Phase 1 done (`bf7dfdd`). Phase 2 done (`876158a`) plus owner-requested sequential cursor + player Shuffle (121 unit/integration tests, 6 E2E green). Next: Phase 3. Not deployed.
 
 ## 1. Current snapshot
 
@@ -23,7 +23,7 @@
 | Phase | Status | Next acceptance goal |
 |---|---|---|
 | 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
-| 2 — KO-only playable loop | **Implemented; automated checks pass; awaiting owner review** | Owner plays a few matches, tries refresh mid-spin |
+| 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
 | 3 — Full Fate System | Not started | KO/VS/Shield, Fate strip, RPS duel, Sudden Death, probability tests |
 | 4 — Vietnamese-chant RPS Finale | Not started | W+1 handoff (gate exists), exactly W winners |
 | 5 — Retro Arcade Experience | Not started | Art/audio/shortcuts/visual polish; D4 resolved |
@@ -56,6 +56,13 @@
 2. Phase 3: 20-slot Fate strip with simultaneous cursor; KO/VS/Shield; normal VS RPS duel (rethrow on draw); Shield cap/waste; 3-turn no-elimination streak → Sudden Death with visible odds swap; seeded probability tests for slot weights and RPS parity.
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 2 follow-up: sequential cursor + player Shuffle
+- **Owner request:** cursor should walk boxes in order (1 2 3 … wrap … slow 3 … 4) instead of random jumps, for "one more step" tension; Shuffle button for visually fair positions. Owner said Phase 2 "seemed pretty solid" (P2-a Abandon and P2-b replay-on-restore treated as accepted; revisit if not).
+- **Changed:** `src/animation/spinPlan.ts` (deterministic sequential path: ≥24 moves, whole laps + distance to target, quadratic ease-out ≈80–110 ms first gaps → ≈0.8–1 s final gap; `spinStartId` = next living fighter after previous target), `src/hooks/useSpinCursor.ts`, `src/game/engine/{match,matchTypes,describeEvent}.ts` (`shufflePlayers`, `PLAYERS_SHUFFLED` event; identity draws redrawn), `src/hooks/useMatch.ts` (`shuffle`), `src/components/match/MatchScreen.tsx` (Shuffle button, start position), `src/app/App.tsx`, CSS, tests, `PROJECT.md` §10 (approved decisions).
+- **Tests:** `npm test` → **9 files, 121 passed** (sequential path from every start/target, deceleration, laps on tiny rosters, 32-grid; shuffle permutation/logging/identity redraw/READY-only; seeded chi-square proves odds unchanged with shuffles). `npm run e2e` → **6 passed** incl. DOM-recorded cursor moves are consecutive in grid order with last gap >4× first, and shuffle order survives reload. Typecheck + lint clean. Manual: Shuffle button layout and log entry checked in browser pane.
+- **Note:** the replay after a mid-spin refresh is identical (path is deterministic from saved state).
+- **Next exact action:** Phase 3 (Fate strip with its own sequential cursor + Fate shuffle, KO/VS/Shield, RPS duel, Sudden Death).
 
 ### 2026-10-09 — Phase 2: KO-only playable loop
 - **Objective:** Commit Phase 1 (owner tested + approved), then implement Phase 2 only.

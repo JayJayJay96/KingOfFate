@@ -54,6 +54,7 @@ export function App({
         revealHoldMs={revealHoldMs}
         saveError={game.saveError}
         onSpin={() => void game.spin()}
+        onShuffle={() => void game.shuffle()}
         onSpinComplete={(turnId) => void game.completeSpin(turnId)}
         onLeave={() => void game.leave()}
       />

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { beginTurn, createMatch, resolveTurn, type MatchLaunch } from '../game/engine/match';
+import {
+  beginTurn,
+  createMatch,
+  resolveTurn,
+  shufflePlayers,
+  type MatchLaunch,
+} from '../game/engine/match';
 import type { MatchState } from '../game/engine/matchTypes';
 import type { Rng } from '../game/rng/rng';
 import type { MatchRepository } from '../storage/matchStorage';
@@ -14,6 +20,8 @@ export interface MatchController {
   readonly saveError: string | null;
   readonly start: (launch: MatchLaunch) => Promise<void>;
   readonly spin: () => Promise<void>;
+  /** Visual-only reshuffle of grid positions, allowed between turns. */
+  readonly shuffle: () => Promise<void>;
   readonly completeSpin: (turnId: string) => Promise<void>;
   readonly leave: () => Promise<void>;
 }
@@ -91,6 +99,16 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
     [commit, exclusive, rng],
   );
 
+  const shuffle = useCallback(
+    () =>
+      exclusive(async () => {
+        const state = current.current;
+        if (!state || state.phase !== 'READY') return;
+        await commit(shufflePlayers(state, rng));
+      }),
+    [commit, exclusive, rng],
+  );
+
   const completeSpin = useCallback(
     (turnId: string) =>
       exclusive(async () => {
@@ -113,5 +131,5 @@ export function useMatch(repository: MatchRepository, rng: Rng): MatchController
     [exclusive, repository],
   );
 
-  return { loading, match, notice, saveError, start, spin, completeSpin, leave };
+  return { loading, match, notice, saveError, start, spin, shuffle, completeSpin, leave };
 }

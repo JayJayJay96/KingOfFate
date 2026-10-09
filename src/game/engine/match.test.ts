@@ -8,6 +8,7 @@ import {
   createMatch,
   IllegalTransitionError,
   resolveTurn,
+  shufflePlayers,
   type MatchLaunch,
 } from './match';
 import type { MatchState } from './matchTypes';
@@ -171,5 +172,51 @@ describe('fairness simulation', () => {
     for (let i = 0; i < 5000; i++) {
       expect(beginTurn(m, rng, 't').pendingTurn!.playerId).not.toBe('p0');
     }
+  });
+});
+
+describe('shufflePlayers', () => {
+  it('permutes grid positions, keeps everyone and their status, and logs it', () => {
+    let m = createMatch(launch(6), ids);
+    m = resolveTurn(beginTurn(m, createScriptedRng([0]), 't1'), 't1'); // p0 out
+    const shuffled = shufflePlayers(m, createSeededRng(5));
+
+    expect(shuffled.players.map((p) => p.id)).not.toEqual(m.players.map((p) => p.id));
+    expect([...shuffled.players].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
+      [...m.players].sort((a, b) => a.id.localeCompare(b.id)),
+    );
+    expect(shuffled.events.at(-1)).toMatchObject({
+      type: 'PLAYERS_SHUFFLED',
+      order: shuffled.players.map((p) => p.id),
+    });
+    expect(describeEvent(shuffled.events.at(-1)!, shuffled)).toBe(
+      'Fighters shuffled into new positions.',
+    );
+  });
+
+  it('always visibly changes the order, even when the draw would be the identity', () => {
+    // Fisher-Yates on 3 players: nextInt(3) then nextInt(2). [2, 1] = identity, then [0, 0].
+    const m = createMatch(launch(3), ids);
+    const shuffled = shufflePlayers(m, createScriptedRng([2, 1, 0, 0]));
+    expect(shuffled.players.map((p) => p.id)).toEqual(['p1', 'p2', 'p0']);
+  });
+
+  it('is only allowed between turns', () => {
+    const spinning = beginTurn(createMatch(launch(4), ids), createScriptedRng([0]), 't1');
+    expect(() => shufflePlayers(spinning, createSeededRng(1))).toThrow(IllegalTransitionError);
+  });
+
+  it('does not change selection odds (seeded chi-square after shuffles)', () => {
+    const rng = createSeededRng(123);
+    let m = createMatch(launch(6), ids);
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 60_000; i++) {
+      if (i % 100 === 0) m = shufflePlayers(m, rng);
+      const id = beginTurn(m, rng, 't').pendingTurn!.playerId;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    // Critical chi-square value for df = 5 at p = 0.001 is 20.52.
+    expect(chiSquareUniform([...counts.values()])).toBeLessThan(20.52);
+    expect(counts.size).toBe(6);
   });
 });

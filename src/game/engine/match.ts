@@ -95,6 +95,30 @@ export function beginTurn(state: MatchState, rng: Rng, turnId: string): MatchSta
 }
 
 /**
+ * Shuffles the grid positions (Fisher–Yates with the injected RNG). Visual fairness only: turn
+ * selection stays uniform over living players regardless of order. A shuffle that would leave
+ * the order unchanged is redrawn, so pressing Shuffle always visibly does something.
+ */
+export function shufflePlayers(state: MatchState, rng: Rng): MatchState {
+  if (state.phase !== 'READY') {
+    throw new IllegalTransitionError(`Cannot shuffle in phase ${state.phase}`);
+  }
+  let order = [...state.players];
+  for (let attempt = 0; attempt < 10; attempt++) {
+    order = [...state.players];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = rng.nextInt(i + 1);
+      [order[i], order[j]] = [order[j]!, order[i]!];
+    }
+    if (order.some((p, i) => p.id !== state.players[i]!.id)) break;
+  }
+  return appendEvent(
+    { ...state, players: order },
+    { type: 'PLAYERS_SHUFFLED', order: order.map((p) => p.id) },
+  );
+}
+
+/**
  * Applies the committed turn exactly once. Calling it again with the same (or a stale) turnId
  * returns the state unchanged, so recovery/replays can never double-apply an elimination.
  */

@@ -210,3 +210,37 @@ describe('KO-only match', () => {
     expect(screen.getByText('Chaotic')).toBeInTheDocument();
   });
 });
+
+describe('Shuffle', () => {
+  it('reorders the grid between turns, logs it and persists the new order', async () => {
+    const repo = createMemoryMatchRepository();
+    const { user } = await renderApp(repo, createSeededRng(3));
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Mei Ling');
+    await user.click(startButton());
+    const grid = await screen.findByRole('list', { name: 'Fighters' });
+    const order = () =>
+      within(grid)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent);
+    const before = order();
+
+    await user.click(screen.getByRole('button', { name: 'Shuffle' }));
+    await screen.findByText('Fighters shuffled into new positions.');
+    expect(order()).not.toEqual(before);
+    expect([...order()].sort()).toEqual([...before].sort());
+
+    const saved = await repo.load();
+    expect(saved.status === 'loaded' && saved.match.players.map((p) => p.name)).toEqual(order());
+  });
+
+  it('is disabled while a spin is running', async () => {
+    const { user } = await renderApp(createMemoryMatchRepository(), createScriptedRng([0]));
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await user.click(startButton());
+    await screen.findByRole('list', { name: 'Fighters' });
+    await user.click(randomButton());
+    expect(screen.getByRole('button', { name: 'Shuffle' })).toBeDisabled();
+    await screen.findByText(/Turn 1: Aisyah takes a KO/);
+    expect(screen.getByRole('button', { name: 'Shuffle' })).toBeEnabled();
+  });
+});

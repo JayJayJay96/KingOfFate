@@ -52,7 +52,9 @@ export type MatchEvent =
       readonly turnNumber: number;
       readonly playerId: string;
     })
-  | (EventBase & { readonly type: 'FINALE_REACHED'; readonly finalistIds: readonly string[] });
+  | (EventBase & { readonly type: 'FINALE_REACHED'; readonly finalistIds: readonly string[] })
+  /** Visual grid order changed. Never affects odds: selection is uniform over living players. */
+  | (EventBase & { readonly type: 'PLAYERS_SHUFFLED'; readonly order: readonly string[] });
 
 /** Distributive Omit so each union member keeps its own fields. */
 export type NewMatchEvent = MatchEvent extends infer E

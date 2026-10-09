@@ -77,3 +77,53 @@ test('mashing Space starts only one turn', async ({ page }) => {
   await expect(eliminated(page)).toHaveCount(1);
   await expect(page.getByTestId('alive-count')).toHaveText('4 / 5 alive');
 });
+
+test('cursor steps through the grid in order and slows down before stopping', async ({ page }) => {
+  await startMatch(page, ['Aisyah', 'Wei Jie', 'Kavitha', 'Hafiz', 'Mei Ling', 'Arjun'], 1);
+  const gridOrder = await page.locator('.fighter .fighter__name').allTextContents();
+
+  // Record every cursor move with a timestamp, straight from the DOM.
+  await page.evaluate(() => {
+    const w = window as unknown as { cursorLog: { name: string; t: number }[] };
+    w.cursorLog = [];
+    new MutationObserver(() => {
+      const el = document.querySelector('[data-cursor="true"] .fighter__name');
+      const name = el?.textContent ?? '';
+      if (name && w.cursorLog.at(-1)?.name !== name)
+        w.cursorLog.push({ name, t: performance.now() });
+    }).observe(document.body, { subtree: true, attributes: true, childList: true });
+  });
+
+  await randomButton(page).click();
+  await expect(eliminated(page)).toHaveCount(1, { timeout: SPIN_BUDGET });
+  const log = await page.evaluate(
+    () => (window as unknown as { cursorLog: { name: string; t: number }[] }).cursorLog,
+  );
+
+  expect(log.length).toBeGreaterThanOrEqual(20);
+  for (let i = 1; i < log.length; i++) {
+    const prev = gridOrder.indexOf(log[i - 1]!.name);
+    expect(log[i]!.name).toBe(gridOrder[(prev + 1) % gridOrder.length]);
+  }
+  const firstGap = log[1]!.t - log[0]!.t;
+  const lastGap = log.at(-1)!.t - log.at(-2)!.t;
+  expect(lastGap).toBeGreaterThan(firstGap * 4);
+
+  const koName = await eliminated(page).locator('.fighter__name').textContent();
+  expect(log.at(-1)!.name).toBe(koName);
+});
+
+test('shuffle reorders the grid and the order survives a reload', async ({ page }) => {
+  await startMatch(page, ['Aisyah', 'Wei Jie', 'Kavitha', 'Hafiz', 'Mei Ling', 'Arjun'], 1);
+  const names = page.locator('.fighter .fighter__name');
+  const before = await names.allTextContents();
+
+  await page.getByRole('button', { name: 'Shuffle' }).click();
+  await expect(page.getByTestId('event-log')).toContainText('Fighters shuffled');
+  const after = await names.allTextContents();
+  expect(after).not.toEqual(before);
+  expect([...after].sort()).toEqual([...before].sort());
+
+  await page.reload();
+  await expect(names).toHaveText(after);
+});

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { spinStartId } from '../../animation/spinPlan';
 import { FATE_PRESETS } from '../../game/config/presets';
 import { alivePlayers } from '../../game/engine/match';
 import type { MatchState } from '../../game/engine/matchTypes';
@@ -14,6 +15,7 @@ interface MatchScreenProps {
   readonly revealHoldMs: number;
   readonly saveError: string | null;
   readonly onSpin: () => void;
+  readonly onShuffle: () => void;
   readonly onSpinComplete: (turnId: string) => void;
   readonly onLeave: () => void;
 }
@@ -26,6 +28,7 @@ export function MatchScreen({
   revealHoldMs,
   saveError,
   onSpin,
+  onShuffle,
   onSpinComplete,
   onLeave,
 }: MatchScreenProps) {
@@ -34,6 +37,7 @@ export function MatchScreen({
   const highlightId = useSpinCursor(
     match.pendingTurn,
     alive.map((p) => p.id),
+    spinStartId(match.players, match.lastTurn?.turn.playerId ?? null),
     spinDurationMs,
     revealHoldMs,
     onSpinComplete,
@@ -114,16 +118,29 @@ export function MatchScreen({
           lastTargetId={match.lastTurn?.turn.playerId ?? null}
         />
         <div className="arena__controls">
-          <button
-            type="button"
-            className="random-button"
-            aria-label="Random: start the next turn"
-            disabled={!canSpin}
-            onClick={onSpin}
-          >
-            ?
-          </button>
-          <p className="hint">Click ? or press Space / Enter</p>
+          <div className="arena__buttons">
+            <button
+              type="button"
+              className="random-button"
+              aria-label="Random: start the next turn"
+              disabled={!canSpin}
+              onClick={onSpin}
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              className="button shuffle-button"
+              title="Shuffle grid positions (does not change anyone's odds)"
+              disabled={!canSpin}
+              onClick={onShuffle}
+            >
+              Shuffle
+            </button>
+          </div>
+          <p className="hint">
+            Click ? or press Space / Enter. Shuffle only moves positions; odds stay equal.
+          </p>
         </div>
       </section>
 

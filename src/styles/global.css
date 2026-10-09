@@ -573,6 +573,12 @@ textarea {
   gap: 4px;
 }
 
+.arena__buttons {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 .random-button {
   width: 96px;
   height: 96px;
