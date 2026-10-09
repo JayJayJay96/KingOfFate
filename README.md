@@ -1,5 +1,7 @@
 # KOF — King of Fate
 
+**Play:** https://king-of-fate.vercel.app/
+
 Retro arcade-style office randomizer. Spec: [`PROJECT.md`](PROJECT.md) · process: [`AGENTS.md`](AGENTS.md) · progress: [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
 ## Commands

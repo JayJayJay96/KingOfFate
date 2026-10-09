@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-10  
 **Phase:** 7 — Hardening & Deployment  
-**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 hardening done and verified** (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans of every screen under the production CSP). **Not deployed yet: waiting for the owner's choice of deploy method/account.**
+**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 done: deployed at https://king-of-fate.vercel.app/** (GitHub `JayJayJay96/KingOfFate` → Vercel, auto-deploys `main`); hardening verified (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans under the production CSP); live smoke test passed. Awaiting owner acceptance.
 
 ## 1. Current snapshot
 
@@ -17,7 +17,7 @@
 | Pause/skip (D4) | **Approved and implemented (Phase 5)**: Esc pauses at the next finale round boundary; resume continues; no skip. |
 | Audio | AI chant via browser text-to-speech; original chiptune loops + synthesized SFX (Web Audio); music/voice/SFX volumes; optional local custom music. See `THIRD_PARTY_NOTICES.md`. |
 | Git | `main`; see `git log` (follow-up commit follows this update) |
-| Deployment | Not attempted |
+| Deployment | **Live:** https://king-of-fate.vercel.app/ (Vercel, from GitHub `JayJayJay96/KingOfFate` `main`, auto-deploy on push) |
 
 ## 2. Phase tracker
 
@@ -32,7 +32,7 @@
 | Pack A — Arcade show | **Done** (owner: "tested, all good") | — |
 | Pack B — Looks (sprites, stages) | **Done** (owner: "tested, all good") | — |
 | Pack C — Rivalries & badges | **Done** (owner: "tested, all good") | — |
-| 7 — Hardening & Deployment | **Hardening done** (`daa8a8e`); deployment pending owner | Owner picks deploy method; live Vercel URL smoke-tested |
+| 7 — Hardening & Deployment | **Done** — live at https://king-of-fate.vercel.app/ | Owner acceptance |
 
 ## 3. Requirements that are already approved
 
@@ -61,10 +61,16 @@
 
 ## 5. Planned next steps
 
-1. Owner chooses how to deploy (Vercel CLI login, or GitHub repo + Vercel import) and approves going public.
-2. Deploy, smoke-test the live URL (title → match → finale → History), record the URL here.
+1. Owner accepts Phase 7 / the live site.
+2. Optional later: JSON import, real-device checks (projector, Firefox/Safari), manual screen-reader pass.
 
 ## 6. Session log
+
+### 2026-10-10 — Phase 7: deployment
+- **Owner input:** chose "GitHub + Vercel import"; created `https://github.com/JayJayJay96/KingOfFate.git` and imported it in Vercel; live URL https://king-of-fate.vercel.app/.
+- **Done:** added remote `origin`, pushed `main` (remote head = local `f38711a`, verified with `git ls-remote`).
+- **Live checks (observed):** all security headers present on `/` (CSP, X-Frame-Options DENY, nosniff, no-referrer, Permissions-Policy); `/assets/*` served `Cache-Control: public, max-age=31536000, immutable`; deployed JS bundle hash `index-D5y9COvE.js` = local build of `f38711a`. In the browser pane on the live site: INSERT COIN → 2 fighters → finale ran to Victory ("Result saved to History.") → reload restored the victory screen → Return → History showed the match and a correct luck board (±0.50); Press Start 2P font loaded and covers "Một"; zero console errors. Test data then cleared from the pane's storage for that origin.
+- **Next exact action:** owner acceptance; nothing blocking.
 
 ### 2026-10-10 — Phase 7: hardening (deployment pending)
 - **Owner input:** Pack C "tested, all good, proceed to phase 7".
