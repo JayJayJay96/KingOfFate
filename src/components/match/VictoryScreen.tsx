@@ -92,7 +92,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
         </p>
       ) : (
         <p className="victory__saved" data-testid="result-saved">
-          Result saved.
+          Result saved to History.
         </p>
       )}
       <button type="button" className="button button--start victory__back" onClick={onLeave}>

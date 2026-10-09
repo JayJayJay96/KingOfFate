@@ -1,8 +1,8 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
 **As of:** 2026-10-09  
-**Phase:** 5 — Retro Arcade Experience  
-**Overall status:** Phases 1–4 done; Phase 5 accepted ("tested, all good") plus owner follow-ups (step-by-step reveal, VS opponent spin, fallen fighters, Fate overlap, bigger hand signs, **Shield supply + one-third Sudden Death**) implemented and verified (234 unit/integration tests, 12 E2E green); Shield redesign awaits owner play-test. Not deployed.
+**Phase:** 6 — History & Analytics  
+**Overall status:** Phases 1–5 done (owner: "tested very nice so far", incl. Shield redesign). **Phase 6 implemented and verified** (261 unit/integration tests, 13 E2E green); awaiting owner review. Not deployed.
 
 ## 1. Current snapshot
 
@@ -27,8 +27,8 @@
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
 | 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
 | 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
-| 5 — Retro Arcade Experience | **Done** (owner: "tested, all good", `dbde9a6`); follow-ups implemented, awaiting review | Owner tries the step-by-step reveal, a VS, and the victory scene |
-| 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
+| 5 — Retro Arcade Experience | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | — |
+| 6 — History & Analytics | **Implemented**, awaiting owner review | Owner opens History, checks the luck board, exports, deletes a test match |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
 ## 3. Requirements that are already approved
@@ -52,14 +52,28 @@
 | P5-d | Turn length now: fighter (2.5–6.5 s) + Fate (2.5–6.5 s); VS adds ~1 s "VS!" + opponent (2.5–6.5 s) + duel (~2–4 s). Typical KO turn ≈ 8–10 s, typical VS turn ≈ 15–20 s. | Tune ranges if it drags. | Follow-up acceptance |
 | P5-c | Custom *chant recording* upload with cue sync (spec §5) not built; AI voice chosen instead. | Optional later. | Optional |
 | P5-e | Small matches: with 5 fighters there is 1 Shield in total and Sudden Death never happens (finale first). | Intended by the formula; revisit if Shields feel too rare. | Owner play-test |
+| P6-a | Abandoned matches are not recorded (only completed ones). | Keep: an abandoned match has no result. | Optional |
+| P6-b | JSON export is a backup only; there is no import. | Add import later if the office moves browsers. | Optional |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner play-tests the Shield redesign (≥ 9 fighters to see 2 Shields and a real Sudden Death).
-2. Phase 6: History & Analytics (completed-match store already exists from Phase 4).
+1. Owner reviews Phase 6 (History button on setup).
+2. Phase 7: Hardening & Vercel deployment.
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 6: History & Analytics
+- **Owner input:** "okay tested very nice so far, move to next phase" (Phase 5 + Shield redesign accepted).
+- **Owner decisions (asked this session, logged in `PROJECT.md` §7):** stats add up per **roster entry** (internal ID; latest name shown); host may **delete one match** or **clear all** (both confirmed, suggest exporting first); leaderboard ranks by **luck vs expected** (expected = Σ W/N over matches played; luck = wins − expected).
+- **Added:** `src/game/history/history.ts` (lenient record check incl. schema-3 records, `summarizeMatch`, `aggregateStats`, `historyLog` with legacy Sudden Death text), `exportData.ts` (versioned JSON backup; matches CSV; luck-board CSV; RFC 4180 + UTF-8 BOM; spreadsheet-formula guard), `format.ts`; `src/hooks/useHistory.ts`; `src/components/history/{HistoryScreen,Leaderboard,MatchHistory,ConfirmButton}.tsx`; `src/utils/download.ts`; `src/test/historyFixtures.ts` (real engine, seeded); tests `history.test.ts`, `exportData.test.ts`, `HistoryScreen.test.tsx`, `e2e/history.spec.ts`.
+- **Changed:** `matchStorage.ts` (`deleteCompleted`, `clearCompleted`; memory repo can be seeded with records), `App.tsx` (History view; `download` injection), `SetupScreen.tsx` (History button), `VictoryScreen.tsx` ("Result saved to History."), CSS, `PROJECT.md` §7.
+- **Found by tests:** negative luck values were written as text `'-0.600` by the formula guard → CSV numbers are now kept numeric.
+- **Tests:** `npm test` → **23 files, 261 passed** (summaries agree with the engine for every preset × W=1..5 × 3 roster sizes; Shield/VS/finale-point totals; identity across renames; luck/expected maths and tie order; legacy record; CSV round-trip, BOM, quoting, formula guard; IndexedDB delete/clear survive reopen and leave the current match alone; UI: empty state, ranking, newest-first list, detail log, confirm/cancel delete, clear all, three exports, unreadable-record notice, finished match appears). `npm run e2e` → **13 passed** (new: real match → History → reload → JSON + CSV downloads parsed → delete → reload). Typecheck, oxlint, Prettier, `npm run build` clean.
+- **Manual (browser pane):** luck board, matches list and detail with full finale log checked at 1280 px; History button clears the logo at 760 px and drops inline below 700 px. Older pane records (saved before the Shield redesign) load fine. Dev server had to be restarted once (stale HMR module after a mid-edit refactor; not an app bug).
+- **Assumptions:** unreadable stored records are kept in storage but left out with a notice (they are removed by "Clear all"); JSON export contains only readable records.
+- **Next exact action:** owner reviews History → Phase 7 (hardening + Vercel).
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Shield redesign: limited supply + Sudden Death at one-third left
 - **Owner decision:** "Supply + half-way break", "1 per 5 fighters", "One-third left". Replaces the 3-consecutive-no-elimination streak. Logged in `PROJECT.md` §4/§10 and the `AGENTS.md` invariants.

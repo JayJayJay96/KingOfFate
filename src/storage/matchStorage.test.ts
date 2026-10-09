@@ -207,6 +207,32 @@ describe('finale and completion records', () => {
     expect((await repo.load()).status).toBe('corrupt');
   });
 
+  it('deletes one completed match or clears them all, and the change survives a reopen', async () => {
+    const factory = new IDBFactory();
+    const repo = createIndexedDbMatchRepository(factory);
+    const won = await wonMatch();
+    await repo.save(won);
+    await repo.save({ ...won, matchId: 'won-2' });
+    await repo.save({ ...won, matchId: 'won-3' });
+    expect(await repo.deleteCompleted('won-2')).toEqual({ ok: true });
+    const reopened = createIndexedDbMatchRepository(factory);
+    expect((await reopened.listCompleted()).map((r) => r.matchId).sort()).toEqual([
+      'won-1',
+      'won-3',
+    ]);
+    // The in-progress checkpoint is untouched by history deletes.
+    expect((await reopened.load()).status).toBe('loaded');
+    expect(await reopened.clearCompleted()).toEqual({ ok: true });
+    expect(await createIndexedDbMatchRepository(factory).listCompleted()).toEqual([]);
+    expect((await reopened.load()).status).toBe('loaded');
+  });
+
+  it('reports delete/clear failures when IndexedDB is unavailable', async () => {
+    const repo = createIndexedDbMatchRepository(null);
+    expect((await repo.deleteCompleted('x')).ok).toBe(false);
+    expect((await repo.clearCompleted()).ok).toBe(false);
+  });
+
   it('the memory repository mirrors the once-only record behaviour', async () => {
     const repo = createMemoryMatchRepository();
     const won = await wonMatch();

@@ -11,6 +11,7 @@ import { SoundSettings } from './SoundSettings';
 interface SetupScreenProps {
   readonly store: SetupStore;
   readonly onStart: () => void;
+  readonly onOpenHistory: () => void;
   /** Problem with the saved/in-progress match (corrupt checkpoint, storage unavailable). */
   readonly matchNotice?: string | null;
 }
@@ -21,7 +22,12 @@ const LOAD_NOTICES: Partial<Record<SetupLoadStatus, string>> = {
   repaired: 'Some saved settings were invalid and have been reset or removed.',
 };
 
-export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenProps) {
+export function SetupScreen({
+  store,
+  onStart,
+  onOpenHistory,
+  matchNotice = null,
+}: SetupScreenProps) {
   const { config, update, loadStatus, saveError } = store;
   const validation = validateSetup(config);
   const issuesId = useId();
@@ -34,6 +40,13 @@ export function SetupScreen({ store, onStart, matchNotice = null }: SetupScreenP
       <header className="title">
         <h1 className="title__logo">King of Fate</h1>
         <p className="title__tagline">Select today&apos;s fighters</p>
+        <button
+          type="button"
+          className="button button--small title__history"
+          onClick={onOpenHistory}
+        >
+          History
+        </button>
       </header>
 
       {loadNotice && (

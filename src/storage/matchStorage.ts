@@ -34,7 +34,10 @@ export interface MatchRepository {
   load(): Promise<MatchLoadResult>;
   save(match: MatchState): Promise<MatchSaveResult>;
   clear(): Promise<MatchSaveResult>;
+  /** Raw stored records; history re-validates each one (older rule versions included). */
   listCompleted(): Promise<CompletedMatchRecord[]>;
+  deleteCompleted(matchId: string): Promise<MatchSaveResult>;
+  clearCompleted(): Promise<MatchSaveResult>;
 }
 
 export function toCompletedRecord(match: MatchState): CompletedMatchRecord {
@@ -167,13 +170,42 @@ export function createIndexedDbMatchRepository(
       );
       return all ?? [];
     },
+    async deleteCompleted(matchId) {
+      try {
+        await transact(
+          'readwrite',
+          (_store, tx) => tx.objectStore(COMPLETED_STORE).delete(matchId),
+          [STORE, COMPLETED_STORE],
+        );
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: messageOf(error) };
+      }
+    },
+    async clearCompleted() {
+      try {
+        await transact('readwrite', (_store, tx) => tx.objectStore(COMPLETED_STORE).clear(), [
+          STORE,
+          COMPLETED_STORE,
+        ]);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: messageOf(error) };
+      }
+    },
   };
 }
 
 /** In-memory repository for tests; structuredClone mimics IndexedDB's copy semantics. */
-export function createMemoryMatchRepository(initial: MatchState | null = null): MatchRepository {
+export function createMemoryMatchRepository(
+  initial: MatchState | null = null,
+  /** Pre-existing history (raw, may include invalid records for tests). */
+  completedRecords: readonly CompletedMatchRecord[] = [],
+): MatchRepository {
   let stored: MatchState | null = initial ? structuredClone(initial) : null;
-  const completed = new Map<string, CompletedMatchRecord>();
+  const completed = new Map<string, CompletedMatchRecord>(
+    completedRecords.map((r) => [r.matchId, structuredClone(r)]),
+  );
   return {
     async load() {
       return stored ? { status: 'loaded', match: structuredClone(stored) } : { status: 'none' };
@@ -191,6 +223,14 @@ export function createMemoryMatchRepository(initial: MatchState | null = null): 
     },
     async listCompleted() {
       return [...completed.values()].map((r) => structuredClone(r));
+    },
+    async deleteCompleted(matchId) {
+      completed.delete(matchId);
+      return { ok: true };
+    },
+    async clearCompleted() {
+      completed.clear();
+      return { ok: true };
     },
   };
 }

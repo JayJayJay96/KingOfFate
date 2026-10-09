@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { SoundEngine } from '../audio/soundEngine';
 import { SoundProvider } from '../audio/SoundProvider';
+import { HistoryScreen, type Downloader } from '../components/history/HistoryScreen';
 import { MatchScreen } from '../components/match/MatchScreen';
 import { SetupScreen } from '../components/setup/SetupScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
@@ -19,6 +20,8 @@ export interface AppProps {
   readonly timeScale?: number;
   readonly soundEngine?: SoundEngine;
   readonly assetStore?: AssetStore;
+  /** Export file saver; tests capture files instead of downloading. */
+  readonly download?: Downloader;
 }
 
 export function App({ soundEngine, assetStore, ...rest }: AppProps) {
@@ -33,11 +36,13 @@ function Game({
   matchRepository,
   rng,
   timeScale = 1,
-}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale'>) {
+  download,
+}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale' | 'download'>) {
   const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
   const [matchRng] = useState(() => rng ?? createCryptoRng());
   const setup = useSetupConfig();
   const game = useMatch(repository, matchRng);
+  const [showHistory, setShowHistory] = useState(false);
 
   function handleStart() {
     const { config } = setup;
@@ -74,7 +79,22 @@ function Game({
     );
   }
 
+  if (showHistory) {
+    return (
+      <HistoryScreen
+        repository={repository}
+        onBack={() => setShowHistory(false)}
+        download={download}
+      />
+    );
+  }
+
   return (
-    <SetupScreen store={setup} onStart={handleStart} matchNotice={game.notice ?? game.saveError} />
+    <SetupScreen
+      store={setup}
+      onStart={handleStart}
+      onOpenHistory={() => setShowHistory(true)}
+      matchNotice={game.notice ?? game.saveError}
+    />
   );
 }

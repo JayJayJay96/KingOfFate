@@ -1477,3 +1477,186 @@ label.button {
   background: var(--cyan);
   border-color: var(--cyan);
 }
+
+/* ---------- history (Phase 6) ---------- */
+.title {
+  position: relative;
+}
+
+.title__history {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.history {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: grid;
+  gap: 20px;
+}
+
+.history .title {
+  margin-bottom: 0;
+}
+
+.history__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.history__tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.history__tab[aria-pressed='false'] {
+  background: var(--panel-edge);
+  color: var(--text);
+}
+
+.history .banner {
+  margin: 0;
+  max-width: none;
+}
+
+.history-panel .panel__title {
+  margin-top: 0;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-table th,
+.history-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--panel-edge);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.history-table th[scope='row'],
+.history-table thead th:nth-child(2),
+.history-table [data-testid='match-fighters'] th {
+  text-align: left;
+}
+
+.history-table th[scope='row'] {
+  color: var(--gold);
+}
+
+.history-table thead th {
+  color: var(--cyan);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+[data-testid='match-fighters'] thead th:first-child,
+[data-testid='match-fighters'] tbody td:nth-child(2) {
+  text-align: left;
+}
+
+.luck--up {
+  color: var(--green);
+}
+
+.luck--down {
+  color: var(--red);
+}
+
+.match-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.match-list__item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 2px solid var(--panel-edge);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-list__item:hover,
+.match-list__item:focus-visible {
+  border-color: var(--gold);
+}
+
+.match-list__date,
+.match-list__meta {
+  color: var(--muted);
+}
+
+.match-list__winners {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.history-detail__summary {
+  margin: 0 0 16px;
+}
+
+.history-detail__log-title {
+  margin: 20px 0 8px;
+  color: var(--cyan);
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.history-detail__log {
+  max-height: 320px;
+}
+
+.history-detail__actions {
+  margin-top: 16px;
+}
+
+.history__exports {
+  flex-wrap: wrap;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm__question {
+  margin: 0;
+  color: var(--red);
+  font-weight: 700;
+  flex-basis: 100%;
+}
+
+@media (max-width: 700px) {
+  .title__history {
+    position: static;
+    margin-top: 12px;
+  }
+
+  .match-list__item {
+    grid-template-columns: 1fr;
+  }
+}
