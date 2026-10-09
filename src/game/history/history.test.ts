@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { playCompletedMatch } from '../../test/historyFixtures';
+import { fakeSummary as summary, playCompletedMatch } from '../../test/historyFixtures';
 import { FATE_PRESET_IDS } from '../config/presets';
 import type { CompletedMatchRecord } from '../../storage/matchStorage';
-import type { MatchSummary } from './history';
 import {
   aggregateStats,
   historyLog,
@@ -95,39 +94,6 @@ describe('summarizeMatch', () => {
     expect(gained).toBeLessThanOrEqual(Math.ceil(ROSTER.length / 5));
   });
 });
-
-function summary(
-  matchId: string,
-  completedAt: string,
-  winnerCount: number,
-  fighters: [id: string, name: string, won: boolean][],
-): MatchSummary {
-  return {
-    matchId,
-    startedAt: completedAt,
-    completedAt,
-    durationMs: 0,
-    presetId: 'normal',
-    winnerCount,
-    fighterCount: fighters.length,
-    turns: 0,
-    finaleRounds: 0,
-    winnerIds: fighters.filter((f) => f[2]).map((f) => f[0]),
-    fighters: fighters.map(([id, name, won]) => ({
-      id,
-      name,
-      won,
-      finalist: won,
-      eliminatedOnTurn: won ? null : 1,
-      selected: 1,
-      shieldsGained: 0,
-      shieldBlocks: 0,
-      vsFought: 0,
-      vsWon: 0,
-      finalePoints: 0,
-    })),
-  };
-}
 
 describe('aggregateStats (owner decisions: roster identity, luck vs expected)', () => {
   const first = summary('m1', '2026-10-01T10:00:00.000Z', 1, [

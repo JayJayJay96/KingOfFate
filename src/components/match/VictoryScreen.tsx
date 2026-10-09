@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { scatterFallen } from '../../animation/victoryLayout';
 import { victoryLine } from '../../audio/announcer';
+import { summarizeMatch } from '../../game/history/history';
+import { toCompletedRecord } from '../../storage/matchStorage';
+import { MatchAwards } from '../history/MatchAwards';
 import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
@@ -91,6 +94,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
         {f.rounds.length} finale round{f.rounds.length === 1 ? '' : 's'}
         {knockedOut.length > 0 && ` · ${knockedOut.length} knocked out along the way`}
       </p>
+      <MatchAwards summary={summarizeMatch(toCompletedRecord(match))} />
       {saveError ? (
         <p className="banner banner--error" role="alert">
           The result could not be saved: {saveError}

@@ -3,9 +3,12 @@ import { fileStamp, historyToJson, matchesToCsv, statsToCsv } from '../../game/h
 import { useHistory } from '../../hooks/useHistory';
 import type { MatchRepository } from '../../storage/matchStorage';
 import { downloadText } from '../../utils/download';
+import { headToHead } from '../../game/history/awards';
 import { ConfirmButton } from './ConfirmButton';
+import { FighterProfile } from './FighterProfile';
 import { Leaderboard } from './Leaderboard';
 import { MatchHistory } from './MatchHistory';
+import { Rivalries } from './Rivalries';
 
 export type Downloader = (fileName: string, text: string, mimeType: string) => void;
 
@@ -16,12 +19,19 @@ interface HistoryScreenProps {
   readonly download?: Downloader;
 }
 
-type Tab = 'leaderboard' | 'matches';
+type Tab = 'leaderboard' | 'rivalries' | 'matches';
 
 /** Phase 6: completed-match history, luck board and exports. All data stays in this browser. */
 export function HistoryScreen({ repository, onBack, download = downloadText }: HistoryScreenProps) {
   const history = useHistory(repository);
   const [tab, setTab] = useState<Tab>('leaderboard');
+  /** Open fighter profile (roster entry ID), shown instead of the tab content. */
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const profile = history.stats.find((s) => s.id === profileId) ?? null;
+  const showTab = (next: Tab) => {
+    setTab(next);
+    setProfileId(null);
+  };
   const empty = history.records.length === 0;
 
   function exportFile(kind: 'json' | 'matches' | 'fighters') {
@@ -59,16 +69,24 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
           <button
             type="button"
             className="button button--small history__tab"
-            aria-pressed={tab === 'leaderboard'}
-            onClick={() => setTab('leaderboard')}
+            aria-pressed={!profile && tab === 'leaderboard'}
+            onClick={() => showTab('leaderboard')}
           >
             Luck board
           </button>
           <button
             type="button"
             className="button button--small history__tab"
-            aria-pressed={tab === 'matches'}
-            onClick={() => setTab('matches')}
+            aria-pressed={!profile && tab === 'rivalries'}
+            onClick={() => showTab('rivalries')}
+          >
+            Rivalries
+          </button>
+          <button
+            type="button"
+            className="button button--small history__tab"
+            aria-pressed={!profile && tab === 'matches'}
+            onClick={() => showTab('matches')}
           >
             Matches ({history.records.length})
           </button>
@@ -91,8 +109,20 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
         <p className="empty" aria-busy="true">
           Loading history…
         </p>
+      ) : profile ? (
+        <FighterProfile
+          key={profile.id}
+          stats={profile}
+          badges={history.badges.get(profile.id) ?? []}
+          rivals={headToHead(history.summaries, profile.id)}
+          summaries={history.summaries}
+          onOpen={setProfileId}
+          onBack={() => setProfileId(null)}
+        />
       ) : tab === 'leaderboard' ? (
-        <Leaderboard stats={history.stats} />
+        <Leaderboard stats={history.stats} badges={history.badges} onOpen={setProfileId} />
+      ) : tab === 'rivalries' ? (
+        <Rivalries items={history.rivalries} onOpen={setProfileId} />
       ) : (
         <MatchHistory
           summaries={history.summaries}

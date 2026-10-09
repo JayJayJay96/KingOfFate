@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { careerBadges, rivalries, type CareerBadge, type Rivalry } from '../game/history/awards';
 import {
   aggregateStats,
   isHistoryRecord,
@@ -21,6 +22,10 @@ export interface HistoryController {
   readonly summaries: readonly MatchSummary[];
   /** Ranked by luck vs expected. */
   readonly stats: readonly FighterStats[];
+  /** VS head-to-head pairs, most duels first. */
+  readonly rivalries: readonly Rivalry[];
+  /** Badges per person (roster entry ID). */
+  readonly badges: ReadonlyMap<string, readonly CareerBadge[]>;
   readonly deleteMatch: (matchId: string) => Promise<boolean>;
   readonly clearAll: () => Promise<boolean>;
 }
@@ -63,6 +68,8 @@ export function useHistory(repository: MatchRepository): HistoryController {
   const records = useMemo(() => raw.filter(isHistoryRecord), [raw]);
   const summaries = useMemo(() => sortSummaries(records.map(summarizeMatch)), [records]);
   const stats = useMemo(() => aggregateStats(summaries), [summaries]);
+  const pairs = useMemo(() => rivalries(summaries), [summaries]);
+  const badges = useMemo(() => careerBadges(summaries, stats), [summaries, stats]);
 
   const deleteMatch = useCallback(
     async (matchId: string) => {
@@ -94,6 +101,8 @@ export function useHistory(repository: MatchRepository): HistoryController {
     skipped: raw.length - records.length,
     summaries,
     stats,
+    rivalries: pairs,
+    badges,
     deleteMatch,
     clearAll,
   };

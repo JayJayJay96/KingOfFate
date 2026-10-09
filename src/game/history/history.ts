@@ -1,3 +1,4 @@
+import { isFighterLook, type FighterLook } from '../config/looks';
 import { FATE_PRESETS, isFatePresetId, type FatePresetId } from '../config/presets';
 import { countSlots } from '../engine/fateSlots';
 import { describeEvent } from '../engine/describeEvent';
@@ -22,6 +23,16 @@ export interface FighterResult {
   readonly vsWon: number;
   /** Finale rounds in which they scored. */
   readonly finalePoints: number;
+  /** Won their finale race without anyone else scoring a point in it (3–0 in a 1v1). */
+  readonly flawless: boolean;
+  /** Cosmetic look at the time of the match, if the host picked one. */
+  readonly look?: FighterLook;
+}
+
+/** One decided VS duel. */
+export interface DuelResult {
+  readonly winnerId: string;
+  readonly loserId: string;
 }
 
 export interface MatchSummary {
@@ -35,6 +46,8 @@ export interface MatchSummary {
   readonly turns: number;
   readonly finaleRounds: number;
   readonly winnerIds: readonly string[];
+  /** Every VS duel of the match, in order. */
+  readonly duels: readonly DuelResult[];
   /** In starting (roster) order. */
   readonly fighters: readonly FighterResult[];
 }
@@ -123,6 +136,7 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
     if (t) t[key]++;
   };
 
+  const duels: DuelResult[] = [];
   for (const event of m.events) {
     if (event.type !== 'TURN_RESOLVED') continue;
     bump(event.playerId, 'selected');
@@ -130,6 +144,7 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
     if (o.fate === 'KO' && o.result === 'BLOCKED') bump(event.playerId, 'shieldBlocks');
     if (o.fate === 'SHIELD' && o.result === 'GAINED') bump(event.playerId, 'shieldsGained');
     if (o.fate === 'VS') {
+      duels.push({ winnerId: o.winnerId, loserId: o.loserId });
       bump(o.winnerId, 'vsFought');
       bump(o.loserId, 'vsFought');
       bump(o.winnerId, 'vsWon');
@@ -154,6 +169,7 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
     turns: m.completedTurns,
     finaleRounds: finale.rounds.length,
     winnerIds: record.winnerIds,
+    duels,
     fighters: m.players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -161,8 +177,31 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
       finalist: finalists.has(p.id),
       eliminatedOnTurn: finalists.has(p.id) ? null : p.eliminatedOnTurn,
       ...tally.get(p.id)!,
+      flawless: winners.has(p.id) && isFlawless(finale.rounds, p.id),
+      ...(isFighterLook(p.look) ? { look: p.look } : {}),
     })),
   };
+}
+
+/**
+ * True when the winner qualified in a race (stage) where nobody else scored before they did.
+ * Draws do not matter. Automatic (D2) qualification is never flawless.
+ */
+function isFlawless(
+  rounds: readonly {
+    stageNumber: number;
+    scorerIds: readonly string[];
+    qualifiedIds?: readonly string[];
+  }[],
+  winnerId: string,
+): boolean {
+  const at = rounds.findIndex((r) => (r.qualifiedIds ?? []).includes(winnerId));
+  if (at < 0) return false;
+  const stage = rounds[at]!.stageNumber;
+  return rounds
+    .slice(0, at + 1)
+    .filter((r) => r.stageNumber === stage)
+    .every((r) => r.scorerIds.every((id) => id === winnerId));
 }
 
 /** Newest first. */

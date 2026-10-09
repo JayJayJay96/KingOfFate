@@ -3,6 +3,7 @@ import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engin
 import { beginTurn, createMatch, resolveTurn } from '../game/engine/match';
 import type { MatchState } from '../game/engine/matchTypes';
 import { createSeededRng } from '../game/rng/rng';
+import type { FighterResult, MatchSummary } from '../game/history/history';
 import { toCompletedRecord, type CompletedMatchRecord } from '../storage/matchStorage';
 
 export interface FixtureOptions {
@@ -49,4 +50,50 @@ export function playToVictory(o: FixtureOptions): MatchState {
     if (n > 5000) throw new Error('Finale did not finish');
   }
   return s;
+}
+
+/**
+ * Hand-made summary for history maths. Each fighter: [id, name, won, overrides]. Winners are
+ * finalists; everyone else was knocked out on turn 1 unless overridden.
+ */
+export function fakeSummary(
+  matchId: string,
+  completedAt: string,
+  winnerCount: number,
+  fighters: readonly (readonly [
+    id: string,
+    name: string,
+    won: boolean,
+    extra?: Partial<FighterResult>,
+  ])[],
+  duels: MatchSummary['duels'] = [],
+): MatchSummary {
+  return {
+    matchId,
+    startedAt: completedAt,
+    completedAt,
+    durationMs: 0,
+    presetId: 'normal',
+    winnerCount,
+    fighterCount: fighters.length,
+    turns: 0,
+    finaleRounds: 0,
+    winnerIds: fighters.filter((f) => f[2]).map((f) => f[0]),
+    duels,
+    fighters: fighters.map(([id, name, won, extra]) => ({
+      id,
+      name,
+      won,
+      finalist: won,
+      eliminatedOnTurn: won ? null : 1,
+      selected: 1,
+      shieldsGained: 0,
+      shieldBlocks: 0,
+      vsFought: 0,
+      vsWon: 0,
+      finalePoints: 0,
+      flawless: false,
+      ...extra,
+    })),
+  };
 }

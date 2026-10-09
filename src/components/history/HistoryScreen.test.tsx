@@ -5,7 +5,16 @@ import { App } from '../../app/App';
 import { createSeededRng } from '../../game/rng/rng';
 import { playCompletedMatch, playToVictory } from '../../test/historyFixtures';
 import {
+  BADGES,
+  careerBadges,
+  headToHead,
+  matchAwards,
+  rivalries,
+} from '../../game/history/awards';
+import { aggregateStats, sortSummaries, summarizeMatch } from '../../game/history/history';
+import {
   createMemoryMatchRepository,
+  toCompletedRecord,
   type CompletedMatchRecord,
   type MatchRepository,
 } from '../../storage/matchStorage';
@@ -183,5 +192,108 @@ describe('History screen (Phase 6)', () => {
     expect(screen.getByTestId('match-list')).toHaveTextContent(`Winner: ${winner}`);
     await user.click(screen.getByRole('button', { name: 'Back to setup' }));
     expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument();
+  });
+});
+
+describe('Pack C: rivalries, profiles and badges (owner decisions 2026-10-10)', () => {
+  const CREW = [
+    ['a', 'Aisyah'],
+    ['b', 'Wei Jie'],
+    ['c', 'Kavitha'],
+    ['d', 'Hafiz'],
+    ['e', 'Mei Ling'],
+    ['f', 'Arjun'],
+  ] as const;
+  const records = [1, 2, 3, 4, 5].map((i) =>
+    playCompletedMatch({
+      matchId: `c${i}`,
+      players: CREW,
+      presetId: 'chaotic',
+      seed: 40 + i,
+      startedAt: `2026-10-0${i}T02:00:00.000Z`,
+      completedAt: `2026-10-0${i}T02:05:00.000Z`,
+    }),
+  );
+  const summaries = sortSummaries(records.map(summarizeMatch));
+  const stats = aggregateStats(summaries);
+
+  it('lists every VS rivalry with the right scores', async () => {
+    const expected = rivalries(summaries);
+    expect(expected.length).toBeGreaterThan(0);
+    const { user } = await openHistory(createMemoryMatchRepository(null, records));
+    await user.click(screen.getByRole('button', { name: 'Rivalries' }));
+    const items = within(screen.getByTestId('rivalries')).getAllByRole('listitem');
+    expect(items).toHaveLength(expected.length);
+    expected.forEach((r, i) => {
+      expect(items[i]).toHaveTextContent(`${r.aName}${r.aWins} – ${r.bWins}${r.bName}`);
+    });
+  });
+
+  it('opens a profile from the luck board with stats, badges, head-to-head and recent matches', async () => {
+    const { user } = await openHistory(createMemoryMatchRepository(null, records));
+    const top = stats[0]!;
+    await user.click(
+      within(screen.getByTestId('leaderboard')).getByRole('button', { name: top.name }),
+    );
+    expect(screen.getByRole('heading', { name: top.name })).toBeInTheDocument();
+    expect(screen.getByTestId('profile-stats')).toHaveTextContent(`Played${top.played}`);
+    expect(screen.getByTestId('profile-stats')).toHaveTextContent(`Wins${top.wins}`);
+    expect(within(screen.getByTestId('recent-matches')).getAllByRole('listitem')).toHaveLength(
+      top.played,
+    );
+    const h2h = headToHead(summaries, top.id);
+    if (h2h.length > 0) {
+      expect(within(screen.getByTestId('head-to-head')).getAllByRole('listitem')).toHaveLength(
+        h2h.length,
+      );
+      // Clicking an opponent opens their profile.
+      await user.click(
+        within(screen.getByTestId('head-to-head')).getByRole('button', {
+          name: h2h[0]!.opponentName,
+        }),
+      );
+      expect(screen.getByRole('heading', { name: h2h[0]!.opponentName })).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByTestId('leaderboard')).toBeInTheDocument();
+  });
+
+  it('shows career badges on the board and match awards in the match details', async () => {
+    const badges = careerBadges(summaries, stats);
+    const { user } = await openHistory(createMemoryMatchRepository(null, records));
+    const rows = within(screen.getByTestId('leaderboard')).getAllByRole('row').slice(1);
+    stats.forEach((s, i) => {
+      for (const b of badges.get(s.id) ?? []) {
+        expect(rows[i]).toHaveTextContent(BADGES[b.badge].name);
+      }
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Matches (5)' }));
+    await user.click(within(screen.getByTestId('match-list')).getAllByRole('button')[0]!);
+    const awards = matchAwards(summaries[0]!);
+    expect(awards.length).toBeGreaterThan(0);
+    const shown = within(screen.getByTestId('match-awards')).getAllByRole('listitem');
+    expect(shown).toHaveLength(awards.length);
+    expect(shown[0]).toHaveTextContent(BADGES[awards[0]!.badge].name);
+  });
+
+  it('the victory screen shows this match’s awards', async () => {
+    const won = playToVictory({ matchId: 'v', players: CREW, presetId: 'chaotic', seed: 41 });
+    const repo = createMemoryMatchRepository();
+    await repo.save(won);
+    render(
+      <App matchRepository={repo} rng={createSeededRng(1)} timeScale={0.005} titleScreen={false} />,
+    );
+    await screen.findByRole('main', { name: 'Victory' });
+    const awards = matchAwards(summarizeMatch(toCompletedRecord(won)));
+    const shown = within(screen.getByTestId('match-awards')).getAllByRole('listitem');
+    expect(shown.map((li) => li.textContent)).toEqual(
+      awards.map(
+        (a) =>
+          `${BADGES[a.badge].emoji} ${BADGES[a.badge].name}: ${a.playerIds
+            .map((id) => won.players.find((p) => p.id === id)!.name)
+            .join(', ')}`,
+      ),
+    );
   });
 });

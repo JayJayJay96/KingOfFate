@@ -1,8 +1,19 @@
+import type { CareerBadge } from '../../game/history/awards';
 import { formatLuck } from '../../game/history/format';
 import type { FighterStats } from '../../game/history/history';
+import { BadgeList } from './Badges';
 
 /** Ranked by luck vs expected (owner decision, Phase 6). Describes chance, not skill. */
-export function Leaderboard({ stats }: { readonly stats: readonly FighterStats[] }) {
+export function Leaderboard({
+  stats,
+  badges,
+  onOpen,
+}: {
+  readonly stats: readonly FighterStats[];
+  readonly badges: ReadonlyMap<string, readonly CareerBadge[]>;
+  /** Opens the person's profile. */
+  readonly onOpen: (personId: string) => void;
+}) {
   return (
     <section className="panel history-panel" aria-labelledby="leaderboard-title">
       <h2 id="leaderboard-title" className="panel__title">
@@ -33,13 +44,23 @@ export function Leaderboard({ stats }: { readonly stats: readonly FighterStats[]
                 </th>
                 <th scope="col">Shields</th>
                 <th scope="col">VS won</th>
+                <th scope="col">Badges</th>
               </tr>
             </thead>
             <tbody>
               {stats.map((s, i) => (
                 <tr key={s.id}>
                   <td>{i + 1}</td>
-                  <th scope="row">{s.name}</th>
+                  <th scope="row">
+                    <button
+                      type="button"
+                      className="link-button"
+                      title="Open profile"
+                      onClick={() => onOpen(s.id)}
+                    >
+                      {s.name}
+                    </button>
+                  </th>
                   <td>{s.played}</td>
                   <td>{s.wins}</td>
                   <td>{Math.round(s.winRate * 100)}%</td>
@@ -52,6 +73,9 @@ export function Leaderboard({ stats }: { readonly stats: readonly FighterStats[]
                   <td>{s.shieldsGained}</td>
                   <td>
                     {s.vsWon}/{s.vsFought}
+                  </td>
+                  <td className="history-table__badges">
+                    <BadgeList items={badges.get(s.id) ?? []} compact />
                   </td>
                 </tr>
               ))}

@@ -8,6 +8,7 @@ import {
 } from '../../game/history/history';
 import type { CompletedMatchRecord } from '../../storage/matchStorage';
 import { ConfirmButton } from './ConfirmButton';
+import { MatchAwards } from './MatchAwards';
 
 interface MatchHistoryProps {
   /** Newest first. */
@@ -129,6 +130,9 @@ function MatchDetail({
           </tbody>
         </table>
       </div>
+
+      <h3 className="history-detail__log-title">Awards</h3>
+      <MatchAwards summary={s} />
 
       <h3 className="history-detail__log-title">Event log</h3>
       <ol className="event-log__list history-detail__log" data-testid="history-log">

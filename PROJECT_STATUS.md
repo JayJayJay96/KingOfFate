@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-10  
 **Phase:** Arcade enhancement packs (between 6 and 7)  
-**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Pack A done (owner: "tested, all good"). **Pack B (looks + stages) implemented and verified** (283 unit/integration tests, 14 E2E green); awaiting owner play-test. Pack C pending. Not deployed.
+**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Packs A and B done (owner: "tested, all good"). **Pack C (rivalries, profiles, badges) implemented and verified** (297 unit/integration tests, 14 E2E green ×2); awaiting owner review. Then Phase 7. Not deployed.
 
 ## 1. Current snapshot
 
@@ -30,8 +30,8 @@
 | 5 — Retro Arcade Experience | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | — |
 | 6 — History & Analytics | **Done** (owner: "pretty perfect") | — |
 | Pack A — Arcade show | **Done** (owner: "tested, all good") | — |
-| Pack B — Looks (sprites, stages) | **Implemented**, awaiting play-test | Owner changes a few looks, pins/randomises stages |
-| Pack C — Rivalries & badges | Not started | — |
+| Pack B — Looks (sprites, stages) | **Done** (owner: "tested, all good") | — |
+| Pack C — Rivalries & badges | **Implemented**, awaiting review | Owner opens History: Rivalries tab, a profile, badges, victory awards |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
 ## 3. Requirements that are already approved
@@ -61,11 +61,22 @@
 
 ## 5. Planned next steps
 
-1. Owner play-tests Pack B.
-2. Pack C (rivalries, fighter profile, badges).
+1. Owner reviews Pack C.
 3. Phase 7: Hardening & Vercel deployment.
 
 ## 6. Session log
+
+### 2026-10-10 — Arcade Pack C: rivalries, fighter profiles, badges
+- **Owner input:** Pack B "tested, all good, proceed to pack C".
+- **Added:** `src/game/history/awards.ts` (`rivalries`, `headToHead` from VS duels only; `BADGES`; `matchAwards`: First Blood, Magnet (2+ picks), Iron Wall (2+ blocks), Duelist (2+ VS wins), Flawless; `careerBadges`: counts of match awards + Back-to-back (best run, 2+), Survivor (3+ finales), Shield Hoarder (most Shields, ties share)), `components/history/{Badges,Rivalries,FighterProfile,MatchAwards}.tsx`, tests `awards.test.ts` (Flawless on real engine finales 3–0 vs 3–1, awards, rivalries, head-to-head, career badges) and Pack C UI tests in `HistoryScreen.test.tsx` (UI compared with the pure functions on engine-played Chaotic matches).
+- **Changed:** `history.ts` (`MatchSummary.duels`; `FighterResult.flawless` and `look`), `useHistory` (rivalries, badges), `Leaderboard` (names open the profile; Badges column), `HistoryScreen` (Rivalries tab; profile view), `MatchHistory` (Awards in match details), `VictoryScreen` (this match's awards), CSS, `src/test/historyFixtures.ts` (`fakeSummary`).
+- **Interpretations (owner may adjust):** *Flawless* = won their finale race without anyone else scoring before they qualified (= 3–0 in a 1v1; draws allowed; automatic D2 slots never count). *Back-to-back* = consecutive wins among the matches that person played (sitting out does not break a streak). Rivalries count VS duels only (approved).
+- **Flaky tests fixed:** the final-blow App test had a 7 ms window at test speed → slower scale + longer waits; the E2E "hands off at W+1" failed once under parallel load and passed on rerun; its settle poll widened 5 s → 10 s (trace lost on rerun, so root cause not confirmed). Full E2E then passed twice (28/28).
+- **Process note:** patch scripts that wrote a file twice left Vite serving a half-written module; restarting the dev server fixed it (twice this session). Not an app bug.
+- **Tests:** `npm test` → **26 files, 297 passed**; `npm run e2e` → **14 passed** (×2). Typecheck, oxlint, Prettier, build clean.
+- **Manual (pane):** luck board with Badges column and a profile (Flawless, Back-to-back ×2) shown from real older records. Rivalries tab not screenshotted (pane data has no VS duels); covered by UI tests.
+- **Next exact action:** owner reviews Pack C → Phase 7 (hardening + Vercel).
+- **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack B: looks and stages
 - **Owner input:** Pack A "tested, all good, proceed to pack B".

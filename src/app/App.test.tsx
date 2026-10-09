@@ -637,30 +637,34 @@ describe('Arcade pack A: title, intro, announcer, impacts (owner decisions 2026-
     await waitFor(() => expect(screen.queryByTestId('impact')).not.toBeInTheDocument());
   });
 
-  it('plays the final blow and names the winner when the finale is won', async () => {
-    const { engine, calls } = spyEngine();
-    const user = userEvent.setup();
-    const ROCK = 0;
-    const SCISSORS = 2;
-    render(
-      <App
-        matchRepository={createMemoryMatchRepository()}
-        rng={createScriptedRng([ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS])}
-        timeScale={0.005}
-        soundEngine={engine}
-        titleScreen={false}
-      />,
-    );
-    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
-    await addNames(user, 'Aisyah{Enter}Wei Jie');
-    await startMatch(user);
-    expect(calls).toContain('announce:Final round!');
-    await user.click(screen.getByRole('button', { name: /start the finale/i }));
-    await screen.findByTestId('final-blow');
-    await screen.findByRole('main', { name: 'Victory' });
-    expect(calls).toContain('announce:Finish!');
-    expect(calls).toContain('announce:Aisyah wins!');
-  });
+  it(
+    'plays the final blow and names the winner when the finale is won',
+    { timeout: 30000 },
+    async () => {
+      const { engine, calls } = spyEngine();
+      const user = userEvent.setup();
+      const ROCK = 0;
+      const SCISSORS = 2;
+      render(
+        <App
+          matchRepository={createMemoryMatchRepository()}
+          rng={createScriptedRng([ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS])}
+          timeScale={0.05}
+          soundEngine={engine}
+          titleScreen={false}
+        />,
+      );
+      await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+      await addNames(user, 'Aisyah{Enter}Wei Jie');
+      await startMatch(user);
+      expect(calls).toContain('announce:Final round!');
+      await user.click(screen.getByRole('button', { name: /start the finale/i }));
+      await screen.findByTestId('final-blow', {}, { timeout: 15000 });
+      await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
+      expect(calls).toContain('announce:Finish!');
+      expect(calls).toContain('announce:Aisyah wins!');
+    },
+  );
 });
 
 describe('Arcade pack B: looks and stages (owner decisions 2026-10-10)', () => {

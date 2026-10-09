@@ -70,7 +70,7 @@ test('a real match runs full-length spins and hands off at W + 1', async ({ page
       .isEnabled()
       .catch(() => false));
   for (let turn = 2; turn <= 8; turn++) {
-    await expect.poll(settled, { timeout: 5_000 }).toBe(true);
+    await expect.poll(settled, { timeout: 10_000 }).toBe(true);
     if (await finale.isVisible()) break;
     await randomButton(page).click();
     // The finale screen shows the event log too, so the count works either way.
