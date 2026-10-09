@@ -226,8 +226,10 @@ describe('Shuffle', () => {
     const before = order();
 
     await user.click(screen.getByRole('button', { name: 'Shuffle' }));
-    await screen.findByText('Fighters shuffled into new positions.');
-    expect(order()).not.toEqual(before);
+    await waitFor(() => expect(order()).not.toEqual(before));
+    expect(
+      within(screen.getByTestId('event-log')).queryByText(/shuffled/i),
+    ).not.toBeInTheDocument();
     expect([...order()].sort()).toEqual([...before].sort());
 
     const saved = await repo.load();

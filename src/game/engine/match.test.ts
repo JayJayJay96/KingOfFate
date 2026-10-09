@@ -189,9 +189,7 @@ describe('shufflePlayers', () => {
       type: 'PLAYERS_SHUFFLED',
       order: shuffled.players.map((p) => p.id),
     });
-    expect(describeEvent(shuffled.events.at(-1)!, shuffled)).toBe(
-      'Fighters shuffled into new positions.',
-    );
+    expect(describeEvent(shuffled.events.at(-1)!, shuffled)).toBeNull();
   });
 
   it('always visibly changes the order, even when the draw would be the identity', () => {

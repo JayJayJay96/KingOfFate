@@ -120,7 +120,8 @@ test('shuffle reorders the grid and the order survives a reload', async ({ page 
   const before = await names.allTextContents();
 
   await page.getByRole('button', { name: 'Shuffle' }).click();
-  await expect(page.getByTestId('event-log')).toContainText('Fighters shuffled');
+  await expect.poll(() => names.allTextContents()).not.toEqual(before);
+  await expect(page.getByTestId('event-log')).not.toContainText(/shuffled/i);
   const after = await names.allTextContents();
   expect(after).not.toEqual(before);
   expect([...after].sort()).toEqual([...before].sort());

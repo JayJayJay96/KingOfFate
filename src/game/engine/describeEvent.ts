@@ -19,7 +19,7 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
     case 'FINALE_REACHED':
       return `Finale! ${joinNames(event.finalistIds.map(nameOf))} advance.`;
     case 'PLAYERS_SHUFFLED':
-      return 'Fighters shuffled into new positions.';
+      return null; // kept for audit, hidden from the visible log (owner preference)
   }
 }
 
