@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-09  
 **Phase:** 4 — Vietnamese-chant RPS Finale  
-**Overall status:** Phases 1–3 done (owner tested). **Phase 4 implemented and verified locally**: feature-complete gameplay MVP (200 unit/integration tests, 8 E2E ×3 runs green); awaiting owner review. Not deployed.
+**Overall status:** **Phases 1–4 done** (owner tested Phase 4: "all good"). Feature-complete gameplay MVP. D4 approved. Next: Phase 5. Not deployed.
 
 ## 1. Current snapshot
 
@@ -14,7 +14,7 @@
 | RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
 | Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
 | Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
-| Pause/skip (D4) | OPEN — before Phase 5 |
+| Pause/skip (D4) | **Approved 2026-10-09**: Esc pauses at the next finale round boundary; resume continues; no skip. To implement in Phase 5. |
 | Git | `main`; see `git log` (Phase 4 commit follows this update) |
 | Deployment | Not attempted |
 
@@ -25,8 +25,8 @@
 | 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
 | 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
 | 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
-| 4 — Vietnamese-chant RPS Finale | **Implemented; automated checks pass; awaiting owner review** | Owner plays finales for 1, 2 and 3+ winners; confirms P4 notes below |
-| 5 — Retro Arcade Experience | Not started | Art/audio/shortcuts/visual polish; D4 resolved |
+| 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
+| 5 — Retro Arcade Experience | Not started (D4 approved) | Art/audio/shortcuts/visual polish incl. D4 pause |
 | 6 — History & Analytics | Not started | Accurate persistent statistics and exports |
 | 7 — Hardening & Deployment | Not started | Regressions pass and Vercel URL works |
 
@@ -44,22 +44,26 @@
 
 | ID | Question | Recommendation | Blocks |
 |---|---|---|---|
-| D4 | Esc pause behavior during finale chant; animation skip? | Safe pause/resume at beat/throw boundary; no outcome changes. | Phase 5 |
 | D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
 | P3-d | Placeholder icons are emoji (💥 ⚔️ 🛡️ ✊ ✋ ✌️ 👑) until Phase 5 art. | Keep. | Phase 5 |
-| P4-a | Finale waits for **one host click** ("Start the finale" / Space / Enter) before the automatic rounds, so the browser allows sound. | Keep. | Phase 4 acceptance |
+| P4-a | Finale waits for **one host click** ("Start the finale" / Space / Enter) before the automatic rounds, so the browser allows sound. | Accepted with Phase 4. | — |
 | P4-b | Placeholder audio is synthesized (drum beats on Một/Hai/Ba/Yo, low drone, victory jingle) with a Sound on/off toggle; no voice. Real chant recording + music + volume sliders in Phase 5. | Keep for MVP. | Phase 5 |
 | P4-c | Pacing: intro Một-Hai-Ba-Yo 0.6 s per beat; each round "Hai · Ba · Yo!" then 1.5 s result hold + 0.7 s pause (~3.4 s/round). With 4–6 finalists many reveals are draws (all three hands), so big finales can take a few minutes. | Watch in play; tune later if needed. | Phase 5 |
-| P4-d | No Abandon during the finale (it must finish). Esc/pause is D4. | Keep until D4. | Phase 5 |
+| P4-d | No Abandon during the finale (it must finish). Pause comes with D4 in Phase 5. | Keep. | Phase 5 |
+| P5-inputs | Phase 5 needs owner input: real "Một Hai Ba Yo" chant recording (own recording or licensed), background music choice, and whether original pixel sprites should be made in-house. | Ask at Phase 5 start. | Phase 5 |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
 
 ## 5. Planned next steps
 
-1. Owner plays complete matches (`npm run dev`) with 1, 2 and 3–5 winners; tries a refresh mid-finale and on the victory screen; confirms P4-a…P4-d.
-2. Decide D4 (Esc pause / skip during the finale) before Phase 5.
-3. Phase 5: retro presentation polish (art, real chant audio + music, volume controls, shortcuts).
+1. Owner says go for Phase 5 and provides/decides P5-inputs (chant recording, music, sprites).
+2. Phase 5: retro presentation polish (art, real chant audio + music, volume controls, shortcuts, D4 Esc pause).
 
 ## 6. Session log
+
+### 2026-10-09 — Phase 4 accepted; D4 approved
+- **Owner:** "ok tested, all good, D4 go with your suggestion". Asked to confirm 2 Rock + 1 Scissors → both Rock players +1: confirmed (rule in `winningGesture` / `resolveFinaleRound`; covered by the unit test "every player throwing the winning hand scores 1" with Rock, Rock, Scissors).
+- **Docs only:** `PROJECT.md` §6 + §10 (D4 approved: pause at next round boundary, resume continues, no skip), this file. No code changed; last verified build/test state unchanged from the Phase 4 entry.
+- **Next exact action:** owner go-ahead for Phase 5 + P5-inputs.
 
 ### 2026-10-09 — Phase 4: Vietnamese-chant RPS finale + winner ceremony
 - **Owner input:** "ok tested, all good, proceed to phase 4" (Phase 3 accepted).

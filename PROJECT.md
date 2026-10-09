@@ -1,6 +1,6 @@
 # KOF — King of Fate | Product & Technical Specification
 
-**Version:** 1.1 · **Status:** Owner-accepted baseline (2026-10-09); D1/D2/D3/D5 approved, D4 open · **Date:** 2026-10-09
+**Version:** 1.1 · **Status:** Owner-accepted baseline (2026-10-09); D1–D5 approved · **Date:** 2026-10-09
 
 > This file is the source of truth for product behavior. `AGENTS.md` governs development conduct; `PROJECT_STATUS.md` tracks actual progress. Do not implement an open decision by silently inventing rules.
 
@@ -108,7 +108,7 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 
 ### Controls
 - Host clicks `?` or presses **Space/Enter** when it is safe to start the next ordinary turn. Do not activate shortcuts when focused in text fields or when a modal captures keys.
-- **Esc** pauses/opens in-game menu. Exact pause behavior during the automated finale, and skip-animation behavior, remain [D4] for confirmation; no committed game result can be changed by pausing.
+- **Esc** pauses/opens in-game menu. **Approved (D4, 2026-10-09):** in the automated finale, Esc requests a pause that takes effect at the next safe boundary (between rounds, after the current reveal is scored); the clock and audio hold; Resume continues with the next round. A round already committed is never re-rolled, skipped or changed. **No skip-animation control.** No committed game result can be changed by pausing.
 - Main action can be context-sensitive (`RANDOM`, `RESOLVE`, `NEXT`, `FINISH`) but host should not need to click intermediate animations. Finale round progression is automatic.
 - No Undo; no hidden controls in MVP. Click targets should be usable in a desktop screenshare. Provide sound mute and settings.
 
@@ -153,7 +153,7 @@ Twenty **equally likely** Fate slots comprise the visible row (rendered responsi
 | **D1 — Sudden Death odds** | Exact, **different for each preset**, KO-increased, no Shield. | **APPROVED 2026-10-09:** Fast **95/5/0**, Normal **90/10/0**, Chaotic **80/20/0** (KO/VS/Shield); 20 slots. | Phase 3 |
 | **D2 — Final slots rule** | When remaining unqualified contestants exactly equal empty winner slots, do they auto-qualify? | **APPROVED 2026-10-09:** yes (defensive guard; not reachable under W+1 start + D3). | Phase 4 |
 | **D3 — Oversubscription** | If tied threshold candidates exceed free slots, are lower scorers eliminated from contention? | **APPROVED 2026-10-09:** yes; new first-to-3 among tied candidates only. | Phase 4 |
-| **D4 — Pause/skip** | What exactly does Esc do during finale? Is skip permitted? | **OPEN.** Recommend pause between throws or freeze audio/visual clock safely; Resume continues same predetermined throw. No forced next outcome. | Before Phase 5 |
+| **D4 — Pause/skip** | What exactly does Esc do during finale? Is skip permitted? | **APPROVED 2026-10-09:** Esc pauses at the next round boundary (current committed reveal finishes and is scored first); Resume continues with the next round; no skip; outcomes never change. | Phase 5 |
 | **D5 — Roster identity** | Duplicate names / blank lines / name-length limit. | **APPROVED 2026-10-09:** trim; drop blanks; reject >20 chars and case-insensitive duplicate labels with inline warning; internal UUIDs. | Phase 1 |
 | **D6 — Fate probability rounding** | All active odds must fit exactly 20 slots; future Fate presets need approval. | Approved presets and D1 Sudden Death odds fit 20 slots. Future presets need approval. | Phase 3 |
 
