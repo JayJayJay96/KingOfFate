@@ -20,7 +20,13 @@ export function EventLog({ match }: { readonly match: MatchState }) {
       <h2 id="event-log-title" className="panel__title">
         Event log
       </h2>
-      <ol ref={listRef} className="event-log__list" data-testid="event-log">
+      <ol
+        ref={listRef}
+        className="event-log__list"
+        data-testid="event-log"
+        tabIndex={0}
+        aria-labelledby="event-log-title"
+      >
         {lines.map((line) => (
           <li key={line.id} className={`event-log__item event-log__item--${line.type}`}>
             {line.text}

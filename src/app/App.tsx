@@ -13,6 +13,7 @@ import { createCryptoRng, type Rng } from '../game/rng/rng';
 import { activeParticipants } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
 import { useMatch } from '../hooks/useMatch';
+import { useOtherTabWarning } from '../hooks/useOtherTabWarning';
 import { useSetupConfig } from '../hooks/useSetupConfig';
 import type { AssetStore } from '../storage/assetStorage';
 import { createIndexedDbMatchRepository, type MatchRepository } from '../storage/matchStorage';
@@ -39,13 +40,28 @@ export function App({ soundEngine, assetStore, ...rest }: AppProps) {
   );
 }
 
-function Game({
-  matchRepository,
-  rng,
-  timeScale = 1,
-  download,
-  titleScreen = true,
-}: Pick<AppProps, 'matchRepository' | 'rng' | 'timeScale' | 'download' | 'titleScreen'>) {
+type GameProps = Pick<
+  AppProps,
+  'matchRepository' | 'rng' | 'timeScale' | 'download' | 'titleScreen'
+>;
+
+/** Screens, plus a warning when the game is open in another tab (both would share one save). */
+function Game(props: GameProps) {
+  const otherTab = useOtherTabWarning();
+  return (
+    <>
+      {otherTab && (
+        <p className="tab-warning" role="alert">
+          King of Fate is also open in another tab. Play in one tab only: both share the same saved
+          match.
+        </p>
+      )}
+      <Screens {...props} />
+    </>
+  );
+}
+
+function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = true }: GameProps) {
   const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
   const [matchRng] = useState(() => rng ?? createCryptoRng());
   const setup = useSetupConfig();

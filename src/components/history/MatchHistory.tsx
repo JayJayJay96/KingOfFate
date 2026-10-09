@@ -135,7 +135,12 @@ function MatchDetail({
       <MatchAwards summary={s} />
 
       <h3 className="history-detail__log-title">Event log</h3>
-      <ol className="event-log__list history-detail__log" data-testid="history-log">
+      <ol
+        className="event-log__list history-detail__log"
+        data-testid="history-log"
+        tabIndex={0}
+        aria-label="Event log"
+      >
         {log.map((line) => (
           <li key={line.id} className="event-log__item">
             {line.text}

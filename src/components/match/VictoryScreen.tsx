@@ -44,7 +44,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
 
   return (
     <main className="victory" aria-label="Victory">
-      <div className="victory__fallen-field" aria-label="Knocked out during the match">
+      <div className="victory__fallen-field" role="group" aria-label="Knocked out during the match">
         {knockedOut.map((p, i) => (
           <div
             key={p.id}

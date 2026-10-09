@@ -8,7 +8,9 @@
 
 ## Original to this project (no third-party rights)
 
-- All pixel art (fighter sprites, Fate icons, rock/paper/scissors hands, crown) is drawn in code in `src/components/sprites/`.
+- All pixel art (fighter sprites and their looks, Fate icons, rock/paper/scissors hands, crown) is drawn in code in `src/components/sprites/`.
+- The five stage backgrounds (KL Night, Mamak Stall, Office Pantry, Pasar Malam, Rooftop Sunset) are original pixel scenes drawn in code in `src/components/stage/StageArt.tsx`. The KL skyline is a generic silhouette, not a reproduction of any photo or artwork.
+- Announcer callouts are spoken at runtime by the browser's built-in text-to-speech; no voice recording is bundled.
 - Both music loops are original compositions written in `src/audio/chiptune.ts` and synthesized at runtime with Web Audio. They do not transcribe any existing game music.
 - All sound effects are synthesized at runtime in `src/audio/soundEngine.ts`.
 - The "Một Hai Ba Yo" chant is spoken at runtime by the browser's built-in text-to-speech; no voice recording is bundled.
@@ -17,3 +19,9 @@
 
 - **Custom match music** chosen by the host is stored only in that browser's IndexedDB (`kof-assets`). It is never part of the repository, the build, or the deployed site. The host is responsible for having the right to play it.
 - Copyrighted game music (e.g. from *The King of Fighters*) is intentionally **not** included.
+
+## Development-only tools (not shipped in the site)
+
+Test and build tools such as Vite, Vitest, Playwright, Testing Library, oxlint, Prettier and
+`@axe-core/playwright` (axe-core, MPL-2.0) are used only to build and test the game. None of their
+code is included in the deployed bundle.

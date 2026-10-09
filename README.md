@@ -11,7 +11,7 @@ Retro arcade-style office randomizer. Spec: [`PROJECT.md`](PROJECT.md) · proces
 | `npm run typecheck` | `tsc -b` only |
 | `npm run lint` | oxlint |
 | `npm test` | Vitest unit + integration tests (jsdom) |
-| `npm run e2e` | Playwright smoke test against the production build |
+| `npm run e2e` | Playwright end-to-end tests against the production build (incl. accessibility scans, CSP, storage/audio failure) |
 
 E2E uses the installed Microsoft Edge on Windows (`channel: 'msedge'`). Elsewhere, or to use bundled
 Chromium, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`.
@@ -21,7 +21,8 @@ Chromium, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`.
 ```
 src/
   game/        pure TypeScript domain (no React)
-    config/    limits, Fate presets, timing
+    config/    limits, Fate presets, timing, fighter looks, stages
+    history/   match summaries, luck board, rivalries, badges, CSV/JSON export
     rng/       crypto RNG (unbiased bounded sampling) + seeded/scripted test RNGs
     setup/     roster + start validation
     engine/    match state machine (createMatch / beginTurn / resolveTurn / shufflePositions),
@@ -32,10 +33,40 @@ src/
                settings + provider (safe no-op without Web Audio / speech)
   storage/     localStorage setup + IndexedDB current-match checkpoint and completed results
   hooks/       React glue (useSetupConfig, useMatch, useTurnAnimation, useFinaleShow)
-  components/  UI (setup/, match/, sprites/ = original pixel art drawn in code)
+  components/  UI (setup/, match/, history/, sprites/ + stage/ = original pixel art drawn in code)
   app/         App shell (injects repository, RNG and timing for tests)
   test/        test setup and statistics helpers
 e2e/           Playwright specs
 ```
+
+## Deploying (Vercel, static)
+
+The game is a static site: no server, no accounts, no database.
+
+- `vercel.json` sets the build (`npm run build` → `dist/`) and the security headers (a strict
+  Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, a locked-down
+  `Permissions-Policy`) plus long caching for hashed assets.
+- `vite preview` serves the same headers (read from `vercel.json`), so `npm run e2e` tests the
+  production build under the production policy.
+- Deploy either by importing the Git repository in the Vercel dashboard (framework: Vite, defaults
+  are fine) or with the CLI: `npx vercel` (preview) then `npx vercel --prod`.
+
+## Known limitations
+
+- **Data lives in one browser.** Setup, history, looks and custom music are stored in that
+  browser profile only (localStorage + IndexedDB). Another computer or browser starts empty;
+  clearing site data deletes everything. Use *History → Export JSON* to keep a backup (there is no
+  import yet).
+- **One tab at a time.** Two open tabs share the same saved match; the game warns when a second
+  tab is open, but does not lock.
+- **Voices depend on the computer.** The chant and announcer use the browser's text-to-speech.
+  Edge on Windows usually has Vietnamese and good English voices; elsewhere the chant falls back
+  to phonetic English, and with no voices the game runs with sound effects only.
+- **Audio starts after the first click/key** (browser autoplay rules); the INSERT COIN press does it.
+- **Desktop first.** Designed for a laptop/projector screenshare (about 1000 px wide and up); it
+  works on smaller screens but is not tuned for phones.
+- **Abandoned matches are not recorded**; only finished matches reach History.
+- **Statistics describe luck, not skill.** Every spin is uniformly random and committed before
+  any animation.
 
 Third-party assets and what is deliberately not bundled: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

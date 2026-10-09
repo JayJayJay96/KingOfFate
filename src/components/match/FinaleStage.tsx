@@ -253,7 +253,11 @@ function Finalist({ name, position, score, status, word, revealed, scored }: Fin
       {status === 'winner' && <span className="finalist__badge">Winner</span>}
       {status === 'out' && <span className="finalist__badge">Out</span>}
       {status === 'in' && (
-        <span className="finalist__pips" aria-label={`${score} of ${FINALE_TARGET_SCORE} points`}>
+        <span
+          className="finalist__pips"
+          role="img"
+          aria-label={`${score} of ${FINALE_TARGET_SCORE} points`}
+        >
           {Array.from({ length: FINALE_TARGET_SCORE }, (_, i) => (
             <span key={i} className={i < score ? 'pip pip--gold' : 'pip'} />
           ))}

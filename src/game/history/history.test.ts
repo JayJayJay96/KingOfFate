@@ -208,3 +208,23 @@ describe('isHistoryRecord / historyLog', () => {
     expect(summarizeMatch(legacy).winnerIds).toEqual(record.winnerIds);
   });
 });
+
+describe('history performance (Phase 7)', () => {
+  it('summarises and ranks 300 stored 20-fighter matches well within a second', () => {
+    const crowd = Array.from({ length: 20 }, (_, i) => [`p${i}`, `Person ${i}`] as const);
+    const records = Array.from({ length: 30 }, (_, i) =>
+      playCompletedMatch({ matchId: `perf${i}`, players: crowd, presetId: 'chaotic', seed: i }),
+    );
+    // 300 records (each match stored 10×, as an office would accumulate over a year).
+    const many = Array.from({ length: 10 }, (_, k) =>
+      records.map((r) => ({ ...r, matchId: `${r.matchId}-${k}` })),
+    ).flat();
+    const started = performance.now();
+    const summaries = sortSummaries(many.map(summarizeMatch));
+    const stats = aggregateStats(summaries);
+    const elapsed = performance.now() - started;
+    expect(stats).toHaveLength(20);
+    // Generous budget so slow CI machines do not flake; typical is a few milliseconds.
+    expect(elapsed).toBeLessThan(1000);
+  });
+});

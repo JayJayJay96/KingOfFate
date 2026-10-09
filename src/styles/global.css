@@ -412,9 +412,10 @@ textarea {
 }
 
 .button--danger {
-  background: var(--red);
+  /* Darker than --red so white text meets WCAG AA contrast (4.5:1) at button size. */
+  background: #c4132f;
   color: #fff;
-  box-shadow: 4px 4px 0 #7a0f22;
+  box-shadow: 4px 4px 0 #6a0c1d;
 }
 
 /* ---------- match ---------- */
@@ -2447,4 +2448,28 @@ label.button {
   padding-left: 1.4em;
   display: grid;
   gap: 4px;
+}
+
+/* ---------- crash screen (Phase 7) ---------- */
+.crash {
+  max-width: 640px;
+  margin: 15vh auto 0;
+  padding: 24px 16px;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  text-align: center;
+}
+
+.tab-warning {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin: 0;
+  padding: 8px 16px;
+  background: #3a2a08;
+  border-bottom: 3px solid var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+  text-align: center;
 }
