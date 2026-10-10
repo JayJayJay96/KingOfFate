@@ -1,4 +1,11 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { ANNOUNCE } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import { FINALE_SPLASH_MS } from '../../animation/matchIntro';
@@ -75,6 +82,13 @@ export function FinaleStage({
   const action: AttackAction | null = winGesture ? ATTACK_OF[winGesture] : null;
   const revealKey = revealThrows ? (f.pendingRound?.roundId ?? lastRound?.roundId ?? '') : '';
   const arenaRef = useRef<HTMLElement>(null);
+
+  // Rising pace: the music speeds up with the chant (owner request); back to normal on exit.
+  const paceScale = show.paceScale;
+  useEffect(() => {
+    engine.setMusicRate(1 / paceScale);
+  }, [engine, paceScale]);
+  useEffect(() => () => engine.setMusicRate(1), [engine]);
   useLayoutEffect(() => {
     if (action) aimAttacks(arenaRef.current);
   }, [action, revealKey]);
@@ -160,6 +174,8 @@ export function FinaleStage({
             .filter(Boolean)
             .join(' ')}
           aria-label="Finalists"
+          data-testid="finale-arena"
+          style={{ '--pace': paceScale } as CSSProperties}
         >
           {stageId && (
             <div className="finale-stage__backdrop" aria-hidden="true">

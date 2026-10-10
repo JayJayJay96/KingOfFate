@@ -26,7 +26,8 @@ describe('chiptune themes', () => {
     expect(() => noteToFrequency('H2')).toThrow();
   });
 
-  it('the select theme is faster than the finale theme', () => {
-    expect(stepSeconds(THEMES.select)).toBeLessThan(stepSeconds(THEMES.finale));
+  it('the finale is the faster, final-showdown theme (owner request 2026-10-10)', () => {
+    expect(stepSeconds(THEMES.finale)).toBeLessThan(stepSeconds(THEMES.select));
+    expect(THEMES.finale.bpm).toBeGreaterThanOrEqual(165);
   });
 });

@@ -66,6 +66,13 @@
 
 ## 6. Session log
 
+### 2026-10-10 — Final-showdown finale music + rising pace
+- **Owner input:** finale music should be more energetic, "final showdown" (prefers the retro synth over an MP3); each finale round without a winner should get ~0.05 s faster so it builds excitement.
+- **Changed:** `chiptune.ts` new FINALE theme (172 bpm, D minor, Dm–B♭–C–A with a C♯ leading tone, galloping octave bass, heroic lead/arpeggios, kick + backbeat snare + hats, snare/tom fill); `finaleTimeline.ts` (`roundsWithoutWinner`, `finalePace`, `NORMAL_PACE`, `roundTimeline(pace)`: beat 600 ms − 50 ms per round without a new winner, floor 360 ms; hold/pause scale); `useFinaleShow` (pace from saved rounds; returns `paceScale`); `soundEngine.ts` (`setMusicRate`, tempo read per step, clamped 0.5–2); `FinaleStage` (music rate = 1/pace, reset on exit; `--pace` on the arena); CSS (finale hand attack duration/delay × pace); tests (pace unit tests incl. "attack still fits at every pace", App: three draws → music rates 1 → 1.09 → 1.2 → 1.33 and back to 1 at the end; chiptune: finale faster than select).
+- **Not verified by ear:** no speakers here; theme data, tempo calls and timing are covered by tests.
+- **Tests:** `npm test` → **30 files, 317 passed**; `npm run e2e` → **24 passed**. Typecheck, oxlint, Prettier clean.
+- **Next exact action:** owner listens to the new finale theme and a long finale with several draws.
+
 ### 2026-10-10 — Slower hand attack (1 s flight) + test hardening
 - **Owner input:** "didn't see the flying action, make it last ~1 whole second".
 - **Changed:** hand-attack/hit keyframes now 2.4 s (≈ 1.0 s flight, 0.55 s action, hold, fly back); `DUEL_RESULT_HOLD_MS` 1800 → 2800 and `FINALE_REVEAL_HOLD_MS` 1500 → 2000 so the next step does not cut it off (finale round ≈ 3.9 s, was ≈ 3.4 s); the attacking finalist's card is raised above the chant word (`.finalist:has(.hand-attack)`). Mid-flight frames captured in headless Edge (duel: rock crossing the panel; finale: rock arcing over "YO!").

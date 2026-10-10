@@ -34,6 +34,8 @@ export interface SoundEngine {
   /** Desired background loop; starts as soon as audio is unlocked. */
   setMusic(theme: MusicTheme | null): void;
   setPaused(paused: boolean): void;
+  /** Built-in music tempo multiplier (finale rising pace); 1 = normal. */
+  setMusicRate(rate: number): void;
   sfx(name: SfxName): void;
   chant(word: ChantWord): void;
   /** Arcade announcer line (English voice); no-op when muted, disabled or unavailable. */
@@ -63,6 +65,7 @@ export function createSoundEngine(): SoundEngine {
   let paused = false;
   let sequencer: { theme: MusicTheme; stop: () => void } | null = null;
   let customEl: HTMLAudioElement | null = null;
+  let musicRate = 1;
 
   const running = (): AudioContext | null => (ctx && ctx.state === 'running' ? ctx : null);
   const musicLevel = () => (settings && !settings.muted ? settings.music : 0);
@@ -146,11 +149,12 @@ export function createSoundEngine(): SoundEngine {
     if (!c || !musicBus) return;
     stopSequencer();
     const t = THEMES[theme];
-    const step = stepSeconds(t);
     let next = c.currentTime + 0.05;
     let index = 0;
     const timer = setInterval(() => {
       while (next < c.currentTime + LOOKAHEAD_S) {
+        // Read every step so a tempo change (finale pace) applies at the next note.
+        const step = stepSeconds(t) / musicRate;
         const i = index % STEPS_PER_LOOP;
         const lead = t.lead[i];
         const bass = t.bass[i];
@@ -332,6 +336,9 @@ export function createSoundEngine(): SoundEngine {
       paused = value;
       if (value) chanter.cancel();
       syncMusic();
+    },
+    setMusicRate(rate) {
+      musicRate = Math.min(2, Math.max(0.5, rate));
     },
     sfx: playSfx,
     chant(word) {

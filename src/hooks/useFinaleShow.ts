@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  FINALE_NEXT_ROUND_PAUSE_MS,
+  finalePace,
   introTimeline,
+  roundsWithoutWinner,
   roundTimeline,
   type ChantWord,
 } from '../animation/finaleTimeline';
@@ -18,6 +19,8 @@ export interface FinaleShowState {
   readonly word: ChantWord | null;
   /** Hands to show: the current reveal on "Yo!", or the last result between rounds. */
   readonly revealThrows: readonly FinaleThrow[] | null;
+  /** Current pace: 1 = normal, smaller = faster (rising tension, owner request). */
+  readonly paceScale: number;
 }
 
 /**
@@ -39,6 +42,7 @@ export function useFinaleShow(
   const pending = f?.pendingRound ?? null;
   const roundsCount = f?.rounds.length ?? 0;
   const active = match.phase === 'FINALE' && !!f?.started;
+  const pace = finalePace(roundsWithoutWinner(f?.rounds ?? []));
   // A running round must not restart when pause toggles, so `paused` only keys the idle state.
   const key = pending
     ? `${active}|round|${pending.roundId}`
@@ -64,7 +68,7 @@ export function useFinaleShow(
     };
 
     if (pending) {
-      const { cues, resolveMs } = roundTimeline();
+      const { cues, resolveMs } = roundTimeline(pace);
       for (const cue of cues) at(cue.atMs, () => show(cue.word, cue.reveal));
       const roundId = pending.roundId;
       at(resolveMs, () => handlersRef.current.onResolveRound(roundId));
@@ -75,7 +79,7 @@ export function useFinaleShow(
       for (const cue of cues) at(cue.atMs, () => show(cue.word, false));
       at(doneMs, () => handlersRef.current.onNextRound());
     } else {
-      at(FINALE_NEXT_ROUND_PAUSE_MS, () => handlersRef.current.onNextRound());
+      at(pace.pauseMs, () => handlersRef.current.onNextRound());
     }
     return () => timers.forEach(clearTimeout);
     // `key` captures every input that changes the schedule.
@@ -86,5 +90,5 @@ export function useFinaleShow(
   let revealThrows: readonly FinaleThrow[] | null = null;
   if (pending && current.reveal) revealThrows = pending.throws;
   else if (!pending && roundsCount > 0) revealThrows = f!.rounds[roundsCount - 1]!.throws;
-  return { word: current.word, revealThrows };
+  return { word: current.word, revealThrows, paceScale: pace.scale };
 }

@@ -2796,3 +2796,11 @@ label.button {
 .finalist:has(.hand-attack) {
   z-index: 20;
 }
+
+/* Finale rising pace: the hand attack speeds up with the chant (--pace = 1 normal … 0.6). */
+.finale-stage__arena .hand-attack,
+.finale-stage__arena .hand-hit,
+.finale-stage__arena .hand-hit--cut::after {
+  animation-duration: calc(2.4s * var(--pace, 1));
+  animation-delay: calc(0.15s * var(--pace, 1));
+}

@@ -47,22 +47,26 @@ const SELECT: Theme = {
   drums: drums('K.H.S.H.K.HKS.H.', 'K.H.S.H.K.HKS.H.', 'K.H.S.H.K.HKS.H.', 'K.H.S.H.KKS.S.SS'),
 };
 
-/** Finale loop: tense, D minor, 112 bpm, heavy toms under the chant. */
+/**
+ * Finale loop: "final showdown" (owner request 2026-10-10: more energetic). D minor, 172 bpm,
+ * Dm – B♭ – C – A (harmonic-minor turn for tension), galloping octave bass, heroic lead with
+ * arpeggios, kick on the beat, backbeat snare, and a snare/tom fill closing every loop.
+ */
 const FINALE: Theme = {
-  bpm: 112,
+  bpm: 172,
   lead: bars(
-    'D5 . . . . . . . A4 . . . . . . .',
-    'F5 . . . . . . . E5 . . . . . . .',
-    'D5 . . . . . . . A4 . . . C5 . . .',
-    'A#4 . . . . . . . A4 . . . . . . .',
+    'D5 . A4 . D5 F5 A5 . G5 F5 E5 . F5 . D5 .',
+    'A#4 . F5 . A#5 . A5 G5 F5 . D5 . F5 . A#5 .',
+    'C5 . G5 . C6 . A#5 A5 G5 . E5 . G5 . C6 .',
+    'A5 . G#5 A5 . E5 . C#5 . E5 A5 . G#5 . E5 C#5',
   ),
   bass: bars(
-    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . C2 .',
-    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . E2 .',
-    'D2 D2 . D2 . . F2 . D2 D2 . D2 . . C2 .',
-    'A#1 A#1 . A#1 . . C2 . A1 A1 . A1 . . C#2 .',
+    'D2 D2 D3 D2 D2 D2 D3 D2 D2 D2 D3 D2 D2 D3 D2 D3',
+    'A#1 A#1 A#2 A#1 A#1 A#1 A#2 A#1 A#1 A#1 A#2 A#1 A#1 A#2 A#1 A#2',
+    'C2 C2 C3 C2 C2 C2 C3 C2 C2 C2 C3 C2 C2 C3 C2 C3',
+    'A1 A1 A2 A1 A1 A1 A2 A1 A1 A1 A2 A1 A1 A2 A1 A2',
   ),
-  drums: drums('T..T..T...T.T...', 'T..T..T...T.T...', 'T..T..T...T.T...', 'T..T..T...TTTTTT'),
+  drums: drums('K.H.S.HKK.H.S.H.', 'K.H.S.HKK.H.S.HK', 'K.H.S.HKK.H.S.H.', 'K.H.S.HKS.SSTTTT'),
 };
 
 export const THEMES: Readonly<Record<MusicTheme, Theme>> = { select: SELECT, finale: FINALE };

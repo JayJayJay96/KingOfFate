@@ -446,6 +446,7 @@ function spyEngine() {
     apply: () => undefined,
     setMusic: (theme) => calls.push(`music:${theme}`),
     setPaused: (p) => calls.push(`paused:${p}`),
+    setMusicRate: (rate) => calls.push(`rate:${rate.toFixed(2)}`),
     sfx: (name) => calls.push(`sfx:${name}`),
     chant: (word) => calls.push(`chant:${word}`),
     announce: (text) => calls.push(`announce:${text}`),
@@ -806,5 +807,49 @@ describe('Owner requests 2026-10-10: RPS count and hand attacks', () => {
       },
       { timeout: 5000, interval: 10 },
     );
+  });
+});
+
+describe('Finale rising pace and showdown music (owner request 2026-10-10)', () => {
+  it('three draws in a row speed the music up step by step', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    const ROCK = 0;
+    const SCISSORS = 2;
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        // Three draws (Rock/Rock), then Rock beats Scissors three times.
+        rng={createScriptedRng([
+          ROCK,
+          ROCK,
+          ROCK,
+          ROCK,
+          ROCK,
+          ROCK,
+          ROCK,
+          SCISSORS,
+          ROCK,
+          SCISSORS,
+          ROCK,
+          SCISSORS,
+        ])}
+        timeScale={0.005}
+        soundEngine={engine}
+        titleScreen={false}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie');
+    await startMatch(user);
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
+    expect(calls).toContain('music:finale');
+    const rates = calls.filter((c) => c.startsWith('rate:')).map((c) => Number(c.slice(5)));
+    // 600 → 550 → 500 → 450 ms beats after 1, 2 and 3 rounds without a new winner.
+    expect(rates).toEqual(expect.arrayContaining([1, 1.09, 1.2, 1.33]));
+    const firstFast = rates.indexOf(1.33);
+    expect(rates.slice(0, firstFast + 1).filter((r) => r > 1)).toEqual([1.09, 1.2, 1.33]);
+    expect(rates.at(-1)).toBe(1); // back to normal when the finale ends
   });
 });
