@@ -67,7 +67,7 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
                   }
                   onClick={() => onRosterChange((r) => toggleParticipant(r, p.id))}
                 >
-                  <FighterSprite seed={p.name} look={p.look} size={28} />
+                  <FighterSprite seed={p.name} look={p.look} size={36} />
                   <span className="slot__name">{p.name}</span>
                   <span className="slot__status" aria-hidden="true">
                     {p.active ? 'IN' : 'OUT'}

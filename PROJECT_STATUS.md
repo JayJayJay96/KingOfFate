@@ -66,6 +66,13 @@
 
 ## 6. Session log
 
+### 2026-10-10 — Bigger roster and fighter cards (owner request)
+- **Owner input:** (1) setup roster 2 per row so long names are identifiable; (2) bigger in-match fighter cards, about 6 per row, so people can see their own character. Also asked why animations don't play on an office PC (Windows Server 2019, browser 155): diagnosed as Windows animations being off, so the browser reports reduced motion, which the game honours. Owner given the console check and the Windows / Remote Desktop settings; an in-game "Animations: always on" override was offered (needs owner OK, not built).
+- **Changed:** `RosterGrid.tsx` (thumbnail 28 → 36 px), `FighterGrid.tsx` (sprite 40 → 72 px), `global.css` (setup roster fixed 2 columns, 1 below 520 px; status pushed right; match grid `minmax(170px, 1fr)`; fighter names wrap to a second line instead of being cut off).
+- **Checked (headless Edge):** 1366×768 and 1920×1080 → setup roster 2 per row, match 6 per row; long names ("Aisyah binti Ahmad", "Kavitha Ramasamy") fully visible.
+- **Tests:** `npm test` → 28 files, 303 passed; `npm run e2e` → 22 passed (incl. 32 fighters without sideways scroll and the WCAG scans). Typecheck, oxlint, Prettier clean.
+- **Next exact action:** owner checks the live site; decide on the animation override.
+
 ### 2026-10-10 — Post-launch fixes: Edge effect sounds, idle bob
 - **Owner reports:** (1) K.O./Shield effect sounds silent in Edge, fine in Chrome; asked whether files were missing from GitHub. (2) Idle animation not visible in Chrome; pasted console errors.
 - **Findings:** GitHub `origin/main` = local `6d3d274`; nothing untracked. The game has **no audio files** by design (all effects synthesized in `soundEngine.ts`). Instrumented the live site (Web Audio node tracing): K.O. (sine 180→35 + noise + square 440→110) and Shield (triangles 880/1175/1568) fire on the effects bus with the context running. Likely cause in Edge: the announcer (Pack A) starts a Microsoft online voice at the same instant and Edge swallows the overlapping effect; Chrome uses a different voice. **Not verified audibly** (no speakers here); owner to confirm in Edge. The pasted console errors come from a browser extension (`ch-content-script-dend.js`, `content-script-idle.js`, `dom-utils.js`), not the game. The idle animation was running but only ~1 px on grid sprites (3% of height).

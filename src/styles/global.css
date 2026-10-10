@@ -2474,3 +2474,46 @@ label.button {
   font-weight: 700;
   text-align: center;
 }
+
+/* ---------- bigger cards (owner request 2026-10-10) ---------- */
+/* Setup roster: two per row so long names stay readable. */
+.roster-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.slot__toggle {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.slot__toggle .slot__status {
+  margin-left: auto;
+}
+
+.slot__name {
+  font-size: 1.05rem;
+}
+
+@media (max-width: 520px) {
+  .roster-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Match grid: larger fighters (about 6 per row on a 1200 px layout) so people find themselves. */
+.fighter-grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.fighter {
+  padding: 12px 8px 10px;
+}
+
+.fighter__name {
+  font-size: 1.05rem;
+  /* Long names wrap to a second line instead of being cut off (max 20 characters, D5). */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}

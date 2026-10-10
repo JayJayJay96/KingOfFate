@@ -38,7 +38,7 @@ export function FighterGrid({
             data-cursor={p.id === highlightId ? 'true' : undefined}
             data-shield={p.shield ? 'true' : undefined}
           >
-            <FighterSprite seed={p.name} size={40} idle={p.alive} />
+            <FighterSprite seed={p.name} size={72} idle={p.alive} />
             <span className="fighter__name">{p.name}</span>
             {p.shield && (
               <span className="fighter__shield" title="Has a Shield">
