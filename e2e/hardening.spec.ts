@@ -196,3 +196,22 @@ test('a second tab gets a warning (both tabs share one saved match)', async ({ c
   await second.close();
   await expect(first.getByRole('alert').filter({ hasText: warning })).toBeHidden();
 });
+
+test('idle fighters visibly bob (at least 2 px, even on small grid sprites)', async ({ page }) => {
+  await resetStorage(page);
+  await insertCoin(page);
+  await addNames(page, NAMES);
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await skipIntro(page);
+  const sprite = page.locator('.fighter .fighter-sprite--idle').first();
+  const travel = await sprite.evaluate(async (el) => {
+    const tops: number[] = [];
+    for (let i = 0; i < 30; i++) {
+      tops.push(el.getBoundingClientRect().top);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return Math.max(...tops) - Math.min(...tops);
+  });
+  expect(travel).toBeGreaterThanOrEqual(2);
+  expect(travel).toBeLessThanOrEqual(5.5);
+});

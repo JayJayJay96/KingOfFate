@@ -66,6 +66,14 @@
 
 ## 6. Session log
 
+### 2026-10-10 — Post-launch fixes: Edge effect sounds, idle bob
+- **Owner reports:** (1) K.O./Shield effect sounds silent in Edge, fine in Chrome; asked whether files were missing from GitHub. (2) Idle animation not visible in Chrome; pasted console errors.
+- **Findings:** GitHub `origin/main` = local `6d3d274`; nothing untracked. The game has **no audio files** by design (all effects synthesized in `soundEngine.ts`). Instrumented the live site (Web Audio node tracing): K.O. (sine 180→35 + noise + square 440→110) and Shield (triangles 880/1175/1568) fire on the effects bus with the context running. Likely cause in Edge: the announcer (Pack A) starts a Microsoft online voice at the same instant and Edge swallows the overlapping effect; Chrome uses a different voice. **Not verified audibly** (no speakers here); owner to confirm in Edge. The pasted console errors come from a browser extension (`ch-content-script-dend.js`, `content-script-idle.js`, `dom-utils.js`), not the game. The idle animation was running but only ~1 px on grid sprites (3% of height).
+- **Changed:** `soundEngine.ts` (`announceDelayMs`, `ANNOUNCE_AFTER_SFX_MS` = 450: every callout waits until the latest effect has landed; queued callout cleared on pause/dispose), `global.css` (idle bob `clamp(-5px, -5%, -2px)`), tests `src/audio/soundEngine.test.ts`, `e2e/hardening.spec.ts` (bob travel 2–5.5 px on a grid sprite).
+- **Tests:** `npm test` → **28 files, 303 passed**; `npm run e2e` → **22 passed** (one earlier run had a one-off `page.goto` ERR_ABORTED in the 32-fighter test before any game code; it then passed 4/4 on repeat and in the full rerun). Typecheck, oxlint, Prettier clean.
+- **Pending:** owner retests in Edge after the deploy. If effects are still silent with the announcer on, try unticking *Announcer* in Sound settings to confirm the cause. If the bob is still invisible, check Windows *Settings → Accessibility → Visual effects → Animation effects* (off = reduced motion, which the game honours).
+- **Next exact action:** owner Edge retest.
+
 ### 2026-10-10 — Phase 7: deployment
 - **Owner input:** chose "GitHub + Vercel import"; created `https://github.com/JayJayJay96/KingOfFate.git` and imported it in Vercel; live URL https://king-of-fate.vercel.app/.
 - **Done:** added remote `origin`, pushed `main` (remote head = local `f38711a`, verified with `git ls-remote`).
