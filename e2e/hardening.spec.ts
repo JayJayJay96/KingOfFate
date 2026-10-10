@@ -215,3 +215,66 @@ test('idle fighters visibly bob (at least 2 px, even on small grid sprites)', as
   expect(travel).toBeGreaterThanOrEqual(2);
   expect(travel).toBeLessThanOrEqual(5.5);
 });
+
+test('Animations: Always on overrides a computer that asks for reduced motion', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await resetStorage(page);
+  await insertCoin(page);
+  await expect(page.getByTestId('motion-hint')).toContainText(/animations turned off/i);
+  await page.getByRole('radio', { name: 'Always on' }).check();
+  await addNames(page, NAMES);
+  const idle = page.locator('.title-screen, .roster-grid .fighter-sprite').first();
+  await expect(idle).toBeVisible();
+
+  // Survives a reload: the setting is applied before anything renders.
+  await page.reload();
+  await insertCoin(page);
+  await expect(page.getByRole('radio', { name: 'Always on' })).toBeChecked();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await skipIntro(page);
+  const sprite = page.locator('.fighter .fighter-sprite--idle').first();
+  expect(await sprite.evaluate((el) => getComputedStyle(el).animationName)).toBe('idle-bob');
+
+  // Back to following the computer: animations off again.
+  await page.reload();
+  await insertCoin(page);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Abandon match' }).click();
+  await page.getByRole('button', { name: /yes, abandon/i }).click();
+  await page.getByRole('radio', { name: /follow this computer/i }).check();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await skipIntro(page);
+  expect(
+    await page
+      .locator('.fighter .fighter-sprite--idle')
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe('none');
+});
+
+test('wide screens show the see-through event log beside the match, 6 fighters per row', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await resetStorage(page);
+  await insertCoin(page);
+  await addNames(page, [...NAMES, 'Siti', 'Ravi', 'Farah', 'Jun Hao', 'Nurul', 'Priya']);
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await skipIntro(page);
+  const log = await page.locator('.match > .event-log').boundingBox();
+  const preview = await page.getByRole('region', { name: 'Selected fighter' }).boundingBox();
+  expect(log!.x).toBeGreaterThan(preview!.x + preview!.width);
+  expect(log!.y).toBeLessThan(preview!.y + preview!.height);
+  const perRow = await page.evaluate(() => {
+    const items = [...document.querySelectorAll('.fighter')];
+    const top = items[0]!.getBoundingClientRect().top;
+    return items.filter((el) => Math.abs(el.getBoundingClientRect().top - top) < 2).length;
+  });
+  expect(perRow).toBe(6);
+  const bg = await page
+    .locator('.match > .event-log')
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(bg).toMatch(/rgba\(.*0\.55\)/);
+});

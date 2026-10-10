@@ -756,3 +756,55 @@ describe('Arcade pack B: looks and stages (owner decisions 2026-10-10)', () => {
     expect(screen.getByTestId('stage-backdrop')).toHaveAttribute('data-stage', stage!);
   });
 });
+
+describe('Owner requests 2026-10-10: RPS count and hand attacks', () => {
+  const ROCK = 0;
+  const SCISSORS = 2;
+
+  it('a VS is counted ROCK… PAPER… SCISSORS! for every throw, with a beat and the words', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        // Challenger 0, VS slot, opponent 0 of the others, one draw (Rock/Rock), then Rock beats Scissors.
+        rng={createScriptedRng([0, VS, 0, ROCK, ROCK, ROCK, SCISSORS])}
+        timeScale={0.02}
+        soundEngine={engine}
+        titleScreen={false}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
+    await startMatch(user);
+    const before = calls.length;
+    await user.click(randomButton());
+    await findInLog(/Turn 1: Aisyah VS Wei Jie: Rock beats Scissors after 1 draw/);
+    const turn = calls.slice(before);
+    expect(turn.filter((c) => c === 'sfx:count')).toHaveLength(6);
+    expect(turn.filter((c) => c === 'announce:Rock!')).toHaveLength(2);
+    expect(turn.filter((c) => c === 'announce:Paper!')).toHaveLength(2);
+    expect(turn.filter((c) => c === 'announce:Scissors!')).toHaveLength(2);
+    // Every SCISSORS beat reveals: once as a draw, once as the decisive clash.
+    expect(turn).toContain('sfx:draw');
+    expect(turn).toContain('sfx:clash');
+  });
+
+  it('in the finale the winning rock flies at the scissors and crushes them', async () => {
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng([ROCK, SCISSORS, ROCK, SCISSORS, ROCK, SCISSORS]),
+      0.05,
+    );
+    await addNames(user, 'Aisyah{Enter}Wei Jie');
+    await startMatch(user);
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await waitFor(
+      () => {
+        expect(document.querySelector('.hand-attack.hand-attack--crush')).not.toBeNull();
+        expect(document.querySelector('.hand-hit.hand-hit--crush')).not.toBeNull();
+      },
+      { timeout: 5000, interval: 10 },
+    );
+  });
+});

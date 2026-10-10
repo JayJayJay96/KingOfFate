@@ -4,8 +4,9 @@ import type { CommittedTurn } from '../game/engine/matchTypes';
 import {
   buildTurnTimeline,
   DUEL_INTRO_MS,
+  DUEL_COUNT_BEAT_MS,
+  DUEL_DRAW_HOLD_MS,
   DUEL_RESULT_HOLD_MS,
-  DUEL_THROW_MS,
   FATE_LANDS_AFTER_FIGHTER_MS,
   FATE_START_FRACTION,
   fateStartIndex,
@@ -76,9 +77,20 @@ describe('buildTurnTimeline (one step at a time)', () => {
       expect(t.opponentSteps.every((s) => s.id !== 'c')).toBe(true);
       expect(t.opponentSteps.at(-1)!.id).toBe('a');
       expect(t.duelStartMs! - t.opponentStartMs!).toBeLessThanOrEqual(MAX_SPIN_MS);
+      // Owner request: every throw is counted ROCK… PAPER… SCISSORS!, revealed on SCISSORS.
+      const first = t.duelStartMs! + DUEL_INTRO_MS;
+      const second = first + 2 * DUEL_COUNT_BEAT_MS + DUEL_DRAW_HOLD_MS;
+      expect(t.duelCounts).toEqual([
+        { atMs: first, word: 'ROCK', throwIndex: 0 },
+        { atMs: first + DUEL_COUNT_BEAT_MS, word: 'PAPER', throwIndex: 0 },
+        { atMs: first + 2 * DUEL_COUNT_BEAT_MS, word: 'SCISSORS', throwIndex: 0 },
+        { atMs: second, word: 'ROCK', throwIndex: 1 },
+        { atMs: second + DUEL_COUNT_BEAT_MS, word: 'PAPER', throwIndex: 1 },
+        { atMs: second + 2 * DUEL_COUNT_BEAT_MS, word: 'SCISSORS', throwIndex: 1 },
+      ]);
       expect(t.duelThrowsAtMs).toEqual([
-        t.duelStartMs! + DUEL_INTRO_MS,
-        t.duelStartMs! + DUEL_INTRO_MS + DUEL_THROW_MS,
+        first + 2 * DUEL_COUNT_BEAT_MS,
+        second + 2 * DUEL_COUNT_BEAT_MS,
       ]);
       expect(t.completeMs).toBe(t.duelThrowsAtMs.at(-1)! + DUEL_RESULT_HOLD_MS);
     }

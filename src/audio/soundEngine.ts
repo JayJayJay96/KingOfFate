@@ -18,7 +18,8 @@ export type SfxName =
   | 'suddenDeath'
   | 'victory'
   | 'coin'
-  | 'fight';
+  | 'fight'
+  | 'count';
 
 /**
  * All sound in the app. Everything is synthesized at runtime (Web Audio + browser speech), so no
@@ -43,17 +44,6 @@ export interface SoundEngine {
 }
 
 const LOOKAHEAD_S = 0.15;
-/**
- * The announcer speaks only after a just-played effect has landed. In Edge, the Microsoft
- * online voices start playing at the same instant as a K.O./Shield effect and swallow it, so
- * every callout waits this long after the latest effect (owner report 2026-10-10).
- */
-export const ANNOUNCE_AFTER_SFX_MS = 450;
-
-/** How long a callout must wait so it starts after the latest effect (0 = speak now). */
-export function announceDelayMs(lastSfxAt: number, now: number): number {
-  return Math.max(0, lastSfxAt + ANNOUNCE_AFTER_SFX_MS - now);
-}
 const SCHEDULER_MS = 30;
 
 export function createSoundEngine(): SoundEngine {
@@ -73,8 +63,6 @@ export function createSoundEngine(): SoundEngine {
   let paused = false;
   let sequencer: { theme: MusicTheme; stop: () => void } | null = null;
   let customEl: HTMLAudioElement | null = null;
-  let lastSfxAt = -Infinity;
-  let pendingAnnounce: ReturnType<typeof setTimeout> | null = null;
 
   const running = (): AudioContext | null => (ctx && ctx.state === 'running' ? ctx : null);
   const musicLevel = () => (settings && !settings.muted ? settings.music : 0);
@@ -228,7 +216,6 @@ export function createSoundEngine(): SoundEngine {
   function playSfx(name: SfxName) {
     const c = running();
     if (!c || !sfxBus || sfxLevel() <= 0) return;
-    lastSfxAt = performance.now();
     const now = c.currentTime;
     const bus = sfxBus;
     switch (name) {
@@ -279,6 +266,11 @@ export function createSoundEngine(): SoundEngine {
         [440, 415, 392, 370].forEach((f, i) =>
           osc(c, bus, 'sawtooth', f, f, now + i * 0.15, 0.2, 0.3),
         );
+        break;
+      case 'count':
+        // Rock-paper-scissors count beat: a short drum thump.
+        osc(c, bus, 'sine', 150, 50, now, 0.2, 0.9);
+        noiseHit(c, bus, now, 0.06, 0.25, 'highpass', 3000);
         break;
       case 'coin':
         osc(c, bus, 'square', 988, 988, now, 0.07, 0.3);
@@ -338,11 +330,7 @@ export function createSoundEngine(): SoundEngine {
     },
     setPaused(value) {
       paused = value;
-      if (value) {
-        chanter.cancel();
-        if (pendingAnnounce) clearTimeout(pendingAnnounce);
-        pendingAnnounce = null;
-      }
+      if (value) chanter.cancel();
       syncMusic();
     },
     sfx: playSfx,
@@ -370,20 +358,12 @@ export function createSoundEngine(): SoundEngine {
     },
     announce(text) {
       if (settings && !settings.announcer) return;
-      if (pendingAnnounce) clearTimeout(pendingAnnounce);
-      const speak = () => {
-        pendingAnnounce = null;
-        chanter.announce(text, voiceLevel());
-        duck();
-      };
-      const wait = announceDelayMs(lastSfxAt, performance.now());
-      if (wait > 0) pendingAnnounce = setTimeout(speak, wait);
-      else speak();
+      chanter.announce(text, voiceLevel());
+      duck();
     },
     listVoices: () => chanter.listVoices(),
     onVoicesChanged: (listener) => chanter.onVoicesChanged(listener),
     dispose() {
-      if (pendingAnnounce) clearTimeout(pendingAnnounce);
       stopSequencer();
       customEl?.pause();
       customEl = null;

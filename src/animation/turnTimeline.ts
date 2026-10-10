@@ -8,10 +8,24 @@ export const VS_ANNOUNCE_MS = 1000;
 export const FATE_START_FRACTION = 0.5;
 /** …but the Fate cursor always stops at least this long after the fighter is revealed. */
 export const FATE_LANDS_AFTER_FIGHTER_MS = 400;
-/** Duel presentation: intro, one beat per throw (draws rethrow), then the result. */
-export const DUEL_INTRO_MS = 700;
-export const DUEL_THROW_MS = 900;
-export const DUEL_RESULT_HOLD_MS = 1300;
+/**
+ * Duel presentation (owner request 2026-10-10: "too fast"): after the opponent is chosen, every
+ * throw is counted in "ROCK… PAPER… SCISSORS!" and the hands are revealed on SCISSORS. A draw
+ * pauses, then counts again; a decisive throw holds for the attack animation and result.
+ */
+export const DUEL_INTRO_MS = 600;
+export const DUEL_COUNT_BEAT_MS = 550;
+export const DUEL_DRAW_HOLD_MS = 900;
+export const DUEL_RESULT_HOLD_MS = 1800;
+
+export type DuelWord = 'ROCK' | 'PAPER' | 'SCISSORS';
+
+export interface DuelCount {
+  readonly atMs: number;
+  readonly word: DuelWord;
+  /** The throw this count belongs to (revealed on SCISSORS). */
+  readonly throwIndex: number;
+}
 
 /**
  * Presentation timeline for one committed turn, revealed step by step (owner decisions):
@@ -36,6 +50,9 @@ export interface TurnTimeline {
   readonly opponentSteps: readonly SpinStep[];
   readonly opponentStartMs: number | null;
   readonly duelStartMs: number | null;
+  /** ROCK / PAPER / SCISSORS beats for every throw (SCISSORS = the reveal). */
+  readonly duelCounts: readonly DuelCount[];
+  /** Reveal time of each throw (its SCISSORS beat). */
   readonly duelThrowsAtMs: readonly number[];
   /** When the turn's result is applied. */
   readonly completeMs: number;
@@ -91,6 +108,7 @@ export function buildTurnTimeline(
       opponentSteps: [],
       opponentStartMs: null,
       duelStartMs: null,
+      duelCounts: [],
       duelThrowsAtMs: [],
       completeMs: fateDoneMs,
     };
@@ -110,15 +128,26 @@ export function buildTurnTimeline(
     spinStyleFor(`${turn.turnId}:opponent`),
   );
   const duelStartMs = opponentStartMs + opponent.revealMs;
-  const duelThrowsAtMs = turn.duel.throws.map(
-    (_, i) => duelStartMs + DUEL_INTRO_MS + i * DUEL_THROW_MS,
-  );
+  const duelCounts: DuelCount[] = [];
+  const duelThrowsAtMs: number[] = [];
+  let countAt = duelStartMs + DUEL_INTRO_MS;
+  turn.duel.throws.forEach((_, i) => {
+    duelCounts.push(
+      { atMs: countAt, word: 'ROCK', throwIndex: i },
+      { atMs: countAt + DUEL_COUNT_BEAT_MS, word: 'PAPER', throwIndex: i },
+      { atMs: countAt + 2 * DUEL_COUNT_BEAT_MS, word: 'SCISSORS', throwIndex: i },
+    );
+    const revealAt = countAt + 2 * DUEL_COUNT_BEAT_MS;
+    duelThrowsAtMs.push(revealAt);
+    countAt = revealAt + DUEL_DRAW_HOLD_MS;
+  });
   return {
     ...base,
     vsAnnounceMs: fateDoneMs,
     opponentSteps: shift(opponent.steps, opponentStartMs),
     opponentStartMs,
     duelStartMs,
+    duelCounts,
     duelThrowsAtMs,
     completeMs: duelThrowsAtMs.at(-1)! + DUEL_RESULT_HOLD_MS,
   };

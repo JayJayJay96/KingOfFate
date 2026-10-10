@@ -8,6 +8,7 @@ import {
 } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import { FINAL_BLOW_MS } from '../../animation/matchIntro';
+import type { DuelWord } from '../../animation/turnTimeline';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
@@ -38,6 +39,13 @@ interface MatchScreenProps {
 }
 
 const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"]';
+
+/** Announcer words for the in-match rock-paper-scissors count. */
+const DUEL_WORD_LINE: Readonly<Record<DuelWord, string>> = {
+  ROCK: 'Rock!',
+  PAPER: 'Paper!',
+  SCISSORS: 'Scissors!',
+};
 
 /** How long the K.O. stamp / sparks / shake stay on screen after a turn resolves. */
 const IMPACT_MS = 1100;
@@ -87,9 +95,15 @@ export function MatchScreen({
       engine.sfx('vs');
       engine.announce(ANNOUNCE.versus);
     } else if (cue.kind === 'duelIntro') engine.sfx('clash');
-    else {
+    else if (cue.kind === 'duelCount') {
+      engine.sfx('count');
+      engine.announce(DUEL_WORD_LINE[cue.word]);
+    } else {
+      // SCISSORS beat: the hands are revealed.
       const t = duel?.throws[cue.index];
+      engine.sfx('count');
       engine.sfx(t && t.challenger === t.opponent ? 'draw' : 'clash');
+      engine.announce(DUEL_WORD_LINE.SCISSORS);
     }
   };
 
@@ -215,90 +229,93 @@ export function MatchScreen({
 
   return (
     <main className={impact?.kind === 'ko' ? 'match match--shake' : 'match'}>
-      <header className="match__bar">
-        <span className="match__logo">King of Fate</span>
-        <span>Turn {match.completedTurns + 1}</span>
-        <span data-testid="alive-count">
-          {alive.length} / {match.players.length} alive
-        </span>
-        <span>
-          {match.winnerCount} winner{match.winnerCount === 1 ? '' : 's'}
-        </span>
-        <span>{FATE_PRESETS[match.presetId].label}</span>
-        {match.suddenDeath && <span className="match__sudden-death">Sudden Death</span>}
-        <span className="match__bar-actions">
-          <button type="button" className="button button--small" onClick={() => setPaused(true)}>
-            Menu (Esc)
-          </button>
-        </span>
-      </header>
-
-      {saveError && (
-        <p className="banner banner--error" role="alert">
-          {saveError}
-        </p>
-      )}
-
-      {duel && (stage === 'vs' || stage === 'opponent' || stage === 'duel') ? (
-        <DuelPanel
-          mode={stage === 'vs' ? 'announce' : stage === 'opponent' ? 'pick' : 'fight'}
-          challengerName={nameOf(match.pendingTurn!.playerId)}
-          opponentName={animation.opponentCursorId ? nameOf(animation.opponentCursorId) : null}
-          duel={duel}
-          throwIndex={animation.duelThrowIndex ?? -1}
-        />
-      ) : (
-        <div className="preview-wrap">
-          <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
-          {impact && <ImpactBurst key={impact.turnId} kind={impact.kind} />}
-        </div>
-      )}
-
-      <FateStrip
-        slots={match.fateSlots}
-        cursorIndex={animation.fateCursorIndex}
-        lastSlotIndex={match.lastTurn?.turn.fateSlotIndex ?? null}
-        suddenDeath={match.suddenDeath}
-        shieldSupply={match.shieldSupply}
-        shieldSupplyTotal={shieldSupplyFor(match.players.length)}
-        suddenDeathAt={match.suddenDeathAt}
-        finaleAt={match.winnerCount + 1}
-      />
-
-      <section className="panel arena">
-        <FighterGrid
-          players={match.players}
-          highlightId={highlightId}
-          opponentId={animation.opponentCursorId}
-          lastTargetId={match.lastTurn?.turn.playerId ?? null}
-          fallingId={impact?.fallenId ?? null}
-        />
-        <div className="arena__controls">
-          <div className="arena__buttons">
-            <button
-              type="button"
-              className="random-button"
-              aria-label="Random: start the next turn"
-              disabled={!canSpin}
-              onClick={onSpin}
-            >
-              ?
+      <div className="match__main">
+        <header className="match__bar">
+          <span className="match__logo">King of Fate</span>
+          <span>Turn {match.completedTurns + 1}</span>
+          <span data-testid="alive-count">
+            {alive.length} / {match.players.length} alive
+          </span>
+          <span>
+            {match.winnerCount} winner{match.winnerCount === 1 ? '' : 's'}
+          </span>
+          <span>{FATE_PRESETS[match.presetId].label}</span>
+          {match.suddenDeath && <span className="match__sudden-death">Sudden Death</span>}
+          <span className="match__bar-actions">
+            <button type="button" className="button button--small" onClick={() => setPaused(true)}>
+              Menu (Esc)
             </button>
-            <button
-              type="button"
-              className="button shuffle-button"
-              title="Shuffle fighter and Fate positions (does not change anyone's odds)"
-              disabled={!canSpin}
-              onClick={onShuffle}
-            >
-              Shuffle
-            </button>
-          </div>
-          <p className="hint">
-            Space / Enter: spin · S: shuffle · M: mute · Esc: menu. Shuffle never changes odds.
+          </span>
+        </header>
+
+        {saveError && (
+          <p className="banner banner--error" role="alert">
+            {saveError}
           </p>
-        </div>
-      </section>
+        )}
+
+        {duel && (stage === 'vs' || stage === 'opponent' || stage === 'duel') ? (
+          <DuelPanel
+            mode={stage === 'vs' ? 'announce' : stage === 'opponent' ? 'pick' : 'fight'}
+            challengerName={nameOf(match.pendingTurn!.playerId)}
+            opponentName={animation.opponentCursorId ? nameOf(animation.opponentCursorId) : null}
+            duel={duel}
+            throwIndex={animation.duelThrowIndex ?? -1}
+            word={animation.duelWord}
+          />
+        ) : (
+          <div className="preview-wrap">
+            <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
+            {impact && <ImpactBurst key={impact.turnId} kind={impact.kind} />}
+          </div>
+        )}
+
+        <FateStrip
+          slots={match.fateSlots}
+          cursorIndex={animation.fateCursorIndex}
+          lastSlotIndex={match.lastTurn?.turn.fateSlotIndex ?? null}
+          suddenDeath={match.suddenDeath}
+          shieldSupply={match.shieldSupply}
+          shieldSupplyTotal={shieldSupplyFor(match.players.length)}
+          suddenDeathAt={match.suddenDeathAt}
+          finaleAt={match.winnerCount + 1}
+        />
+
+        <section className="panel arena">
+          <FighterGrid
+            players={match.players}
+            highlightId={highlightId}
+            opponentId={animation.opponentCursorId}
+            lastTargetId={match.lastTurn?.turn.playerId ?? null}
+            fallingId={impact?.fallenId ?? null}
+          />
+          <div className="arena__controls">
+            <div className="arena__buttons">
+              <button
+                type="button"
+                className="random-button"
+                aria-label="Random: start the next turn"
+                disabled={!canSpin}
+                onClick={onSpin}
+              >
+                ?
+              </button>
+              <button
+                type="button"
+                className="button shuffle-button"
+                title="Shuffle fighter and Fate positions (does not change anyone's odds)"
+                disabled={!canSpin}
+                onClick={onShuffle}
+              >
+                Shuffle
+              </button>
+            </div>
+            <p className="hint">
+              Space / Enter: spin · S: shuffle · M: mute · Esc: menu. Shuffle never changes odds.
+            </p>
+          </div>
+        </section>
+      </div>
 
       <EventLog match={match} />
 

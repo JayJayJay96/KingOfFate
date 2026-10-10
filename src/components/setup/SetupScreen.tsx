@@ -6,6 +6,7 @@ import type { SetupLoadStatus } from '../../storage/setupStorage';
 import { MatchOptions } from './MatchOptions';
 import { RosterGrid } from './RosterGrid';
 import { RosterInput } from './RosterInput';
+import { DisplaySettings } from './DisplaySettings';
 import { SoundSettings } from './SoundSettings';
 
 interface SetupScreenProps {
@@ -82,6 +83,8 @@ export function SetupScreen({
           />
 
           <SoundSettings />
+
+          <DisplaySettings />
 
           <section className="panel start-panel">
             <div id={issuesId} aria-live="polite">

@@ -1,7 +1,10 @@
+import { useLayoutEffect, useRef } from 'react';
+import type { DuelWord } from '../../animation/turnTimeline';
 import { GESTURE_LABEL } from '../../game/engine/describeEvent';
 import type { CommittedDuel } from '../../game/engine/matchTypes';
 import { beats, type Gesture } from '../../game/engine/rps';
 import { FighterSprite, HandIcon } from '../sprites/icons';
+import { aimAttacks, ATTACK_OF, type AttackAction } from './handAttack';
 
 interface DuelPanelProps {
   /**
@@ -13,9 +16,17 @@ interface DuelPanelProps {
   /** Opponent shown so far (the cursor's current fighter while picking), or null. */
   readonly opponentName: string | null;
   readonly duel: CommittedDuel;
-  /** fight mode: -1 = intro, otherwise index of the throw currently shown. */
+  /** fight mode: -1 = fists up (intro or counting), otherwise index of the throw revealed. */
   readonly throwIndex: number;
+  /** ROCK / PAPER / SCISSORS count word on screen (owner request: count before every reveal). */
+  readonly word?: DuelWord | null;
 }
+
+const WORD_LABEL: Readonly<Record<DuelWord, string>> = {
+  ROCK: 'Rock…',
+  PAPER: 'Paper…',
+  SCISSORS: 'Scissors!',
+};
 
 /** Plays back the already-committed VS. Never samples anything. */
 export function DuelPanel({
@@ -24,31 +35,77 @@ export function DuelPanel({
   opponentName,
   duel,
   throwIndex,
+  word = null,
 }: DuelPanelProps) {
   const current = mode === 'fight' && throwIndex >= 0 ? duel.throws[throwIndex] : undefined;
+  const decisive = current && current.challenger !== current.opponent ? current : undefined;
+  const challengerWon = decisive ? beats(decisive.challenger, decisive.opponent) : false;
+  const action: AttackAction | null = decisive
+    ? ATTACK_OF[challengerWon ? decisive.challenger : decisive.opponent]
+    : null;
+  const counting = mode === 'fight' && !current && word !== null;
+
   let caption = 'Rock · Paper · Scissors!';
   if (mode === 'announce') caption = `${challengerName} must fight… who?`;
   else if (mode === 'pick') caption = 'Choosing an opponent…';
-  else if (current) {
-    if (current.challenger === current.opponent) caption = 'Draw! Throw again…';
-    else {
-      const challengerWon = beats(current.challenger, current.opponent);
-      const [w, l] = challengerWon
-        ? [current.challenger, current.opponent]
-        : [current.opponent, current.challenger];
-      caption = `${GESTURE_LABEL[w]} beats ${GESTURE_LABEL[l]}! ${
-        challengerWon ? challengerName : opponentName
-      } wins!`;
-    }
+  else if (counting) caption = WORD_LABEL[word];
+  else if (current && !decisive) caption = 'Draw! Throw again…';
+  else if (decisive) {
+    const [w, l] = challengerWon
+      ? [decisive.challenger, decisive.opponent]
+      : [decisive.opponent, decisive.challenger];
+    caption = `${GESTURE_LABEL[w]} beats ${GESTURE_LABEL[l]}! ${
+      challengerWon ? challengerName : opponentName
+    } wins!`;
   }
 
+  // Aim the winning hand at the losing one once both are on screen.
+  const panelRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (decisive) aimAttacks(panelRef.current);
+  }, [decisive, throwIndex]);
+
+  const role = (isChallenger: boolean): 'winner' | 'loser' | null =>
+    decisive ? (isChallenger === challengerWon ? 'winner' : 'loser') : null;
+
   return (
-    <section className={`panel duel duel--${mode}`} aria-label="VS duel" data-testid="duel">
+    <section
+      ref={panelRef}
+      className={`panel duel duel--${mode}`}
+      aria-label="VS duel"
+      data-testid="duel"
+    >
       <div className="duel__fighters">
-        <Side name={challengerName} gesture={current?.challenger} showHand={mode === 'fight'} />
-        <span className="duel__vs">{mode === 'announce' ? 'VS!' : 'VS'}</span>
+        <Side
+          name={challengerName}
+          gesture={current?.challenger}
+          showHand={mode === 'fight'}
+          bounce={counting ? word : null}
+          role={role(true)}
+          action={action}
+          revealKey={throwIndex}
+        />
+        <span className="duel__vs">
+          {mode === 'announce' ? (
+            'VS!'
+          ) : counting || (current && word) ? (
+            <span key={word ?? ''} className="duel__count" data-testid="duel-count">
+              {word === 'SCISSORS' ? 'SCISSORS!' : word}
+            </span>
+          ) : (
+            'VS'
+          )}
+        </span>
         {opponentName && mode !== 'announce' ? (
-          <Side name={opponentName} gesture={current?.opponent} showHand={mode === 'fight'} />
+          <Side
+            name={opponentName}
+            gesture={current?.opponent}
+            showHand={mode === 'fight'}
+            bounce={counting ? word : null}
+            role={role(false)}
+            action={action}
+            revealKey={throwIndex}
+          />
         ) : (
           <div className="duel__side duel__side--mystery" aria-hidden="true">
             <span className="duel__mystery">?</span>
@@ -67,17 +124,34 @@ function Side({
   name,
   gesture,
   showHand,
+  bounce,
+  role,
+  action,
+  revealKey,
 }: {
   readonly name: string;
   readonly gesture?: Gesture;
   readonly showHand: boolean;
+  /** Count word while fists bounce, or null. */
+  readonly bounce: DuelWord | null;
+  readonly role: 'winner' | 'loser' | null;
+  readonly action: AttackAction | null;
+  readonly revealKey: number;
 }) {
+  const classes = ['duel__hand'];
+  if (bounce) classes.push('duel__hand--bounce');
+  if (role === 'winner' && action) classes.push('hand-attack', `hand-attack--${action}`);
+  if (role === 'loser' && action) classes.push('hand-hit', `hand-hit--${action}`);
   return (
     <div className="duel__side">
       <span className="duel__figure">
         <FighterSprite seed={name} size={72} idle />
         {showHand && (
-          <span className="duel__hand">
+          <span
+            key={`${revealKey}:${bounce ?? ''}`}
+            className={classes.join(' ')}
+            data-attack={role ?? undefined}
+          >
             <HandIcon gesture={gesture ?? 'ROCK'} size={60} />
           </span>
         )}

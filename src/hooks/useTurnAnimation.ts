@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { buildTurnTimeline } from '../animation/turnTimeline';
+import { buildTurnTimeline, type DuelWord } from '../animation/turnTimeline';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 
 /** Which part of the turn's reveal is on screen. */
@@ -15,6 +15,8 @@ export interface TurnAnimationState {
   readonly opponentCursorId: string | null;
   /** VS only: -1 = duel intro, 0..n-1 = that throw is showing; null = no throws on screen. */
   readonly duelThrowIndex: number | null;
+  /** Word of the count currently on screen during a duel (null outside the count). */
+  readonly duelWord: DuelWord | null;
 }
 
 const IDLE: TurnAnimationState = {
@@ -23,6 +25,7 @@ const IDLE: TurnAnimationState = {
   fateCursorIndex: null,
   opponentCursorId: null,
   duelThrowIndex: null,
+  duelWord: null,
 };
 
 /** Moments of a turn's show, for sound effects. */
@@ -32,6 +35,8 @@ export type TurnCue =
   | { readonly kind: 'vsAnnounce' }
   | { readonly kind: 'opponent' }
   | { readonly kind: 'duelIntro' }
+  | { readonly kind: 'duelCount'; readonly word: DuelWord }
+  /** The SCISSORS beat: hands revealed. */
   | { readonly kind: 'duelThrow'; readonly index: number };
 
 /**
@@ -87,9 +92,21 @@ export function useTurnAnimation(
         at(s.atMs, { opponentCursorId: s.id }, { kind: 'opponent' });
       }
       at(t.duelStartMs, { stage: 'duel', duelThrowIndex: -1 }, { kind: 'duelIntro' });
-      t.duelThrowsAtMs.forEach((ms, i) =>
-        at(ms, { duelThrowIndex: i }, { kind: 'duelThrow', index: i }),
-      );
+      for (const c of t.duelCounts) {
+        if (c.word === 'SCISSORS') {
+          at(
+            c.atMs,
+            { duelThrowIndex: c.throwIndex, duelWord: 'SCISSORS' },
+            {
+              kind: 'duelThrow',
+              index: c.throwIndex,
+            },
+          );
+        } else {
+          // Fists up again (a draw's hands are cleared) while ROCK… PAPER… is counted.
+          at(c.atMs, { duelThrowIndex: -1, duelWord: c.word }, { kind: 'duelCount', word: c.word });
+        }
+      }
     }
     timers.push(setTimeout(() => onCompleteRef.current(turnId), t.completeMs * timeScale));
     return () => timers.forEach(clearTimeout);

@@ -1102,10 +1102,11 @@ textarea {
   }
 }
 
+/* Reduced motion is honoured unless the host chose Animations: Always on (data-motion). */
 @media (prefers-reduced-motion: reduce) {
-  .victory__confetti,
-  .finalist__hand--bounce,
-  .match__sudden-death {
+  :root:not([data-motion='always']) .victory__confetti,
+  :root:not([data-motion='always']) .finalist__hand--bounce,
+  :root:not([data-motion='always']) .match__sudden-death {
     animation: none;
   }
 }
@@ -2049,23 +2050,23 @@ label.button {
   }
 }
 
+/* Reduced motion is honoured unless the host chose Animations: Always on (data-motion). */
 @media (prefers-reduced-motion: reduce) {
-  .fighter-sprite--idle,
-  .title-screen__coin,
-  .match--shake,
-  .fighter--falling,
-  .fighter--falling .fighter-sprite,
-  .impact__spark,
-  .finale-stage__arena--entering .finalist,
-  .finale-stage__arena--final-blow,
-  .match-intro__banner,
-  .impact__stamp,
-  .finale-splash,
-  .finale-finish {
+  :root:not([data-motion='always']) .fighter-sprite--idle,
+  :root:not([data-motion='always']) .title-screen__coin,
+  :root:not([data-motion='always']) .match--shake,
+  :root:not([data-motion='always']) .fighter--falling,
+  :root:not([data-motion='always']) .fighter--falling .fighter-sprite,
+  :root:not([data-motion='always']) .impact__spark,
+  :root:not([data-motion='always']) .finale-stage__arena--entering .finalist,
+  :root:not([data-motion='always']) .finale-stage__arena--final-blow,
+  :root:not([data-motion='always']) .match-intro__banner,
+  :root:not([data-motion='always']) .impact__stamp,
+  :root:not([data-motion='always']) .finale-splash,
+  :root:not([data-motion='always']) .finale-finish {
     animation: none;
   }
-
-  .impact__flash {
+  :root:not([data-motion='always']) .impact__flash {
     display: none;
   }
 }
@@ -2307,11 +2308,12 @@ label.button {
   }
 }
 
+/* Reduced motion is honoured unless the host chose Animations: Always on (data-motion). */
 @media (prefers-reduced-motion: reduce) {
-  .stage-twinkle,
-  .stage-drift,
-  .stage-drift-slow,
-  .stage-steam {
+  :root:not([data-motion='always']) .stage-twinkle,
+  :root:not([data-motion='always']) .stage-drift,
+  :root:not([data-motion='always']) .stage-drift-slow,
+  :root:not([data-motion='always']) .stage-steam {
     animation: none;
   }
 }
@@ -2516,4 +2518,264 @@ label.button {
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.25;
+}
+
+.display-settings label {
+  display: block;
+  margin: 4px 0;
+  cursor: pointer;
+}
+
+/* ---------- rock-paper-scissors count + hand attacks (owner request 2026-10-10) ---------- */
+.duel__hand--bounce {
+  animation: fist-bounce 0.3s steps(3) 1;
+}
+
+.duel__count {
+  display: inline-block;
+  color: var(--gold);
+  font-size: clamp(1.4rem, 3.4vw, 2.4rem);
+  text-shadow:
+    3px 3px 0 var(--red),
+    6px 6px 0 #000;
+  animation: banner-slam 0.25s ease-out;
+}
+
+.hand-attack,
+.hand-hit {
+  position: relative;
+  /* Sharp corners on the framed hand box while it flies. */
+  will-change: transform;
+}
+
+.hand-attack {
+  z-index: 6;
+  animation: 1.2s ease-in-out 0.15s both;
+}
+
+.hand-attack--crush {
+  animation-name: attack-crush;
+}
+
+.hand-attack--wrap {
+  animation-name: attack-wrap;
+}
+
+.hand-attack--cut {
+  animation-name: attack-cut;
+}
+
+/* Rock flies up over the scissors and slams down on them. */
+@keyframes attack-crush {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  32% {
+    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 34px)) scale(1.25);
+  }
+  42% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.35);
+  }
+  48% {
+    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 8px)) scale(1.3);
+  }
+  72% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.3);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Paper flies over the rock and spreads to wrap it. */
+@keyframes attack-wrap {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  38% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.2);
+  }
+  55%,
+  78% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.75);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Scissors fly in and snip twice. */
+@keyframes attack-cut {
+  0% {
+    transform: translate(0, 0) rotate(0);
+  }
+  34% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(0) scale(1.25);
+  }
+  44% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(-28deg) scale(1.3);
+  }
+  52% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(22deg) scale(1.3);
+  }
+  60% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(-28deg) scale(1.3);
+  }
+  74% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(0) scale(1.25);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+}
+
+.hand-hit {
+  animation: 1.2s ease-out 0.15s both;
+}
+
+.hand-hit--crush {
+  animation-name: hit-crushed;
+}
+
+.hand-hit--wrap {
+  animation-name: hit-wrapped;
+}
+
+.hand-hit--cut {
+  animation-name: hit-cut;
+}
+
+/* Scissors squashed flat under the rock, and they stay broken. */
+@keyframes hit-crushed {
+  0%,
+  40% {
+    transform: none;
+    filter: none;
+  }
+  46% {
+    transform: translateY(12px) scale(1.45, 0.3);
+    filter: grayscale(1) brightness(0.7);
+  }
+  100% {
+    transform: translateY(10px) scale(1.35, 0.35);
+    filter: grayscale(1) brightness(0.6);
+  }
+}
+
+/* Rock shrinks away inside the paper. */
+@keyframes hit-wrapped {
+  0%,
+  42% {
+    transform: none;
+    opacity: 1;
+  }
+  62% {
+    transform: scale(0.55);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+}
+
+/* Paper is slashed and falls apart. */
+@keyframes hit-cut {
+  0%,
+  46% {
+    transform: none;
+    opacity: 1;
+  }
+  64% {
+    transform: rotate(16deg) translateY(10px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(22deg) translateY(16px);
+    opacity: 0.45;
+  }
+}
+
+.hand-hit--cut::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  top: 50%;
+  width: 120%;
+  height: 4px;
+  background: #fff;
+  box-shadow: 0 0 6px var(--red);
+  transform: rotate(-35deg) scaleX(0);
+  animation: slash 1.2s ease-out 0.15s both;
+}
+
+@keyframes slash {
+  0%,
+  44% {
+    transform: rotate(-35deg) scaleX(0);
+    opacity: 1;
+  }
+  54% {
+    transform: rotate(-35deg) scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-35deg) scaleX(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='always']) .duel__hand--bounce,
+  :root:not([data-motion='always']) .duel__count,
+  :root:not([data-motion='always']) .hand-attack,
+  :root:not([data-motion='always']) .hand-hit,
+  :root:not([data-motion='always']) .hand-hit--cut::after {
+    animation: none;
+  }
+}
+
+/* ---------- event log beside the action, see-through (owner request 2026-10-10) ---------- */
+.match__main,
+.finale-stage__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.panel.event-log {
+  background: rgba(27, 16, 48, 0.55);
+  border-color: rgba(58, 37, 96, 0.8);
+}
+
+/* Wide screens: log in a side column so it stays visible; the fighter grid keeps 6 per row. */
+@media (min-width: 1600px) {
+  .match {
+    max-width: 1580px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+
+  .finale-stage {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    padding-inline: max(16px, calc((100vw - 1440px) / 2));
+  }
+
+  .match > .event-log,
+  .finale-stage > .event-log {
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 32px);
+  }
+
+  .match > .event-log .event-log__list,
+  .finale-stage > .event-log .event-log__list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    padding-left: 2.2em;
+  }
 }
