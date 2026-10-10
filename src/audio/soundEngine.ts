@@ -345,20 +345,11 @@ export function createSoundEngine(): SoundEngine {
       chanter.speak(word, settings?.voiceURI ?? null, voiceLevel());
       const c = running();
       if (c && sfxBus && sfxLevel() > 0) {
-        if (word === 'YO') {
+        if (word === 'JUICE') {
           osc(c, sfxBus, 'sine', 160, 40, c.currentTime, 0.35, 1);
           noiseHit(c, sfxBus, c.currentTime, 0.2, 0.6, 'bandpass', 2000);
         } else {
-          osc(
-            c,
-            sfxBus,
-            'sine',
-            word === 'MOT' ? 120 : word === 'HAI' ? 140 : 165,
-            50,
-            c.currentTime,
-            0.2,
-            0.9,
-          );
+          osc(c, sfxBus, 'sine', word === 'ONE' ? 120 : 145, 50, c.currentTime, 0.2, 0.9);
         }
       }
       duck();

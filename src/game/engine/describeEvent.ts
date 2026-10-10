@@ -48,7 +48,7 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
     case 'FINALE_REACHED':
       return `Finale! ${joinNames(event.finalistIds.map(nameOf))} advance.`;
     case 'FINALE_STARTED':
-      return 'Một Hai Ba Yo! The finale begins: first to 3 points takes a winner slot.';
+      return '1, 2, Juice! The finale begins: first to 3 points takes a winner slot.';
     case 'FINALE_ROUND_RESOLVED':
       return describeFinaleRound(event.round, nameOf);
     case 'FINALISTS_QUALIFIED': {

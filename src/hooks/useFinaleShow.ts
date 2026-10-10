@@ -17,7 +17,7 @@ export interface FinaleShowHandlers {
 export interface FinaleShowState {
   /** Chant word currently on screen, or null. */
   readonly word: ChantWord | null;
-  /** Hands to show: the current reveal on "Yo!", or the last result between rounds. */
+  /** Hands to show: the current reveal on "Juice!", or the last result between rounds. */
   readonly revealThrows: readonly FinaleThrow[] | null;
   /** Current pace: 1 = normal, smaller = faster (rising tension, owner request). */
   readonly paceScale: number;
@@ -25,7 +25,7 @@ export interface FinaleShowState {
 
 /**
  * Drives the automated finale: intro chant (once, before the first reveal), then for every
- * committed round "Hai · Ba · Yo!", a result hold, and the next round. Only plays back what is
+ * committed round "1 · 2 · Juice!", a result hold, and the next round. Only plays back what is
  * already committed; `timeScale` < 1 is for tests.
  */
 export function useFinaleShow(

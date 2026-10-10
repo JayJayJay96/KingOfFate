@@ -5,7 +5,7 @@ export interface AudioSettings {
   readonly music: number;
   readonly voice: number;
   readonly sfx: number;
-  /** Chosen speech voice, or null for automatic (Vietnamese if available). */
+  /** Chosen chant voice, or null for automatic (an English voice). */
   readonly voiceURI: string | null;
   /** Match-screen music: the original built-in chiptune, or the host's own local file. */
   readonly musicSource: 'builtin' | 'custom';

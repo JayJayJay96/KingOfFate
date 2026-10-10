@@ -79,7 +79,7 @@ describe('finale setup', () => {
     const started = beginFinale(m);
     expect(started.finale?.started).toBe(true);
     expect(beginFinale(started)).toBe(started);
-    expect(describeEvent(started.events.at(-1)!, started)).toMatch(/^Một Hai Ba Yo!/);
+    expect(describeEvent(started.events.at(-1)!, started)).toMatch(/^1, 2, Juice!/);
   });
 
   it('commits every contender’s throw before the reveal, and only one round at a time', () => {

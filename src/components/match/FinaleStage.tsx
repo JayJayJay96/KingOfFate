@@ -37,7 +37,7 @@ interface FinaleStageProps {
   readonly finishing?: boolean;
 }
 
-/** Full-screen Một Hai Ba Yo finale. Plays back committed reveals only. */
+/** Full-screen "1, 2, Juice!" finale. Plays back committed reveals only. */
 export function FinaleStage({
   match,
   timeScale,
@@ -76,7 +76,7 @@ export function FinaleStage({
   const positions = stagePositions(f.finalistIds.length);
   const holding = paused && !f.pendingRound;
 
-  // Winning hands attack the nearest losing hand on "Yo!" (owner request; presentation only).
+  // Winning hands attack the nearest losing hand on "Juice!" (owner request; presentation only).
   const revealThrows = show.revealThrows;
   const winGesture = revealThrows ? winningGesture(revealThrows.map((t) => t.gesture)) : null;
   const action: AttackAction | null = winGesture ? ATTACK_OF[winGesture] : null;
@@ -211,7 +211,7 @@ export function FinaleStage({
           )}
           <div className="finale-stage__center">
             <p className="finale-stage__chant" data-testid="chant" aria-hidden="true">
-              {show.word ? CHANT_LABEL[show.word] : f.started ? '' : 'Một Hai Ba Yo!'}
+              {show.word ? CHANT_LABEL[show.word] : f.started ? '' : '1, 2, Juice!'}
             </p>
           </div>
         </section>
@@ -224,8 +224,8 @@ export function FinaleStage({
           <section className="panel finale-stage__intro">
             <p>
               {f.finalistIds.length} finalists, {match.winnerCount} winner slot
-              {match.winnerCount === 1 ? '' : 's'}. Everyone throws on “Yo!”. Everyone the same, or
-              all three hands, is a draw. Otherwise every winning hand scores 1. First to{' '}
+              {match.winnerCount === 1 ? '' : 's'}. Everyone throws on “Juice!”. Everyone the same,
+              or all three hands, is a draw. Otherwise every winning hand scores 1. First to{' '}
               {FINALE_TARGET_SCORE} takes a slot.
             </p>
             <button type="button" className="button button--start" onClick={begin}>
@@ -276,7 +276,7 @@ function Finalist({
 }: FinalistProps) {
   const classes = ['finalist', `finalist--${status}`];
   if (scored) classes.push('finalist--scored');
-  const bouncing = status === 'in' && !revealed && (word === 'HAI' || word === 'BA');
+  const bouncing = status === 'in' && !revealed && (word === 'ONE' || word === 'TWO');
   const role =
     action && revealed && status !== 'winner'
       ? revealed.gesture === winGesture

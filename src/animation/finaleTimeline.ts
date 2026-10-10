@@ -1,11 +1,10 @@
-/** Chant words of the Vietnamese countdown. */
-export type ChantWord = 'MOT' | 'HAI' | 'BA' | 'YO';
+/** Chant words of the finale countdown: "1, 2, Juice!" (owner decision 2026-10-10). */
+export type ChantWord = 'ONE' | 'TWO' | 'JUICE';
 
 export const CHANT_LABEL: Readonly<Record<ChantWord, string>> = {
-  MOT: 'Một',
-  HAI: 'Hai',
-  BA: 'Ba',
-  YO: 'Yo!',
+  ONE: '1',
+  TWO: '2',
+  JUICE: 'Juice!',
 };
 
 export const CHANT_BEAT_MS = 600;
@@ -18,13 +17,13 @@ export const FINALE_INTRO_PAUSE_MS = 800;
 export interface ChantCue {
   readonly word: ChantWord | null;
   readonly atMs: number;
-  /** True on "Yo!" of a round: hands are revealed. */
+  /** True on "Juice!" of a round: hands are revealed. */
   readonly reveal: boolean;
 }
 
-/** Opening cue "Một Hai Ba Yo!" with no throw (PROJECT.md §5). */
+/** Opening cue "1, 2, Juice!" with no throw (PROJECT.md §5). */
 export function introTimeline(): { cues: ChantCue[]; doneMs: number } {
-  const words: ChantWord[] = ['MOT', 'HAI', 'BA', 'YO'];
+  const words: ChantWord[] = ['ONE', 'TWO', 'JUICE'];
   const cues: ChantCue[] = words.map((word, i) => ({
     word,
     atMs: i * CHANT_BEAT_MS,
@@ -87,15 +86,15 @@ export function finalePace(streak: number): FinalePace {
   };
 }
 
-/** Each reveal: "Hai" (fists bounce), "Ba" (bounce), "Yo!" (all hands shown at once). */
+/** Each reveal: "1" (fists bounce), "2" (bounce), "Juice!" (all hands shown at once). */
 export function roundTimeline(pace: FinalePace = NORMAL_PACE): {
   cues: ChantCue[];
   resolveMs: number;
 } {
   const cues: ChantCue[] = [
-    { word: 'HAI', atMs: 0, reveal: false },
-    { word: 'BA', atMs: pace.beatMs, reveal: false },
-    { word: 'YO', atMs: 2 * pace.beatMs, reveal: true },
+    { word: 'ONE', atMs: 0, reveal: false },
+    { word: 'TWO', atMs: pace.beatMs, reveal: false },
+    { word: 'JUICE', atMs: 2 * pace.beatMs, reveal: true },
   ];
   return { cues, resolveMs: 2 * pace.beatMs + pace.holdMs };
 }

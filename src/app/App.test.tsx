@@ -488,7 +488,7 @@ describe('Phase 5: sound, shortcuts and pause', () => {
     await user.click(screen.getByRole('button', { name: /start the finale/i }));
     await screen.findByRole('main', { name: 'Victory' });
     expect(calls).toContain('music:finale');
-    for (const word of ['MOT', 'HAI', 'BA', 'YO']) expect(calls).toContain(`chant:${word}`);
+    for (const word of ['ONE', 'TWO', 'JUICE']) expect(calls).toContain(`chant:${word}`);
     expect(calls).toContain('sfx:score');
     // The winning reveal ends the match, so the victory jingle replaces the qualify sting.
     expect(calls).toContain('sfx:victory');
@@ -762,7 +762,7 @@ describe('Owner requests 2026-10-10: RPS count and hand attacks', () => {
   const ROCK = 0;
   const SCISSORS = 2;
 
-  it('a VS is counted ROCK… PAPER… SCISSORS! for every throw, with a beat and the words', async () => {
+  it('a VS is counted ROCK… PAPER… SCISSORS! for every throw, with a beat (no voice)', async () => {
     const { engine, calls } = spyEngine();
     const user = userEvent.setup();
     render(
@@ -783,9 +783,8 @@ describe('Owner requests 2026-10-10: RPS count and hand attacks', () => {
     await findInLog(/Turn 1: Aisyah VS Wei Jie: Rock beats Scissors after 1 draw/);
     const turn = calls.slice(before);
     expect(turn.filter((c) => c === 'sfx:count')).toHaveLength(6);
-    expect(turn.filter((c) => c === 'announce:Rock!')).toHaveLength(2);
-    expect(turn.filter((c) => c === 'announce:Paper!')).toHaveLength(2);
-    expect(turn.filter((c) => c === 'announce:Scissors!')).toHaveLength(2);
+    // Owner request: beat only, no spoken Rock / Paper / Scissors.
+    expect(turn.some((c) => /^announce:(Rock|Paper|Scissors)!$/.test(c))).toBe(false);
     // Every SCISSORS beat reveals: once as a draw, once as the decisive clash.
     expect(turn).toContain('sfx:draw');
     expect(turn).toContain('sfx:clash');

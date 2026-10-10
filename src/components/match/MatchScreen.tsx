@@ -8,7 +8,6 @@ import {
 } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import { FINAL_BLOW_MS } from '../../animation/matchIntro';
-import type { DuelWord } from '../../animation/turnTimeline';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
@@ -39,13 +38,6 @@ interface MatchScreenProps {
 }
 
 const INTERACTIVE = 'button, input, textarea, select, a, [contenteditable="true"]';
-
-/** Announcer words for the in-match rock-paper-scissors count. */
-const DUEL_WORD_LINE: Readonly<Record<DuelWord, string>> = {
-  ROCK: 'Rock!',
-  PAPER: 'Paper!',
-  SCISSORS: 'Scissors!',
-};
 
 /** How long the K.O. stamp / sparks / shake stay on screen after a turn resolves. */
 const IMPACT_MS = 1100;
@@ -95,15 +87,13 @@ export function MatchScreen({
       engine.sfx('vs');
       engine.announce(ANNOUNCE.versus);
     } else if (cue.kind === 'duelIntro') engine.sfx('clash');
-    else if (cue.kind === 'duelCount') {
-      engine.sfx('count');
-      engine.announce(DUEL_WORD_LINE[cue.word]);
-    } else {
+    // Owner request: the count is a beat only (no spoken words).
+    else if (cue.kind === 'duelCount') engine.sfx('count');
+    else {
       // SCISSORS beat: the hands are revealed.
       const t = duel?.throws[cue.index];
       engine.sfx('count');
       engine.sfx(t && t.challenger === t.opponent ? 'draw' : 'clash');
-      engine.announce(DUEL_WORD_LINE.SCISSORS);
     }
   };
 

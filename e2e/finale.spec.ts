@@ -44,13 +44,13 @@ const roundLines = (page: Page) =>
     .getByRole('listitem')
     .filter({ hasText: /Round \d+:/ });
 
-test('a real Một Hai Ba Yo finale runs automatically to exactly one winner', async ({ page }) => {
+test('a real "1, 2, Juice!" finale runs automatically to exactly one winner', async ({ page }) => {
   test.setTimeout(180_000);
   await openFinale(page, ['Aisyah', 'Wei Jie'], 1);
   await expect(page.getByTestId('finalist')).toHaveCount(2);
 
   await page.getByRole('button', { name: /start the finale/i }).click();
-  await expect(page.getByTestId('chant')).toHaveText(/Một|Hai|Ba|Yo!/, { timeout: 5_000 });
+  await expect(page.getByTestId('chant')).toHaveText(/^(1|2|Juice!)$/, { timeout: 5_000 });
 
   const victory = page.getByRole('main', { name: 'Victory' });
   await expect(victory).toBeVisible({ timeout: 150_000 });

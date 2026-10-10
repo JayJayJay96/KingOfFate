@@ -1,11 +1,11 @@
 import { useId, useState, type ChangeEvent } from 'react';
 import { useSound } from '../../audio/soundContext';
-import { isVietnamese, pickVoice } from '../../audio/voice';
+import { pickVoice } from '../../audio/voice';
 import type { ChantWord } from '../../animation/finaleTimeline';
 import { MAX_ASSET_BYTES } from '../../storage/assetStorage';
 
 const VOLUME_LABELS = { music: 'Music', voice: 'Voices', sfx: 'Effects' } as const;
-const TEST_WORDS: ChantWord[] = ['MOT', 'HAI', 'BA', 'YO'];
+const TEST_WORDS: ChantWord[] = ['ONE', 'TWO', 'JUICE'];
 
 /** Sound settings for the host. Everything stays in this browser. */
 export function SoundSettings() {
@@ -98,9 +98,7 @@ export function SoundSettings() {
       <p className="hint">
         {!engine.speech
           ? 'This browser has no speech voices; the chant plays as drum beats only.'
-          : isVietnamese(active)
-            ? 'Vietnamese voice found: the chant is spoken as “Một Hai Ba Yo!”.'
-            : 'No Vietnamese voice on this computer: the chant is spoken phonetically. Edge on Windows usually includes one.'}
+          : 'The finale chant “1, 2, Juice!” is spoken in this voice.'}
       </p>
 
       <label className="sound-settings__toggle">

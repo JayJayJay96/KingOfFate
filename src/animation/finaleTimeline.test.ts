@@ -12,19 +12,19 @@ import {
 } from './finaleTimeline';
 
 describe('finale chant timelines', () => {
-  it('intro is "Một Hai Ba Yo!" with no reveal, then clears', () => {
+  it('intro is "1, 2, Juice!" with no reveal, then clears', () => {
     const { cues, doneMs } = introTimeline();
-    expect(cues.map((c) => c.word)).toEqual(['MOT', 'HAI', 'BA', 'YO', null]);
+    expect(cues.map((c) => c.word)).toEqual(['ONE', 'TWO', 'JUICE', null]);
     expect(cues.every((c) => !c.reveal)).toBe(true);
     expect(doneMs).toBeGreaterThan(cues.at(-1)!.atMs);
   });
 
-  it('each round is "Hai · Ba · Yo!" and hands are revealed only on "Yo!"', () => {
+  it('each round is "1 · 2 · Juice!" and hands are revealed only on "Juice!"', () => {
     const { cues, resolveMs } = roundTimeline();
     expect(cues.map((c) => [c.word, c.reveal])).toEqual([
-      ['HAI', false],
-      ['BA', false],
-      ['YO', true],
+      ['ONE', false],
+      ['TWO', false],
+      ['JUICE', true],
     ]);
     expect(cues.map((c) => c.atMs)).toEqual([0, CHANT_BEAT_MS, 2 * CHANT_BEAT_MS]);
     expect(resolveMs).toBe(2 * CHANT_BEAT_MS + FINALE_REVEAL_HOLD_MS);
@@ -93,7 +93,7 @@ describe('finale rising pace (owner request 2026-10-10)', () => {
       const { cues, resolveMs } = roundTimeline(pace);
       expect(cues.map((c) => c.atMs)).toEqual([0, pace.beatMs, 2 * pace.beatMs]);
       expect(resolveMs).toBe(2 * pace.beatMs + pace.holdMs);
-      // Visible after "Yo!": hold + pause ≥ attack delay + duration, both scaled.
+      // Visible after "Juice!": hold + pause ≥ attack delay + duration, both scaled.
       expect(pace.holdMs + pace.pauseMs).toBeGreaterThanOrEqual((0.15 + 2.4) * 1000 * pace.scale);
     }
   });
