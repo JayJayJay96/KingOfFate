@@ -16,7 +16,8 @@ export const FATE_LANDS_AFTER_FIGHTER_MS = 400;
 export const DUEL_INTRO_MS = 600;
 export const DUEL_COUNT_BEAT_MS = 550;
 export const DUEL_DRAW_HOLD_MS = 900;
-export const DUEL_RESULT_HOLD_MS = 1800;
+/** Long enough for the 2.4 s hand-attack animation (owner: 1 s flight). */
+export const DUEL_RESULT_HOLD_MS = 2800;
 
 export type DuelWord = 'ROCK' | 'PAPER' | 'SCISSORS';
 

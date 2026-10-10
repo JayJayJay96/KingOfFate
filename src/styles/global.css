@@ -2541,16 +2541,23 @@ label.button {
   animation: banner-slam 0.25s ease-out;
 }
 
+/*
+ * Attack timeline (2.4 s, owner: "make the flight a whole second"):
+ *   0–42 %  ≈ 1.0 s  the winning hand flies to the loser
+ *   42–65 % ≈ 0.55 s the action (crush / wrap / cut)
+ *   65–85 %          holds on the loser
+ *   85–100 %         flies back
+ * The loser reacts from 42 % on and stays beaten.
+ */
 .hand-attack,
 .hand-hit {
   position: relative;
-  /* Sharp corners on the framed hand box while it flies. */
   will-change: transform;
 }
 
 .hand-attack {
   z-index: 6;
-  animation: 1.2s ease-in-out 0.15s both;
+  animation: 2.4s ease-in-out 0.15s both;
 }
 
 .hand-attack--crush {
@@ -2570,16 +2577,20 @@ label.button {
   0% {
     transform: translate(0, 0) scale(1);
   }
-  32% {
-    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 34px)) scale(1.25);
+  36% {
+    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 40px)) scale(1.25);
   }
   42% {
-    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.35);
+    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 46px)) scale(1.3);
   }
   48% {
-    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 8px)) scale(1.3);
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.4);
   }
-  72% {
+  53% {
+    transform: translate(var(--ax, 0px), calc(var(--ay, 0px) - 12px)) scale(1.3);
+  }
+  58%,
+  85% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.3);
   }
   100% {
@@ -2592,12 +2603,12 @@ label.button {
   0% {
     transform: translate(0, 0) scale(1);
   }
-  38% {
+  42% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.2);
   }
-  55%,
-  78% {
-    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.75);
+  60%,
+  85% {
+    transform: translate(var(--ax, 0px), var(--ay, 0px)) scale(1.8);
   }
   100% {
     transform: translate(0, 0) scale(1);
@@ -2609,19 +2620,20 @@ label.button {
   0% {
     transform: translate(0, 0) rotate(0);
   }
-  34% {
+  42% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(0) scale(1.25);
   }
-  44% {
+  48% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(-28deg) scale(1.3);
   }
-  52% {
+  54% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(22deg) scale(1.3);
   }
   60% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(-28deg) scale(1.3);
   }
-  74% {
+  66%,
+  85% {
     transform: translate(var(--ax, 0px), var(--ay, 0px)) rotate(0) scale(1.25);
   }
   100% {
@@ -2630,7 +2642,7 @@ label.button {
 }
 
 .hand-hit {
-  animation: 1.2s ease-out 0.15s both;
+  animation: 2.4s ease-out 0.15s both;
 }
 
 .hand-hit--crush {
@@ -2648,11 +2660,11 @@ label.button {
 /* Scissors squashed flat under the rock, and they stay broken. */
 @keyframes hit-crushed {
   0%,
-  40% {
+  47% {
     transform: none;
     filter: none;
   }
-  46% {
+  50% {
     transform: translateY(12px) scale(1.45, 0.3);
     filter: grayscale(1) brightness(0.7);
   }
@@ -2665,7 +2677,7 @@ label.button {
 /* Rock shrinks away inside the paper. */
 @keyframes hit-wrapped {
   0%,
-  42% {
+  44% {
     transform: none;
     opacity: 1;
   }
@@ -2682,11 +2694,11 @@ label.button {
 /* Paper is slashed and falls apart. */
 @keyframes hit-cut {
   0%,
-  46% {
+  50% {
     transform: none;
     opacity: 1;
   }
-  64% {
+  66% {
     transform: rotate(16deg) translateY(10px);
     opacity: 0.7;
   }
@@ -2706,12 +2718,12 @@ label.button {
   background: #fff;
   box-shadow: 0 0 6px var(--red);
   transform: rotate(-35deg) scaleX(0);
-  animation: slash 1.2s ease-out 0.15s both;
+  animation: slash 2.4s ease-out 0.15s both;
 }
 
 @keyframes slash {
   0%,
-  44% {
+  47% {
     transform: rotate(-35deg) scaleX(0);
     opacity: 1;
   }
@@ -2778,4 +2790,9 @@ label.button {
     max-height: none;
     padding-left: 2.2em;
   }
+}
+
+/* The attacking finalist (its card is its own layer) flies above the chant word and others. */
+.finalist:has(.hand-attack) {
+  z-index: 20;
 }

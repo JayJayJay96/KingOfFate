@@ -66,6 +66,13 @@
 
 ## 6. Session log
 
+### 2026-10-10 — Slower hand attack (1 s flight) + test hardening
+- **Owner input:** "didn't see the flying action, make it last ~1 whole second".
+- **Changed:** hand-attack/hit keyframes now 2.4 s (≈ 1.0 s flight, 0.55 s action, hold, fly back); `DUEL_RESULT_HOLD_MS` 1800 → 2800 and `FINALE_REVEAL_HOLD_MS` 1500 → 2000 so the next step does not cut it off (finale round ≈ 3.9 s, was ≈ 3.4 s); the attacking finalist's card is raised above the chant word (`.finalist:has(.hand-attack)`). Mid-flight frames captured in headless Edge (duel: rock crossing the panel; finale: rock arcing over "YO!").
+- **Test hardening:** the second-tab warning now uses **Web Locks** (no tab waits for another to reply; the browser frees a closed or crashed tab's place), with BroadcastChannel heartbeats as the fallback; the E2E waits up to 10 s for the warning to clear. `playwright.config.ts` `workers: 4`: with ~10 parallel Edge windows the cursor-order spec occasionally saw two cursor steps in one frame (test load, not a game bug).
+- **Tests:** `npm test` → **30 files, 313 passed**; `npm run e2e` → **24 passed ×3 in a row** (72/72). Typecheck, oxlint, Prettier clean.
+- **Next exact action:** owner watches a VS and a finale round (with Animations: Always on on the office PC).
+
 ### 2026-10-10 — Animations setting, RPS count, hand attacks, side event log (owner requests)
 - **Owner input:** add the Animations: Always on setting; roll back the announcer delay ("it's an Edge thing"); in-match RPS too fast → "rock paper scissors" count with the result on Scissors; winning hand flies at the loser and acts (rock crushes scissors, paper wraps rock, scissors cut paper) in duel and finale; move the event log to the side, partly transparent. Logged in `PROJECT.md` §10.
 - **Added:** `src/storage/displaySettings.ts` (+ test), `src/components/setup/DisplaySettings.tsx` (Animations panel with a hint when the computer asks for reduced motion), `src/components/match/handAttack.ts` (`ATTACK_OF`, `aimAttacks`: each winning hand aims at the nearest losing hand via `--ax/--ay`), `src/components/match/DuelPanel.test.tsx`, `src/audio/soundEngine.test.ts` (no-op safety).

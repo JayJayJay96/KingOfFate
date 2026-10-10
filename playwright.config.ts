@@ -11,6 +11,9 @@ export default defineConfig({
   // Real spins last up to 10 s; a refresh-mid-spin test replays one.
   timeout: 60_000,
   fullyParallel: true,
+  // Timing-sensitive specs (cursor order, animations) need real frames; too many parallel
+  // browsers on one machine starve them and cause false failures.
+  workers: 4,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: 'list',

@@ -10,7 +10,8 @@ export const CHANT_LABEL: Readonly<Record<ChantWord, string>> = {
 
 export const CHANT_BEAT_MS = 600;
 /** Hands stay revealed and scores update before the next chant. */
-export const FINALE_REVEAL_HOLD_MS = 1500;
+/** With the 0.7 s pause before the next chant, leaves room for the 2.4 s hand attack. */
+export const FINALE_REVEAL_HOLD_MS = 2000;
 export const FINALE_NEXT_ROUND_PAUSE_MS = 700;
 export const FINALE_INTRO_PAUSE_MS = 800;
 

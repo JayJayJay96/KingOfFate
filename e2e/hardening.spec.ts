@@ -194,7 +194,11 @@ test('a second tab gets a warning (both tabs share one saved match)', async ({ c
   await expect(second.getByRole('alert').filter({ hasText: warning })).toBeVisible();
   await expect(first.getByRole('alert').filter({ hasText: warning })).toBeVisible();
   await second.close();
-  await expect(first.getByRole('alert').filter({ hasText: warning })).toBeHidden();
+  // Normally instant (goodbye message); if the closing tab cannot send it, the heartbeat
+  // expires it within ~7 s.
+  await expect(first.getByRole('alert').filter({ hasText: warning })).toBeHidden({
+    timeout: 10_000,
+  });
 });
 
 test('idle fighters visibly bob (at least 2 px, even on small grid sprites)', async ({ page }) => {
