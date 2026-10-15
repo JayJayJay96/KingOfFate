@@ -55,6 +55,25 @@ describe('IndexedDB match repository', () => {
     expect(players.filter((p) => !p.alive).map((p) => p.id)).toEqual(['p2']);
   });
 
+  it('recovers a mid-spin Bomb with its committed neighbour; rejects a damaged one', async () => {
+    const factory = new IDBFactory();
+    const m0 = newMatch();
+    const bombSlot = m0.fateSlots.indexOf('BOMB');
+    const spinning = beginTurn(m0, createScriptedRng([1, bombSlot, 1]), 't1');
+    expect(spinning.pendingTurn!.bomb).toEqual({ neighbourId: 'p2' });
+    await createIndexedDbMatchRepository(factory).save(spinning);
+    const loaded = await createIndexedDbMatchRepository(factory).load();
+    expect(loaded).toEqual({ status: 'loaded', match: spinning });
+
+    const damaged = {
+      ...spinning,
+      pendingTurn: { ...spinning.pendingTurn!, bomb: { neighbourId: 'p1' } }, // the picked one
+    };
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    await repo.save(damaged);
+    expect((await repo.load()).status).toBe('corrupt');
+  });
+
   it('discards a corrupt checkpoint and reports it', async () => {
     const factory = new IDBFactory();
     const repo = createIndexedDbMatchRepository(factory);

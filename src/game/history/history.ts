@@ -143,6 +143,10 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
     const o = event.outcome;
     if (o.fate === 'KO' && o.result === 'BLOCKED') bump(event.playerId, 'shieldBlocks');
     if (o.fate === 'SHIELD' && o.result === 'GAINED') bump(event.playerId, 'shieldsGained');
+    if (o.fate === 'BOMB') {
+      if (o.result === 'BLOCKED') bump(event.playerId, 'shieldBlocks');
+      if (o.neighbourResult === 'BLOCKED') bump(o.neighbourId, 'shieldBlocks');
+    }
     if (o.fate === 'VS') {
       duels.push({ winnerId: o.winnerId, loserId: o.loserId });
       bump(o.winnerId, 'vsFought');

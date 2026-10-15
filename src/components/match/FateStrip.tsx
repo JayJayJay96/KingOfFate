@@ -15,6 +15,10 @@ const FATE_INFO: Readonly<Record<FateKind, { label: string; help: string }>> = {
     label: 'Shield',
     help: 'Shield: the fighter gains a Shield (max 1; a second one is wasted).',
   },
+  BOMB: {
+    label: 'Bomb',
+    help: 'Bomb: the fighter takes a KO and the blast also hits the next living fighter to their left or right (50/50). A Shield absorbs it for either.',
+  },
 };
 
 interface FateStripProps {
@@ -45,7 +49,7 @@ export function FateStrip({
   finaleAt,
 }: FateStripProps) {
   const counts = countSlots(slots);
-  const odds = (['KO', 'VS', 'SHIELD'] as const)
+  const odds = (['KO', 'VS', 'SHIELD', 'BOMB'] as const)
     .filter((k) => counts[k] > 0)
     .map((k) => `${FATE_INFO[k].label} ${counts[k] * 5}%`)
     .join(' · ');

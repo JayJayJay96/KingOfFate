@@ -76,6 +76,12 @@ export interface CommittedDuel {
   readonly throws: readonly DuelThrow[];
 }
 
+/** Bomb Fate (owner decision 2026-10-16): the blast also hits one adjacent living fighter. */
+export interface CommittedBomb {
+  /** Nearest living fighter to the left or right in grid order (50/50, wrapping). */
+  readonly neighbourId: string;
+}
+
 /** Everything random about a turn, sampled and saved before any animation starts. */
 export interface CommittedTurn {
   readonly turnId: string;
@@ -85,11 +91,20 @@ export interface CommittedTurn {
   readonly fate: FateKind;
   readonly suddenDeath: boolean;
   readonly duel: CommittedDuel | null;
+  /** Bomb only (absent on turns saved before Bombs existed). */
+  readonly bomb?: CommittedBomb | null;
 }
 
 export type TurnOutcome =
   | { readonly fate: 'KO'; readonly result: 'ELIMINATED' | 'BLOCKED' }
   | { readonly fate: 'SHIELD'; readonly result: 'GAINED' | 'WASTED' }
+  | {
+      readonly fate: 'BOMB';
+      readonly result: 'ELIMINATED' | 'BLOCKED';
+      readonly neighbourId: string;
+      /** SPARED: hitting both would have left fewer than W + 1 fighters. */
+      readonly neighbourResult: 'ELIMINATED' | 'BLOCKED' | 'SPARED';
+    }
   | {
       readonly fate: 'VS';
       readonly winnerId: string;
@@ -102,6 +117,7 @@ export type TurnOutcome =
 export interface ResolvedTurn {
   readonly turn: CommittedTurn;
   readonly outcome: TurnOutcome;
+  /** First fighter eliminated this turn (a Bomb can also eliminate its neighbour). */
   readonly eliminatedId: string | null;
 }
 

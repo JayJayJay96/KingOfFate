@@ -24,8 +24,14 @@ export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPane
   if (match.phase === 'SPINNING') {
     name = highlightId ? nameOf(highlightId) : null;
     // The fighter is revealed first; only then does Fate decide what happens to them.
-    caption = stage === 'fate' ? 'Fate is choosing…' : 'Choosing a fighter…';
+    caption =
+      stage === 'bomb'
+        ? 'Bomb! The blast spreads…'
+        : stage === 'fate'
+          ? 'Fate is choosing…'
+          : 'Choosing a fighter…';
     if (stage === 'fate') tone = 'preview--chosen';
+    if (stage === 'bomb') tone = 'preview--chosen';
   } else if (last) {
     name = nameOf(last.turn.playerId);
     ({ caption, tone } = shortOutcome(last, nameOf));
@@ -76,6 +82,20 @@ function shortOutcome(
       return o.result === 'ELIMINATED'
         ? { caption: 'KO! Eliminated', tone: 'preview--ko' }
         : { caption: 'KO blocked by Shield', tone: 'preview--shield' };
+    case 'BOMB': {
+      const other = nameOf(o.neighbourId);
+      const self = o.result === 'ELIMINATED' ? 'Bomb! Eliminated' : 'Bomb blocked by Shield';
+      const blast =
+        o.neighbourResult === 'ELIMINATED'
+          ? `${other} blown out too`
+          : o.neighbourResult === 'BLOCKED'
+            ? `${other}'s Shield holds`
+            : `${other} spared`;
+      return {
+        caption: `${self} · ${blast}`,
+        tone: o.result === 'ELIMINATED' ? 'preview--ko' : 'preview--shield',
+      };
+    }
     case 'SHIELD':
       return o.result === 'GAINED'
         ? { caption: 'Gains a Shield', tone: 'preview--shield' }

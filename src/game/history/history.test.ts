@@ -87,6 +87,8 @@ describe('summarizeMatch', () => {
       if (o.fate === 'KO' && o.result === 'BLOCKED') blocked++;
       if (o.fate === 'VS' && o.winnerShield === 'GAINED') gained++;
       if (o.fate === 'VS' && o.loserResult === 'BLOCKED') blocked++;
+      if (o.fate === 'BOMB' && o.result === 'BLOCKED') blocked++;
+      if (o.fate === 'BOMB' && o.neighbourResult === 'BLOCKED') blocked++;
     }
     expect(s.fighters.reduce((a, f) => a + f.shieldsGained, 0)).toBe(gained);
     expect(s.fighters.reduce((a, f) => a + f.shieldBlocks, 0)).toBe(blocked);

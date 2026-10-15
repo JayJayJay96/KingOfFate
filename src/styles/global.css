@@ -787,6 +787,11 @@ textarea {
   color: var(--cyan);
 }
 
+.fate-slot--BOMB {
+  background: #3a250a;
+  color: #ffb347;
+}
+
 .fate-slot--cursor {
   border-color: var(--gold);
   background: #3a2a00;
@@ -3095,4 +3100,20 @@ label.button {
   width: min(100%, 720px);
   height: 44px;
   margin: 4px auto 0;
+}
+
+/* Bomb impact (owner decision 2026-10-16): bigger, hotter blast. */
+.impact--boom .impact__stamp {
+  color: #ffb347;
+  font-size: clamp(2.8rem, 10vw, 6rem);
+  text-shadow:
+    4px 4px 0 #000,
+    -3px -3px 0 var(--red);
+}
+
+.impact--boom .impact__spark {
+  background: #ffb347;
+  box-shadow: 0 0 0 2px var(--red);
+  width: 14px;
+  height: 14px;
 }

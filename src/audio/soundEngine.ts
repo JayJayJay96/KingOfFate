@@ -16,6 +16,8 @@ export type SfxName =
   | 'tick'
   | 'fateTick'
   | 'ko'
+  | 'boom'
+  | 'fuse'
   | 'blocked'
   | 'shield'
   | 'wasted'
@@ -321,6 +323,16 @@ export function createSoundEngine(): SoundEngine {
         osc(c, bus, 'sine', 180, 35, now, 0.45, 1);
         noiseHit(c, bus, now, 0.35, 0.8, 'lowpass', 1500);
         osc(c, bus, 'square', 440, 110, now, 0.3, 0.2);
+        break;
+      case 'boom':
+        // Bomb: deep blast with a long noise tail.
+        osc(c, bus, 'sine', 120, 25, now, 0.8, 1);
+        noiseHit(c, bus, now, 0.9, 1, 'lowpass', 900);
+        noiseHit(c, bus, now + 0.05, 0.4, 0.6, 'bandpass', 2400);
+        osc(c, bus, 'square', 300, 60, now, 0.5, 0.25);
+        break;
+      case 'fuse':
+        noiseHit(c, bus, now, 0.12, 0.35, 'highpass', 5000);
         break;
       case 'blocked':
         osc(c, bus, 'square', 900, 900, now, 0.08, 0.3);

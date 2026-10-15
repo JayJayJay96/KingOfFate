@@ -8,10 +8,12 @@ import { initialFinale } from './finale';
 import { appendEvent } from './matchEvents';
 import {
   MATCH_SCHEMA_VERSION,
+  type CommittedBomb,
   type CommittedDuel,
   type CommittedTurn,
   type MatchPlayer,
   type MatchState,
+  type ResolvedTurn,
   type TurnOutcome,
 } from './matchTypes';
 import { challengerWins, sampleDuelThrows } from './rps';
@@ -99,7 +101,7 @@ export function createMatch(
  * Samples EVERYTHING random about the turn and commits it before any animation:
  * the player (uniform over living), the Fate slot (uniform over 20), and for VS the opponent
  * (uniform over other living players) plus every RPS throw until a decisive one.
- * Sampling order is fixed: player, slot, [opponent, throws...].
+ * Sampling order is fixed: player, slot, [opponent, throws...] or [Bomb side].
  */
 export function beginTurn(state: MatchState, rng: Rng, turnId: string): MatchState {
   if (state.phase !== 'READY') {
@@ -123,6 +125,11 @@ export function beginTurn(state: MatchState, rng: Rng, turnId: string): MatchSta
     const opponent = others[rng.nextInt(others.length)]!;
     duel = { opponentId: opponent.id, throws: sampleDuelThrows(rng) };
   }
+  let bomb: CommittedBomb | null = null;
+  if (fate === 'BOMB') {
+    const [left, right] = livingNeighbours(state.players, player.id);
+    bomb = { neighbourId: rng.nextInt(2) === 0 ? left : right };
+  }
 
   const turn: CommittedTurn = {
     turnId,
@@ -132,6 +139,7 @@ export function beginTurn(state: MatchState, rng: Rng, turnId: string): MatchSta
     fate,
     suddenDeath: state.suddenDeath,
     duel,
+    ...(bomb ? { bomb } : {}),
   };
   return appendEvent(
     { ...state, phase: 'SPINNING', pendingTurn: turn },
@@ -167,6 +175,34 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
       eliminatedId = selected.id;
       outcome = { fate: 'KO', result: 'ELIMINATED' };
     }
+  } else if (turn.fate === 'BOMB') {
+    // The picked fighter takes a KO; the blast also hits the committed neighbour. A Shield
+    // absorbs it for either. If both would fall and that left fewer than W + 1, the neighbour
+    // is spared (owner decision 2026-10-16).
+    const neighbourId = turn.bomb!.neighbourId;
+    const neighbour = byId.get(neighbourId)!;
+    const aliveBefore = state.players.filter((p) => p.alive).length;
+    let result: 'ELIMINATED' | 'BLOCKED';
+    if (selected.shield) {
+      update(selected.id, { shield: false });
+      result = 'BLOCKED';
+    } else {
+      eliminate(selected.id);
+      eliminatedId = selected.id;
+      result = 'ELIMINATED';
+    }
+    let neighbourResult: 'ELIMINATED' | 'BLOCKED' | 'SPARED';
+    if (neighbour.shield) {
+      update(neighbourId, { shield: false });
+      neighbourResult = 'BLOCKED';
+    } else if (result === 'ELIMINATED' && aliveBefore - 2 < state.winnerCount + 1) {
+      neighbourResult = 'SPARED';
+    } else {
+      eliminate(neighbourId);
+      eliminatedId ??= neighbourId;
+      neighbourResult = 'ELIMINATED';
+    }
+    outcome = { fate: 'BOMB', result, neighbourId, neighbourResult };
   } else if (turn.fate === 'SHIELD') {
     // A Shield slot only exists while the supply lasts (slots flip to KO when it runs out).
     if (selected.shield || shieldSupply <= 0) {
@@ -271,6 +307,35 @@ export function shufflePositions(state: MatchState, rng: Rng): MatchState {
     { ...state, players, fateSlots },
     { type: 'POSITIONS_SHUFFLED', playerOrder: players.map((p) => p.id), fateSlots },
   );
+}
+
+/** Everyone eliminated by a resolved turn (a Bomb can take out two). */
+export function eliminatedThisTurn(last: ResolvedTurn): string[] {
+  const o = last.outcome;
+  if (o.fate === 'BOMB') {
+    return [
+      ...(o.result === 'ELIMINATED' ? [last.turn.playerId] : []),
+      ...(o.neighbourResult === 'ELIMINATED' ? [o.neighbourId] : []),
+    ];
+  }
+  return last.eliminatedId ? [last.eliminatedId] : [];
+}
+
+/** Nearest living fighters to the left and right of `id` in grid order (wrapping). */
+export function livingNeighbours(
+  players: readonly MatchPlayer[],
+  id: string,
+): [left: string, right: string] {
+  const n = players.length;
+  const at = players.findIndex((p) => p.id === id);
+  const find = (step: number) => {
+    for (let k = 1; k < n; k++) {
+      const p = players[(at + step * k + n * n) % n]!;
+      if (p.alive && p.id !== id) return p.id;
+    }
+    throw new IllegalTransitionError('A Bomb needs another living fighter');
+  };
+  return [find(-1), find(1)];
 }
 
 function fisherYates<T>(items: readonly T[], rng: Rng): T[] {

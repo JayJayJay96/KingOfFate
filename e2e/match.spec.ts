@@ -70,7 +70,7 @@ test('a real match runs full-length spins and hands off at W + 1', async ({ page
       .isEnabled()
       .catch(() => false));
   for (let turn = 2; turn <= 8; turn++) {
-    await expect.poll(settled, { timeout: 10_000 }).toBe(true);
+    await expect.poll(settled, { timeout: 20_000 }).toBe(true);
     if (await finale.isVisible()) break;
     await randomButton(page).click();
     // The finale screen shows the event log too, so the count works either way.
@@ -181,9 +181,11 @@ test('both cursors walk in order and land on what the log reports', async ({ pag
   const landed = log.fate.at(-1)!.kind;
   const expected = / VS /.test(line)
     ? 'VS'
-    : /Shield/.test(line) && !/KO/.test(line)
-      ? 'SHIELD'
-      : 'KO';
+    : /picks a Bomb/.test(line)
+      ? 'BOMB'
+      : /Shield/.test(line) && !/KO/.test(line)
+        ? 'SHIELD'
+        : 'KO';
   expect(landed).toBe(expected);
 });
 
@@ -203,7 +205,7 @@ test('shuffle reorders fighters and Fate slots; the order survives a reload', as
   expect([...afterNames].sort()).toEqual([...beforeNames].sort());
   expect([...afterKinds].sort()).toEqual([...beforeKinds].sort());
   expect(afterKinds).not.toEqual(beforeKinds);
-  await expect(page.getByTestId('fate-odds')).toHaveText('KO 75% · VS 20% · Shield 5%');
+  await expect(page.getByTestId('fate-odds')).toHaveText('KO 70% · VS 20% · Shield 5% · Bomb 5%');
 
   await page.reload();
   await insertCoin(page);

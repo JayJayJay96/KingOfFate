@@ -50,6 +50,20 @@ const FATE_IMAGES: Readonly<Record<FateKind, PixelImage>> = {
     ],
     palette: { c: '#3be8ff', w: '#ffffff' },
   },
+  BOMB: {
+    rows: [
+      '......y.y',
+      '.....o.y.',
+      '....o..y.',
+      '..kkok...',
+      '.kkkkkk..',
+      'kkwkkkkk.',
+      'kwkkkkkk.',
+      '.kkkkkk..',
+      '..kkkk...',
+    ],
+    palette: { k: '#2a2a3a', w: '#9aa0c8', o: '#c8a060', y: '#ffcc33' },
+  },
 };
 
 const HAND_PALETTE = { k: '#1b1b2a', s: '#f1c27d' };

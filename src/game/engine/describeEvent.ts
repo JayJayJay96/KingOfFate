@@ -92,6 +92,20 @@ export function describeOutcome(
       return outcome.result === 'ELIMINATED'
         ? `${name} takes a KO. Eliminated!`
         : `${name} takes a KO, but the Shield absorbs it.`;
+    case 'BOMB': {
+      const hit =
+        outcome.result === 'ELIMINATED'
+          ? `${name} is blown out!`
+          : `${name}'s Shield absorbs the blast.`;
+      const other = nameOf(outcome.neighbourId);
+      const blast =
+        outcome.neighbourResult === 'ELIMINATED'
+          ? `The blast also eliminates ${other}!`
+          : outcome.neighbourResult === 'BLOCKED'
+            ? `${other}'s Shield absorbs the blast.`
+            : `${other} is spared: the finale needs enough fighters.`;
+      return `${name} picks a Bomb. ${hit} ${blast}`;
+    }
     case 'SHIELD':
       return outcome.result === 'GAINED'
         ? `${name} gains a Shield.`

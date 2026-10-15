@@ -3,7 +3,7 @@ import { buildTurnTimeline, type DuelWord } from '../animation/turnTimeline';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 
 /** Which part of the turn's reveal is on screen. */
-export type TurnStage = 'idle' | 'player' | 'fate' | 'vs' | 'opponent' | 'duel';
+export type TurnStage = 'idle' | 'player' | 'fate' | 'bomb' | 'vs' | 'opponent' | 'duel';
 
 export interface TurnAnimationState {
   readonly stage: TurnStage;
@@ -11,7 +11,7 @@ export interface TurnAnimationState {
   readonly playerCursorId: string | null;
   /** Fate cursor slot index, or null before the Fate spin starts. */
   readonly fateCursorIndex: number | null;
-  /** VS opponent cursor (stays on the opponent once landed). */
+  /** VS opponent cursor (stays on the opponent once landed); Bomb: the neighbour in the blast. */
   readonly opponentCursorId: string | null;
   /** VS only: -1 = duel intro, 0..n-1 = that throw is showing; null = no throws on screen. */
   readonly duelThrowIndex: number | null;
@@ -35,6 +35,7 @@ const IDLE: TurnAnimationState = {
 export type TurnCue =
   | { readonly kind: 'player' }
   | { readonly kind: 'fate' }
+  | { readonly kind: 'bomb' }
   | { readonly kind: 'vsAnnounce' }
   | { readonly kind: 'opponent' }
   | { readonly kind: 'duelIntro' }
@@ -96,6 +97,13 @@ export function useTurnAnimation(
     at(t.playerRevealMs, { stage: 'fate' }, null);
     for (const s of t.fateSteps) {
       at(s.atMs, { fateCursorIndex: Number(s.id) }, { kind: 'fate' });
+    }
+    if (t.bombAtMs !== null && pendingTurn.bomb) {
+      at(
+        t.bombAtMs,
+        { stage: 'bomb', opponentCursorId: pendingTurn.bomb.neighbourId },
+        { kind: 'bomb' },
+      );
     }
     if (t.vsAnnounceMs !== null && t.opponentStartMs !== null && t.duelStartMs !== null) {
       at(t.vsAnnounceMs, { stage: 'vs' }, { kind: 'vsAnnounce' });

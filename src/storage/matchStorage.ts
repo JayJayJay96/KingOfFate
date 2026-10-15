@@ -301,6 +301,18 @@ export function isMatchState(value: unknown): value is MatchState {
     ) {
       return false;
     }
+    if (pending.fate === 'BOMB') {
+      const bomb = pending.bomb;
+      if (
+        !isRecord(bomb) ||
+        bomb.neighbourId === pending.playerId ||
+        !alive.some((p) => p.id === bomb.neighbourId)
+      ) {
+        return false;
+      }
+    } else if (pending.bomb !== undefined && pending.bomb !== null) {
+      return false;
+    }
   } else if (pending !== null) {
     return false;
   }

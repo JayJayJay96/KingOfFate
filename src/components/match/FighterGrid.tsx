@@ -10,7 +10,7 @@ interface FighterGridProps {
   /** Target of the most recently resolved turn. */
   readonly lastTargetId: string | null;
   /** Fighter just knocked out: plays the knock-back fall once. */
-  readonly fallingId?: string | null;
+  readonly fallingIds?: readonly string[];
 }
 
 /** Every match participant; eliminated fighters stay visible, greyed and X-marked. */
@@ -19,7 +19,7 @@ export function FighterGrid({
   highlightId,
   opponentId = null,
   lastTargetId,
-  fallingId = null,
+  fallingIds = [],
 }: FighterGridProps) {
   return (
     <ul className="fighter-grid" aria-label="Fighters">
@@ -29,7 +29,7 @@ export function FighterGrid({
         if (p.id === highlightId) classes.push('fighter--cursor');
         if (p.id === opponentId) classes.push('fighter--opponent');
         if (!highlightId && p.id === lastTargetId) classes.push('fighter--selected');
-        if (p.id === fallingId) classes.push('fighter--falling');
+        if (fallingIds.includes(p.id)) classes.push('fighter--falling');
         return (
           <li
             key={p.id}

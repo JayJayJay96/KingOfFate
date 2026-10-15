@@ -12,6 +12,8 @@ import {
   resolveTurn,
   shieldSupplyFor,
   shufflePositions,
+  eliminatedThisTurn,
+  livingNeighbours,
   suddenDeathAtFor,
   type MatchLaunch,
 } from './match';
@@ -21,7 +23,7 @@ const NAMES = ['Aisyah', 'Wei Jie', 'Kavitha', 'Hafiz', 'Mei Ling', 'Arjun', 'Nu
 const ROCK = 0;
 const PAPER = 1;
 const SCISSORS = 2;
-const KINDS = ['KO', 'VS', 'SHIELD'] as const;
+const KINDS = ['KO', 'VS', 'SHIELD', 'BOMB'] as const;
 
 function launch(n: number, winnerCount = 1, presetId: FatePresetId = 'normal'): MatchLaunch {
   return {
@@ -197,7 +199,7 @@ describe('Shield supply (owner decision: 1 per 5 fighters)', () => {
     m = shieldUp(m, 1); // supply 1 → 0
     expect(m.shieldSupply).toBe(0);
     expect(m.fateSlots).not.toContain('SHIELD');
-    expect(countSlots(m.fateSlots)).toEqual({ KO: 16, VS: 4, SHIELD: 0 });
+    expect(countSlots(m.fateSlots)).toEqual({ KO: 15, VS: 4, SHIELD: 0, BOMB: 1 });
     expect(m.events.at(-1)?.type).toBe('SHIELD_SUPPLY_EXHAUSTED');
     expect(describeEvent(m.events.at(-1)!, m)).toBe(
       'The last Shield has been taken! Shield slots turn into KO.',
@@ -360,8 +362,13 @@ describe('full matches (seeded)', () => {
           expect(final.players.some((p) => p.shield)).toBe(false);
           const eventIds = final.events.map((e) => e.id);
           expect(new Set(eventIds).size).toBe(eventIds.length);
-          const resolved = final.events.filter((e) => e.type === 'TURN_RESOLVED').length;
-          expect(final.players.filter((p) => !p.alive).length).toBeLessThanOrEqual(resolved);
+          // Each turn eliminates at most one fighter, or two with a Bomb.
+          const maxFalls = final.events.reduce(
+            (sum, e) =>
+              e.type === 'TURN_RESOLVED' ? sum + (e.outcome.fate === 'BOMB' ? 2 : 1) : sum,
+            0,
+          );
+          expect(final.players.filter((p) => !p.alive).length).toBeLessThanOrEqual(maxFalls);
         }
       }
     },
@@ -386,7 +393,7 @@ describe('fairness simulations (seeded, fixed tolerances)', () => {
         const weights = FATE_PRESETS[presetId][mode];
         const base = { ...createMatch(launch(8, 1, presetId), ids), fateSlots: stripOf(weights) };
         const rng = createSeededRng(presetId.length * 31 + (mode === 'normal' ? 1 : 2));
-        const counts: Record<FateKind, number> = { KO: 0, VS: 0, SHIELD: 0 };
+        const counts: Record<FateKind, number> = { KO: 0, VS: 0, SHIELD: 0, BOMB: 0 };
         for (let i = 0; i < 60_000; i++) counts[beginTurn(base, rng, 't').pendingTurn!.fate]++;
         for (const k of KINDS) if (weights[k] === 0) expect(counts[k]).toBe(0);
         const kinds = KINDS.filter((k) => weights[k] > 0);
@@ -403,7 +410,7 @@ describe('fairness simulations (seeded, fixed tolerances)', () => {
     const rng = createSeededRng(4242);
     const base = {
       ...createMatch(launch(6), ids),
-      fateSlots: stripOf({ KO: 0, VS: 20, SHIELD: 0 }),
+      fateSlots: stripOf({ KO: 0, VS: 20, SHIELD: 0, BOMB: 0 }),
     };
     const counts = new Map<string, number>();
     for (let i = 0; i < 60_000; i++) {
@@ -419,7 +426,7 @@ describe('fairness simulations (seeded, fixed tolerances)', () => {
     const rng = createSeededRng(777);
     const base = {
       ...createMatch(launch(6), ids),
-      fateSlots: stripOf({ KO: 0, VS: 20, SHIELD: 0 }),
+      fateSlots: stripOf({ KO: 0, VS: 20, SHIELD: 0, BOMB: 0 }),
     };
     const gestures = { ROCK: 0, PAPER: 0, SCISSORS: 0 };
     let challengerWins = 0;
@@ -442,5 +449,93 @@ describe('fairness simulations (seeded, fixed tolerances)', () => {
     expect(chiSquareUniform(Object.values(gestures))).toBeLessThan(CHI2_P001[2]!);
     expect(Math.abs(challengerWins / duels - 0.5)).toBeLessThan(0.01); // ≈ 5 standard deviations
     expect(Math.abs(draws / throws - 1 / 3)).toBeLessThan(0.01);
+  });
+});
+
+describe('Bomb (owner decision 2026-10-16)', () => {
+  /** Bomb on living fighter `livingIndex`; side 0 = left neighbour, 1 = right. */
+  const bomb = (s: MatchState, livingIndex: number, side: number) =>
+    play(s, [livingIndex, slotOf(s, 'BOMB'), side]);
+
+  it('commits the neighbour before any animation: nearest living left or right, wrapping', () => {
+    const m = ko(createMatch(launch(6), ids), 1); // p1 out: p0 p2 p3 p4 p5 alive
+    const pick = (draws: number[]) => beginTurn(m, createScriptedRng(draws), 'x').pendingTurn!;
+    expect(pick([1, slotOf(m, 'BOMB'), 0])).toMatchObject({
+      playerId: 'p2',
+      fate: 'BOMB',
+      bomb: { neighbourId: 'p0' }, // skips the fallen p1
+    });
+    expect(pick([1, slotOf(m, 'BOMB'), 1]).bomb).toEqual({ neighbourId: 'p3' });
+    expect(pick([0, slotOf(m, 'BOMB'), 0]).bomb).toEqual({ neighbourId: 'p5' }); // wraps
+    expect(livingNeighbours(m.players, 'p5')).toEqual(['p4', 'p0']);
+    expect(pick([0, slotOf(m, 'KO')]).bomb).toBeUndefined();
+  });
+
+  it('eliminates the picked fighter and the neighbour', () => {
+    const m = bomb(createMatch(launch(6), ids), 2, 1);
+    expect(m.lastTurn!.outcome).toEqual({
+      fate: 'BOMB',
+      result: 'ELIMINATED',
+      neighbourId: 'p3',
+      neighbourResult: 'ELIMINATED',
+    });
+    expect(alivePlayers(m)).toHaveLength(4);
+    expect(player(m, 'p2').eliminatedOnTurn).toBe(1);
+    expect(player(m, 'p3').eliminatedOnTurn).toBe(1);
+    expect(eliminatedThisTurn(m.lastTurn!)).toEqual(['p2', 'p3']);
+    expect(describeEvent(m.events.at(-1)!, m)).toBe(
+      'Turn 1: Kavitha picks a Bomb. Kavitha is blown out! The blast also eliminates Hafiz!',
+    );
+  });
+
+  it('a Shield absorbs the blast for either fighter', () => {
+    let m = shieldUp(createMatch(launch(6), ids), 3); // Hafiz (p3) shielded
+    m = bomb(m, 2, 1);
+    expect(m.lastTurn!.outcome).toMatchObject({ result: 'ELIMINATED', neighbourResult: 'BLOCKED' });
+    expect(player(m, 'p3')).toMatchObject({ alive: true, shield: false });
+
+    let n = shieldUp(createMatch(launch(6), ids), 2); // Kavitha (p2) shielded
+    n = bomb(n, 2, 0);
+    expect(n.lastTurn!.outcome).toMatchObject({ result: 'BLOCKED', neighbourResult: 'ELIMINATED' });
+    expect(player(n, 'p2')).toMatchObject({ alive: true, shield: false });
+    expect(n.lastTurn!.eliminatedId).toBe('p1');
+    expect(eliminatedThisTurn(n.lastTurn!)).toEqual(['p1']);
+  });
+
+  it('spares the neighbour when two falls would leave fewer than W + 1 fighters', () => {
+    const m = bomb(createMatch(launch(4, 2), ids), 0, 1); // W + 2 alive
+    expect(m.lastTurn!.outcome).toMatchObject({ result: 'ELIMINATED', neighbourResult: 'SPARED' });
+    expect(alivePlayers(m)).toHaveLength(3);
+    expect(m.phase).toBe('FINALE');
+  });
+
+  it('can drop straight to exactly W + 1 and start the finale', () => {
+    const m = bomb(createMatch(launch(5, 2), ids), 0, 1);
+    expect(alivePlayers(m)).toHaveLength(3);
+    expect(m.phase).toBe('FINALE');
+    expect(m.finale!.finalistIds).toEqual(['p2', 'p3', 'p4']);
+  });
+
+  it('is applied once: resolving the same turn again changes nothing', () => {
+    const m0 = createMatch(launch(6), ids);
+    const spinning = beginTurn(m0, createScriptedRng([2, slotOf(m0, 'BOMB'), 1]), 't1');
+    const once = resolveTurn(spinning, 't1');
+    expect(resolveTurn(once, 't1')).toBe(once);
+  });
+
+  it('the blast side is a fair coin', () => {
+    const rng = createSeededRng(2026);
+    const base = {
+      ...createMatch(launch(6), ids),
+      fateSlots: stripOf({ KO: 0, VS: 0, SHIELD: 0, BOMB: 20 }),
+    };
+    let right = 0;
+    const n = 40_000;
+    for (let i = 0; i < n; i++) {
+      const t = beginTurn(base, rng, 't').pendingTurn!;
+      const [, r] = livingNeighbours(base.players, t.playerId);
+      if (t.bomb!.neighbourId === r) right++;
+    }
+    expect(Math.abs(right / n - 0.5)).toBeLessThan(0.0125); // about 5 standard deviations
   });
 });

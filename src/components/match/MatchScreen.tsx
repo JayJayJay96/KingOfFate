@@ -11,7 +11,7 @@ import { FINAL_BLOW_MS } from '../../animation/matchIntro';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { FATE_PRESETS } from '../../game/config/presets';
-import { alivePlayers, shieldSupplyFor } from '../../game/engine/match';
+import { alivePlayers, eliminatedThisTurn, shieldSupplyFor } from '../../game/engine/match';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
 import { DuelPanel } from './DuelPanel';
@@ -73,7 +73,7 @@ export function MatchScreen({
       ? {
           turnId: lastTurnId!,
           kind: turnImpact(match.lastTurn),
-          fallenId: match.lastTurn.eliminatedId,
+          fallenIds: eliminatedThisTurn(match.lastTurn),
         }
       : null;
   /** Slow-motion final blow between the last finale reveal and the ceremony. */
@@ -87,6 +87,7 @@ export function MatchScreen({
   const onCue = (cue: TurnCue) => {
     if (cue.kind === 'player' || cue.kind === 'opponent') engine.sfx('tick');
     else if (cue.kind === 'fate') engine.sfx('fateTick');
+    else if (cue.kind === 'bomb') engine.sfx('fuse');
     else if (cue.kind === 'vsAnnounce') {
       engine.sfx('vs');
       engine.announce(ANNOUNCE.versus);
@@ -223,7 +224,9 @@ export function MatchScreen({
   }
 
   return (
-    <main className={impact?.kind === 'ko' ? 'match match--shake' : 'match'}>
+    <main
+      className={impact?.kind === 'ko' || impact?.kind === 'boom' ? 'match match--shake' : 'match'}
+    >
       <div className="match__main">
         <header className="match__bar">
           <span className="match__logo">King of Fate</span>
@@ -264,7 +267,10 @@ export function MatchScreen({
             {animation.fast && stage === 'player' && (
               <span className="speed-lines" data-testid="speed-lines" aria-hidden="true" />
             )}
-            <Crowd mood={impact?.kind === 'ko' ? 'cheer' : 'idle'} cue={impact?.turnId ?? ''} />
+            <Crowd
+              mood={impact?.kind === 'ko' || impact?.kind === 'boom' ? 'cheer' : 'idle'}
+              cue={impact?.turnId ?? ''}
+            />
             {impact && <ImpactBurst key={impact.turnId} kind={impact.kind} />}
           </div>
         )}
@@ -286,7 +292,7 @@ export function MatchScreen({
             highlightId={highlightId}
             opponentId={animation.opponentCursorId}
             lastTargetId={match.lastTurn?.turn.playerId ?? null}
-            fallingId={impact?.fallenId ?? null}
+            fallingIds={impact?.fallenIds ?? []}
           />
           <div className="arena__controls">
             <div className="arena__buttons">
@@ -366,6 +372,7 @@ export function MatchScreen({
 
 /** Big stamp, hit sparks and a flash over the preview. Decorative only. */
 function ImpactBurst({ kind }: { readonly kind: ImpactKind }) {
+  const sparks = kind === 'boom' ? 18 : 10;
   return (
     <div
       className={`impact impact--${kind}`}
@@ -373,10 +380,10 @@ function ImpactBurst({ kind }: { readonly kind: ImpactKind }) {
       data-kind={kind}
       aria-hidden="true"
     >
-      {kind === 'ko' && <span className="impact__flash" />}
-      {(kind === 'ko' || kind === 'blocked') &&
-        Array.from({ length: 10 }, (_, i) => {
-          const angle = (i / 10) * Math.PI * 2;
+      {(kind === 'ko' || kind === 'boom') && <span className="impact__flash" />}
+      {(kind === 'ko' || kind === 'boom' || kind === 'blocked') &&
+        Array.from({ length: sparks }, (_, i) => {
+          const angle = (i / sparks) * Math.PI * 2;
           const style = {
             '--dx': `${Math.round(Math.cos(angle) * 120)}px`,
             '--dy': `${Math.round(Math.sin(angle) * 80)}px`,

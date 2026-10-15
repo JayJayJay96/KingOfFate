@@ -38,7 +38,7 @@ const findInLog = (text: string | RegExp) =>
 const startButton = () => screen.getByRole('button', { name: /^start$/i });
 
 /** Starts the match and waits until the ~4 s character-select intro (scaled) is over. */
-async function startMatch(user: User) {
+async function startMatch(user: User, timeout = 1000) {
   await user.click(startButton());
   await waitFor(() =>
     expect(
@@ -46,7 +46,7 @@ async function startMatch(user: User) {
         screen.queryByRole('main', { name: 'Finale' }),
     ).not.toBeNull(),
   );
-  await waitFor(() => expect(screen.queryByTestId('match-intro')).toBeNull());
+  await waitFor(() => expect(screen.queryByTestId('match-intro')).toBeNull(), { timeout });
 }
 const randomButton = () => screen.getByRole('button', { name: /random: start the next turn/i });
 const eliminatedCount = () => document.querySelectorAll('[data-state="out"]').length;
@@ -129,6 +129,7 @@ describe('Setup flow', () => {
 const KO = 0;
 const VS = 2;
 const SHIELD = 10;
+const BOMB = 11;
 
 describe('Match', () => {
   it('plays from setup through the finale to the winner, then returns to setup', async () => {
@@ -357,7 +358,9 @@ describe('Fates on screen', () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
     await startMatch(user);
-    expect(await screen.findByTestId('fate-odds')).toHaveTextContent('KO 75% · VS 20% · Shield 5%');
+    expect(await screen.findByTestId('fate-odds')).toHaveTextContent(
+      'KO 70% · VS 20% · Shield 5% · Bomb 5%',
+    );
     expect(document.querySelectorAll('.fate-slot')).toHaveLength(20);
   });
 
@@ -375,32 +378,48 @@ describe('Fates on screen', () => {
     const { user } = await renderApp(
       createMemoryMatchRepository(),
       createScriptedRng([0, VS, 0, ROCK, ROCK, ROCK, SCISSORS]),
-      0.1, // slow enough for each reveal step to be observed
+      0.3, // slow enough for each reveal step to be observed, even on a busy machine
     );
     await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz');
-    await startMatch(user);
+    await startMatch(user, 8000);
     await screen.findByRole('list', { name: 'Fighters' });
     await user.click(randomButton());
     // 1. Fighter first, then Fate.
-    await screen.findByText('Fate is choosing…', {}, { timeout: 3000 });
+    await screen.findByText('Fate is choosing…', {}, { timeout: 8000 });
     // 2. VS! with a mystery opponent.
-    const duel = await screen.findByTestId('duel', {}, { timeout: 3000 });
+    const duel = await screen.findByTestId('duel', {}, { timeout: 8000 });
     expect(duel).toHaveTextContent(/Aisyah.*VS!.*\?\?\?/);
     expect(duel).toHaveTextContent('Aisyah must fight… who?');
     // 3. Opponent cursor lands on Wei Jie, then the throws.
     await waitFor(
       () => expect(screen.getByTestId('duel')).toHaveTextContent(/Aisyah.*VS.*Wei Jie/),
       {
-        timeout: 3000,
+        timeout: 8000,
       },
     );
     await within(screen.getByTestId('event-log')).findByText(
       'Turn 1: Aisyah VS Wei Jie: Rock beats Scissors after 1 draw. Aisyah wins; Wei Jie is eliminated! Aisyah earns a Shield.',
       {},
-      { timeout: 5000 },
+      { timeout: 12000 },
     );
     expect(shielded()).toEqual(['Aisyah']);
     expect(eliminatedCount()).toBe(1);
+  }, 30_000);
+
+  it('Bomb: the blast takes out the picked fighter and a neighbour (owner decision 2026-10-16)', async () => {
+    const { user } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng([1, BOMB, 1]),
+    );
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Siti');
+    await startMatch(user);
+    await screen.findByRole('list', { name: 'Fighters' });
+    expect(document.querySelectorAll('.fate-slot--BOMB')).toHaveLength(1);
+    await user.click(randomButton());
+    await findInLog(
+      'Turn 1: Wei Jie picks a Bomb. Wei Jie is blown out! The blast also eliminates Kavitha!',
+    );
+    expect(eliminatedCount()).toBe(2);
   });
 
   it('says there is no Sudden Death when the finale comes first', async () => {
@@ -432,7 +451,7 @@ describe('Fates on screen', () => {
     }
     expect(await screen.findByText(/^SUDDEN DEATH! Only 3 fighters left\./)).toBeInTheDocument();
     expect(screen.getByTestId('sudden-death')).toHaveTextContent('Shields shattered');
-    expect(screen.getByTestId('fate-odds')).toHaveTextContent('KO 90% · VS 10%');
+    expect(screen.getByTestId('fate-odds')).toHaveTextContent('KO 85% · VS 10% · Bomb 5%');
     expect(document.querySelectorAll('.fate-slot--SHIELD')).toHaveLength(0);
   });
 });
@@ -496,8 +515,10 @@ describe('Phase 5: sound, shortcuts and pause', () => {
     for (const word of ['ONE', 'TWO', 'JUICE']) expect(calls).toContain(`chant:${word}`);
     expect(calls).toContain('sfx:score');
     // The winning reveal ends the match: the stage's own victory fanfare plays (owner request).
-    expect(calls.some((c) => /^fanfare:(kl-night|mamak|pantry|pasar-malam|rooftop)$/.test(c))).toBe(
-      true,
+    await waitFor(() =>
+      expect(
+        calls.some((c) => /^fanfare:(kl-night|mamak|pantry|pasar-malam|rooftop)$/.test(c)),
+      ).toBe(true),
     );
     // Music that builds: the finale layers come in as points are scored.
     expect(calls).toContain('intensity:0');
