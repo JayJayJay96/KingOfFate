@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { scatterFallen } from '../../animation/victoryLayout';
 import { victoryLine } from '../../audio/announcer';
 import { summarizeMatch } from '../../game/history/history';
@@ -7,6 +7,7 @@ import { MatchAwards } from '../history/MatchAwards';
 import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
+import { StageContext } from '../stage/stageContext';
 import { EventLog } from './EventLog';
 
 interface VictoryScreenProps {
@@ -23,6 +24,7 @@ interface VictoryScreenProps {
 export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps) {
   const f = match.finale!;
   const { engine } = useSound();
+  const stageId = useContext(StageContext);
   const nameOf = (id: string) => match.players.find((p) => p.id === id)?.name ?? '???';
   const finaleLosers = f.finalistIds.filter((id) => !f.winnerIds.includes(id));
   // Knocked out during ordinary turns, in the order they fell.
@@ -36,7 +38,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
 
   const winnerLine = victoryLine(f.winnerIds.map(nameOf));
   useEffect(() => {
-    engine.sfx('victory');
+    engine.fanfare(stageId);
     engine.announce(winnerLine);
     // Once when the ceremony appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps

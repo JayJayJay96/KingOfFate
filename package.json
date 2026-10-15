@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,json}\"",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "voice": "node scripts/prepare-voice.mjs"
   },
   "prettier": {
     "semi": true,

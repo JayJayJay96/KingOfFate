@@ -12,17 +12,25 @@ export interface Theme {
   readonly bass: readonly (string | null)[];
   /** One entry per step: K kick, S snare, H hat, T tom, or null. */
   readonly drums: readonly (DrumHit | null)[];
+  /**
+   * Layered themes build with the music intensity (owner request 2026-10-10): level 0 = drums +
+   * bass, 1 = + lead, 2 = + arp and extra hats, 3 = everything one semitone higher.
+   * Non-layered themes always play every track.
+   */
+  readonly layered?: boolean;
+  readonly arp?: readonly (string | null)[];
+  readonly drumsExtra?: readonly (DrumHit | null)[];
 }
 
 export const STEPS_PER_LOOP = 64;
 
 /** Parses a compact bar string: tokens separated by spaces; "." = rest. */
-function bars(...barStrings: string[]): (string | null)[] {
+export function bars(...barStrings: string[]): (string | null)[] {
   const steps = barStrings.flatMap((b) => b.trim().split(/\s+/));
   return steps.map((t) => (t === '.' ? null : t));
 }
 
-function drums(...barStrings: string[]): (DrumHit | null)[] {
+export function drums(...barStrings: string[]): (DrumHit | null)[] {
   return barStrings
     .join('')
     .split('')
@@ -67,6 +75,15 @@ const FINALE: Theme = {
     'A1 A1 A2 A1 A1 A1 A2 A1 A1 A1 A2 A1 A1 A2 A1 A2',
   ),
   drums: drums('K.H.S.HKK.H.S.H.', 'K.H.S.HKK.H.S.HK', 'K.H.S.HKK.H.S.H.', 'K.H.S.HKS.SSTTTT'),
+  layered: true,
+  // Level 2+: 16th-note arpeggio on each chord's tones, and hats on every off-16th.
+  arp: bars(
+    'D5 F5 A5 D6 A5 F5 D5 F5 A5 D6 A5 F5 D5 F5 A5 F5',
+    'A#4 D5 F5 A#5 F5 D5 A#4 D5 F5 A#5 F5 D5 A#4 D5 F5 D5',
+    'C5 E5 G5 C6 G5 E5 C5 E5 G5 C6 G5 E5 C5 E5 G5 E5',
+    'A4 C#5 E5 A5 E5 C#5 A4 C#5 E5 A5 E5 C#5 A4 C#5 E5 C#5',
+  ),
+  drumsExtra: drums('.H.H.H.H.H.H.H.H', '.H.H.H.H.H.H.H.H', '.H.H.H.H.H.H.H.H', '.H.H.H.H........'),
 };
 
 export const THEMES: Readonly<Record<MusicTheme, Theme>> = { select: SELECT, finale: FINALE };

@@ -447,6 +447,10 @@ function spyEngine() {
     setMusic: (theme) => calls.push(`music:${theme}`),
     setPaused: (p) => calls.push(`paused:${p}`),
     setMusicRate: (rate) => calls.push(`rate:${rate.toFixed(2)}`),
+    setMusicIntensity: (level) => calls.push(`intensity:${level}`),
+    fanfare: (stage) => calls.push(`fanfare:${stage}`),
+    loadedClips: () => [],
+    onClipsChanged: () => () => undefined,
     sfx: (name) => calls.push(`sfx:${name}`),
     chant: (word) => calls.push(`chant:${word}`),
     announce: (text) => calls.push(`announce:${text}`),
@@ -490,8 +494,13 @@ describe('Phase 5: sound, shortcuts and pause', () => {
     expect(calls).toContain('music:finale');
     for (const word of ['ONE', 'TWO', 'JUICE']) expect(calls).toContain(`chant:${word}`);
     expect(calls).toContain('sfx:score');
-    // The winning reveal ends the match, so the victory jingle replaces the qualify sting.
-    expect(calls).toContain('sfx:victory');
+    // The winning reveal ends the match: the stage's own victory fanfare plays (owner request).
+    expect(calls.some((c) => /^fanfare:(kl-night|mamak|pantry|pasar-malam|rooftop)$/.test(c))).toBe(
+      true,
+    );
+    // Music that builds: the finale layers come in as points are scored.
+    expect(calls).toContain('intensity:0');
+    expect(calls).toContain('intensity:2');
     expect(calls.at(-1)).not.toBe('music:finale');
   });
 

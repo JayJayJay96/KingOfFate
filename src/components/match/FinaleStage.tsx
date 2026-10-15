@@ -11,7 +11,12 @@ import { useSound } from '../../audio/soundContext';
 import { FINALE_SPLASH_MS } from '../../animation/matchIntro';
 import { StageArt } from '../stage/StageArt';
 import { StageContext } from '../stage/stageContext';
-import { CHANT_LABEL, stagePositions, type ChantWord } from '../../animation/finaleTimeline';
+import {
+  CHANT_LABEL,
+  finaleIntensity,
+  stagePositions,
+  type ChantWord,
+} from '../../animation/finaleTimeline';
 import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEvent';
 import { FINALE_TARGET_SCORE, winningGesture } from '../../game/engine/finale';
 import type { FinaleThrow, MatchState } from '../../game/engine/matchTypes';
@@ -89,6 +94,12 @@ export function FinaleStage({
     engine.setMusicRate(1 / paceScale);
   }, [engine, paceScale]);
   useEffect(() => () => engine.setMusicRate(1), [engine]);
+  // Music that builds: layers come in as the race tightens (owner request).
+  const intensity = finaleIntensity(f);
+  useEffect(() => {
+    engine.setMusicIntensity(intensity);
+  }, [engine, intensity]);
+  useEffect(() => () => engine.setMusicIntensity(null), [engine]);
   useLayoutEffect(() => {
     if (action) aimAttacks(arenaRef.current);
   }, [action, revealKey]);

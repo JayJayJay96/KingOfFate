@@ -41,6 +41,21 @@ src/
 e2e/           Playwright specs
 ```
 
+## Voice clips
+
+The chant ("1", "2", "Juice!") and the announcer ("K.O.!", "Versus!", "Fight!") play recorded clips
+when they exist, and fall back to the browser's voice otherwise (which starts late and cuts out at
+fast finale tempos).
+
+1. Put raw recordings in `voice-raw/` (git-ignored), named `one`, `two`, `juice`, `ko`, `versus`,
+   `fight` with any of `.mp3 .wav .m4a .ogg .aac .flac .webm`.
+2. Run `npm run voice` (needs `ffmpeg` on the PATH). It trims silence, evens loudness, fits each
+   clip to its target length (speeding it up by at most 1.6×, then trimming), and writes
+   `public/voice/<id>.mp3` plus `public/voice/manifest.json`.
+3. Sound settings on the setup screen show which clips are loaded.
+
+Only use recordings you made or whose licence allows public use.
+
 ## Deploying (Vercel, static)
 
 The game is a static site: no server, no accounts, no database.

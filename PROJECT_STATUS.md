@@ -66,6 +66,13 @@
 
 ## 6. Session log
 
+### 2026-10-15 — Sound pack: voice clips, music that builds, stage fanfares
+- **Owner input:** start enhancements with sound: recorded MP3s for 1 / 2 / Juice / K.O. / Versus / Fight (owner gathers them; I edit them), music that builds, a victory fanfare per stage.
+- **Added:** `src/audio/voiceClips.ts` (clip ids, labels, chant/announcer mapping, manifest parser), `src/audio/fanfares.ts` (5 original stage fanfares), `public/voice/manifest.json` (empty: no clips shipped yet), `scripts/prepare-voice.mjs` + `npm run voice` (ffmpeg: trim silence, loudnorm −14 LUFS, mono 44.1 kHz, fit to target length by ≤ 1.6× speed-up then trim, fades, MP3 128 k, manifest), tests `src/audio/fanfares.test.ts` (fanfares, finale layers, manifest).
+- **Changed:** `soundEngine.ts` (voice bus; clips loaded at unlock from the manifest so a missing clip never 404s; chant/announce play the clip else TTS; new chant word fades the previous; `setMusicIntensity`, layered sequencer with arp, extra hats, +1 semitone at level 3; `fanfare(stage)` with gong/crash; `loadedClips`/`onClipsChanged`), `chiptune.ts` (finale `layered`, `arp`, `drumsExtra`), `finaleTimeline.ts` (`finaleIntensity`), `FinaleStage` (intensity → engine), `VictoryScreen` (stage fanfare), `SoundSettings` ("Recorded voices" status), README, THIRD_PARTY_NOTICES, `.gitignore` (`voice-raw/`), tests.
+- **Checked:** pipeline on synthetic tones (silence trimmed 1.5 s → 0.67 s; fitted to 0.35 / 0.8 s; short clip untouched); in Edge (pane) with those test clips installed: manifest + clips fetched on Insert coin, status showed ✓ for the three, finale chant played the "1"/"Juice!" clips while "Two" and "Final round!" fell back to the browser voice. Test clips removed afterwards (only the empty manifest ships). Not heard by ear.
+- **Next exact action:** owner drops raw recordings in `voice-raw/` → I run `npm run voice`, check the table, commit the clips with their licence note.
+
 ### 2026-10-10 — Chant "1, 2, Juice!"; VS count beat only
 - **Owner input:** in-match VS: no voice, just the beat; finale chant "1 2 juice" instead of "Một Hai Ba Yo".
 - **Changed:** `ChantWord` = `ONE | TWO | JUICE` (labels "1", "2", "Juice!"; intro 3 beats, round 1/2/Juice! with reveal on Juice!), `voice.ts` (`chantText` English; `pickVoice` = host choice → English natural → any; Vietnamese logic removed), `soundEngine` chant thumps, `FinaleStage` (bounce on 1/2, idle label, rules text), `describeEvent` ("1, 2, Juice! The finale begins…"), `SoundSettings` (test words, hint), `MatchScreen` (duel count = `count` beat only; no announcer words), `index.html` description, tests (voice, finale timeline, finale log text, App chant + "no spoken RPS words", E2E chant regex).

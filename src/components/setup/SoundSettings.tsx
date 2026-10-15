@@ -1,6 +1,7 @@
-import { useId, useState, type ChangeEvent } from 'react';
+import { useEffect, useId, useState, type ChangeEvent } from 'react';
 import { useSound } from '../../audio/soundContext';
 import { pickVoice } from '../../audio/voice';
+import { VOICE_CLIP_LABELS, VOICE_CLIPS } from '../../audio/voiceClips';
 import type { ChantWord } from '../../animation/finaleTimeline';
 import { MAX_ASSET_BYTES } from '../../storage/assetStorage';
 
@@ -22,6 +23,9 @@ export function SoundSettings() {
   const titleId = useId();
   const fileId = useId();
   const [fileError, setFileError] = useState<string | null>(null);
+  // Recorded voice clips load in the background after the first click; show which are ready.
+  const [clips, setClips] = useState(() => engine.loadedClips());
+  useEffect(() => engine.onClipsChanged(() => setClips(engine.loadedClips())), [engine]);
   const active = pickVoice(voices, settings.voiceURI);
 
   function testVoice() {
@@ -110,6 +114,16 @@ export function SoundSettings() {
         />{' '}
         Announcer (“K.O.!”, “Round 1… Fight!”, English voice)
       </label>
+
+      <p className="hint" data-testid="voice-clips">
+        Recorded voices:{' '}
+        {VOICE_CLIPS.map((id, i) => (
+          <span key={id}>
+            {i > 0 && ' · '}
+            {VOICE_CLIP_LABELS[id]} {clips.includes(id) ? '✓' : '(computer voice)'}
+          </span>
+        ))}
+      </p>
 
       <fieldset className="fieldset sound-settings__music">
         <legend className="field-label">Match music</legend>

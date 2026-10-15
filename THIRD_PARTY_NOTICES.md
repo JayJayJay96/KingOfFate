@@ -15,6 +15,12 @@
 - All sound effects are synthesized at runtime in `src/audio/soundEngine.ts`.
 - The "Một Hai Ba Yo" chant is spoken at runtime by the browser's built-in text-to-speech; no voice recording is bundled.
 
+## Voice clips
+
+`public/voice/` holds the chant and announcer clips. It currently ships **no clips** (empty
+`manifest.json`), so the browser's own voice is used. Any clip added there must be a recording the
+owner made or one whose licence permits public distribution; record its source and licence here.
+
 ## Not bundled
 
 - **Custom match music** chosen by the host is stored only in that browser's IndexedDB (`kof-assets`). It is never part of the repository, the build, or the deployed site. The host is responsible for having the right to play it.

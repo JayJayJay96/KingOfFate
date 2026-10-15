@@ -27,3 +27,6 @@ dist-ssr
 test-results
 playwright-report
 coverage
+
+# Raw voice recordings (processed into public/voice by npm run voice)
+voice-raw/

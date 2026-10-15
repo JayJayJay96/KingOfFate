@@ -1,3 +1,5 @@
+import type { FinaleState } from '../game/engine/matchTypes';
+
 /** Chant words of the finale countdown: "1, 2, Juice!" (owner decision 2026-10-10). */
 export type ChantWord = 'ONE' | 'TWO' | 'JUICE';
 
@@ -120,4 +122,23 @@ export function stagePositions(count: number): { x: number; y: number }[] {
   const row = (n: number, y: number) =>
     Array.from({ length: n }, (_, i) => ({ x: ((i + 1) * 100) / (n + 1), y }));
   return [...row(top, 24), ...row(bottom, 76)];
+}
+
+/**
+ * "Music that builds" (owner request 2026-10-10), from the saved finale state:
+ * 0 = no points yet in this race (drums + bass), 1 = someone has a point (+ lead),
+ * 2 = someone on match point (+ arpeggio, extra hats), 3 = two or more on match point or a
+ * tiebreak race (everything one semitone up).
+ */
+export function finaleIntensity(f: FinaleState): 0 | 1 | 2 | 3 {
+  if (f.stageNumber > 1) return 3;
+  const scores = f.contenderIds
+    .filter((id) => !f.winnerIds.includes(id))
+    .map((id) => f.scores[id] ?? 0);
+  const atMatchPoint = scores.filter((s) => s >= 2).length;
+  const best = Math.max(0, ...scores);
+  if (atMatchPoint >= 2) return 3;
+  if (best >= 2) return 2;
+  if (best >= 1) return 1;
+  return 0;
 }

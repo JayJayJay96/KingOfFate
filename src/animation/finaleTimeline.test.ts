@@ -3,6 +3,7 @@ import {
   CHANT_BEAT_MS,
   FINALE_MIN_BEAT_MS,
   FINALE_REVEAL_HOLD_MS,
+  finaleIntensity,
   finalePace,
   introTimeline,
   NORMAL_PACE,
@@ -96,5 +97,32 @@ describe('finale rising pace (owner request 2026-10-10)', () => {
       // Visible after "Juice!": hold + pause ≥ attack delay + duration, both scaled.
       expect(pace.holdMs + pace.pauseMs).toBeGreaterThanOrEqual((0.15 + 2.4) * 1000 * pace.scale);
     }
+  });
+});
+
+describe('finale music that builds (owner request 2026-10-10)', () => {
+  const base = {
+    started: true,
+    stageNumber: 1,
+    finalistIds: ['a', 'b', 'c'],
+    contenderIds: ['a', 'b', 'c'],
+    winnerIds: [] as string[],
+    excludedIds: [] as string[],
+    pendingRound: null,
+    rounds: [],
+  };
+  const at = (scores: Record<string, number>, extra = {}) =>
+    finaleIntensity({ ...base, scores, ...extra });
+
+  it('drums and bass, then lead, then arpeggio at match point, then a key change', () => {
+    expect(at({ a: 0, b: 0, c: 0 })).toBe(0);
+    expect(at({ a: 1, b: 0, c: 0 })).toBe(1);
+    expect(at({ a: 2, b: 1, c: 0 })).toBe(2);
+    expect(at({ a: 2, b: 2, c: 0 })).toBe(3);
+    expect(at({ a: 0, b: 0 }, { stageNumber: 2, contenderIds: ['a', 'b'] })).toBe(3);
+  });
+
+  it('a qualified winner no longer counts toward match point', () => {
+    expect(at({ a: 3, b: 2, c: 0 }, { winnerIds: ['a'] })).toBe(2);
   });
 });
