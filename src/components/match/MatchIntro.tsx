@@ -3,11 +3,15 @@ import { ANNOUNCE } from '../../audio/announcer';
 import { useSound } from '../../audio/soundContext';
 import { matchIntroTimeline, type IntroBanner } from '../../animation/matchIntro';
 import type { MatchPlayer } from '../../game/engine/matchTypes';
-import { FighterSprite } from '../sprites/icons';
+import { CrownIcon, FighterSprite } from '../sprites/icons';
 
 interface MatchIntroProps {
   readonly players: readonly MatchPlayer[];
   readonly timeScale: number;
+  /** Prize / title line, if any. */
+  readonly title?: string;
+  /** Last match's winners: shown with a crown. */
+  readonly championIds?: readonly string[];
   /** Finished or skipped (click, Space/Enter handled by the match screen). */
   readonly onDone: () => void;
 }
@@ -16,7 +20,13 @@ interface MatchIntroProps {
  * Character-select style intro (~4 s): the select cursor flashes across every portrait, then
  * "ROUND 1… FIGHT!". Decorative only; skipping it changes nothing.
  */
-export function MatchIntro({ players, timeScale, onDone }: MatchIntroProps) {
+export function MatchIntro({
+  players,
+  timeScale,
+  onDone,
+  title,
+  championIds = [],
+}: MatchIntroProps) {
   const { engine } = useSound();
   const [cursor, setCursor] = useState<number | null>(0);
   const [banner, setBanner] = useState<IntroBanner>(null);
@@ -52,6 +62,11 @@ export function MatchIntro({ players, timeScale, onDone }: MatchIntroProps) {
       onClick={() => onDoneRef.current()}
     >
       <p className="match-intro__title">Select your fate</p>
+      {title && (
+        <p className="prize-line match-intro__prize" data-testid="intro-prize">
+          {title}
+        </p>
+      )}
       <ul className="match-intro__grid" aria-hidden="true">
         {players.map((p, i) => (
           <li
@@ -60,6 +75,11 @@ export function MatchIntro({ players, timeScale, onDone }: MatchIntroProps) {
               i === cursor ? 'match-intro__slot match-intro__slot--cursor' : 'match-intro__slot'
             }
           >
+            {championIds.includes(p.id) && (
+              <span className="champion-crown" title="Last match's champion">
+                <CrownIcon size={16} />
+              </span>
+            )}
             <FighterSprite seed={p.name} size={44} idle />
             <span className="match-intro__name">{p.name}</span>
           </li>

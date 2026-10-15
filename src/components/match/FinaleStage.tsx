@@ -164,6 +164,11 @@ export function FinaleStage({
             First to {FINALE_TARGET_SCORE} · {slotsLeft} winner slot{slotsLeft === 1 ? '' : 's'}{' '}
             left
           </span>
+          {match.title && (
+            <span className="prize-line" data-testid="finale-prize">
+              {match.title}
+            </span>
+          )}
           {f.stageNumber > 1 && (
             <span className="finale-stage__tiebreak" data-testid="tiebreak">
               Tiebreak {f.stageNumber - 1}
@@ -232,6 +237,7 @@ export function FinaleStage({
               <Finalist
                 key={id}
                 name={nameOf(id)}
+                champion={!!match.championIds?.includes(id)}
                 position={positions[i]!}
                 score={f.scores[id] ?? 0}
                 status={
@@ -319,6 +325,8 @@ function centroid(points: readonly { x: number; y: number }[]): { x: number; y: 
 
 interface FinalistProps {
   readonly name: string;
+  /** Won the previous match (wears a small crown until someone wins this one). */
+  readonly champion: boolean;
   readonly position: { x: number; y: number };
   readonly score: number;
   readonly status: 'in' | 'winner' | 'out';
@@ -332,6 +340,7 @@ interface FinalistProps {
 
 function Finalist({
   name,
+  champion,
   position,
   score,
   status,
@@ -366,6 +375,11 @@ function Finalist({
     >
       <div className="finalist__figure">
         {status === 'winner' && <CrownIcon size={26} />}
+        {champion && status !== 'winner' && (
+          <span className="champion-crown" title="Last match's champion">
+            <CrownIcon size={16} />
+          </span>
+        )}
         <FighterSprite seed={name} size={56} idle={status !== 'out'} />
         {/* Hand sits below the fighter (owner request), large enough to read on a screenshare. */}
         {status !== 'winner' && (

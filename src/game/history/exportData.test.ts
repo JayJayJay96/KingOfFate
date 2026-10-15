@@ -82,6 +82,7 @@ describe('matchesToCsv', () => {
       'finale_rounds',
       'winners',
       'finalists',
+      'title',
     ]);
     expect(rows).toHaveLength(3);
     const [, first, second] = rows;

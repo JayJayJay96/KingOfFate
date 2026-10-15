@@ -10,7 +10,8 @@ import { stageForMatch } from '../game/config/stages';
 import { SetupScreen } from '../components/setup/SetupScreen';
 import { TitleScreen } from '../components/TitleScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
-import { activeParticipants } from '../game/setup/roster';
+import { lastChampionNames } from '../game/history/history';
+import { activeParticipants, nameKey } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
 import { useMatch } from '../hooks/useMatch';
 import { useOtherTabWarning } from '../hooks/useOtherTabWarning';
@@ -73,15 +74,20 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
   const roster = setup.config.roster;
   const rosterLooks = useMemo(() => looksByName(roster), [roster]);
 
-  function handleStart() {
+  async function handleStart() {
     const { config } = setup;
     if (!validateSetup(config).canStart) return;
-    void game.start({
-      players: activeParticipants(config.roster).map(({ id, name, look }) =>
-        look ? { id, name, look } : { id, name },
-      ),
+    const players = activeParticipants(config.roster);
+    // Last match's winners wear a crown (owner request 2026-10-16); history problems never block.
+    const champions = new Set(
+      lastChampionNames(await repository.listCompleted().catch(() => [])).map(nameKey),
+    );
+    await game.start({
+      players: players.map(({ id, name, look }) => (look ? { id, name, look } : { id, name })),
       winnerCount: config.winnerCount,
       presetId: config.presetId,
+      title: config.title,
+      championIds: players.filter((p) => champions.has(nameKey(p.name))).map((p) => p.id),
     });
   }
 
@@ -135,7 +141,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
     <LooksContext.Provider value={rosterLooks}>
       <SetupScreen
         store={setup}
-        onStart={handleStart}
+        onStart={() => void handleStart()}
         onOpenHistory={() => setShowHistory(true)}
         matchNotice={game.notice ?? game.saveError}
       />

@@ -244,6 +244,9 @@ export function isMatchState(value: unknown): value is MatchState {
   if (typeof value.matchId !== 'string' || typeof value.startedAt !== 'string') return false;
   if (!isFatePresetId(value.presetId) || !isWinnerCount(value.winnerCount)) return false;
   if (typeof value.phase !== 'string' || !PHASES.has(value.phase)) return false;
+  if (value.title !== undefined && (typeof value.title !== 'string' || value.title.length > 200)) {
+    return false;
+  }
   if (
     !isNonNegativeInt(value.completedTurns) ||
     !isNonNegativeInt(value.shieldSupply) ||
@@ -267,6 +270,13 @@ export function isMatchState(value: unknown): value is MatchState {
       return false;
     }
     ids.add(p.id);
+  }
+  if (
+    value.championIds !== undefined &&
+    (!Array.isArray(value.championIds) ||
+      !value.championIds.every((id) => typeof id === 'string' && ids.has(id)))
+  ) {
+    return false;
   }
   const alive = value.players.filter((p) => (p as { alive: boolean }).alive) as { id: string }[];
   if (alive.length < value.winnerCount + 1) return false;

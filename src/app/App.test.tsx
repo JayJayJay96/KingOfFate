@@ -187,6 +187,32 @@ describe('Match', () => {
     expect(await repo.listCompleted()).toHaveLength(1);
   });
 
+  it('prize line on the intro, finale and winner screen; the winner wears a crown next match', async () => {
+    const { user, repo } = await renderApp(
+      createMemoryMatchRepository(),
+      createScriptedRng(Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? 0 : 2))), // rock beats scissors
+    );
+    await user.type(screen.getByLabelText(/prize \/ title/i), 'Who buys kopi today?');
+    await addNames(user, 'Aisyah{Enter}Wei Jie');
+    await startMatch(user);
+    expect(await screen.findByTestId('finale-prize')).toHaveTextContent('Who buys kopi today?');
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
+    expect(screen.getByTestId('victory-prize')).toHaveTextContent('Who buys kopi today?');
+    // No canvas in this test browser: the share card says so instead of failing silently.
+    await user.click(screen.getByRole('button', { name: 'Save picture' }));
+    expect(await screen.findByText('This browser cannot make pictures.')).toBeInTheDocument();
+    expect((await repo.listCompleted())[0]!.match.title).toBe('Who buys kopi today?');
+
+    await user.click(screen.getByRole('button', { name: /return to setup/i }));
+    await startMatch(user);
+    const finalists = await screen.findAllByTestId('finalist');
+    const crowned = finalists.filter((el) => el.querySelector('.champion-crown'));
+    expect(crowned.map((el) => el.querySelector('.finalist__name')!.textContent)).toEqual([
+      'Aisyah',
+    ]);
+  });
+
   it('starts directly in the finale when N = W + 1', async () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie');

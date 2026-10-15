@@ -1,4 +1,4 @@
-import { isWinnerCount, MAX_NAME_LENGTH } from '../game/config/limits';
+import { isWinnerCount, MAX_NAME_LENGTH, MAX_TITLE_LENGTH } from '../game/config/limits';
 import { cleanLook, isFighterLook } from '../game/config/looks';
 import { isFatePresetId } from '../game/config/presets';
 import { isStageChoice } from '../game/config/stages';
@@ -18,6 +18,8 @@ interface StoredSetupV1 {
   readonly stage?: string;
   /** Added 2026-10-16 (optional, schema unchanged). */
   readonly turbo?: boolean;
+  /** Added 2026-10-16 (optional, schema unchanged). */
+  readonly title?: string;
 }
 
 /**
@@ -86,8 +88,12 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   if (typeof parsed.turbo === 'boolean') turbo = parsed.turbo;
   else if (parsed.turbo !== undefined) repaired = true;
 
+  let title = DEFAULT_SETUP.title;
+  if (typeof parsed.title === 'string') title = cleanTitle(parsed.title);
+  else if (parsed.title !== undefined) repaired = true;
+
   return {
-    config: { roster: roster.entries, winnerCount, presetId, stage, turbo },
+    config: { roster: roster.entries, winnerCount, presetId, stage, turbo, title },
     status: repaired ? 'repaired' : 'loaded',
   };
 }
@@ -106,6 +112,7 @@ export function saveSetup(
     presetId: config.presetId,
     stage: config.stage,
     turbo: config.turbo,
+    title: config.title,
   };
   try {
     storage.setItem(SETUP_STORAGE_KEY, JSON.stringify(stored));
@@ -114,6 +121,11 @@ export function saveSetup(
     const detail = error instanceof Error ? error.message : String(error);
     return { ok: false, message: `Could not save settings (${detail}).` };
   }
+}
+
+/** Single line, at most MAX_TITLE_LENGTH characters (edges kept so typing a space works). */
+export function cleanTitle(raw: string): string {
+  return [...raw.replace(/\s+/g, ' ')].slice(0, MAX_TITLE_LENGTH).join('');
 }
 
 function corrupt(storage: Storage, raw: string): SetupLoadResult {

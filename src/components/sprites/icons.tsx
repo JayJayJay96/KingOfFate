@@ -4,6 +4,7 @@ import type { FateKind } from '../../game/config/presets';
 import type { Gesture } from '../../game/engine/rps';
 import { fighterSprite, idleDelayMs } from './fighterSprite';
 import { LooksContext, lookKey } from './looksContext';
+import { CROWN } from './crown';
 import { PixelArt, type PixelImage } from './PixelArt';
 
 /** Original pixel icons drawn for this project. */
@@ -107,11 +108,6 @@ const HAND_IMAGES: Readonly<Record<Gesture, PixelImage>> = {
     ],
     palette: HAND_PALETTE,
   },
-};
-
-const CROWN: PixelImage = {
-  rows: ['g...g...g', 'gg.ggg.gg', 'ggggggggg', 'ggrgggrgg', 'ggggggggg', '.ggggggg.'],
-  palette: { g: '#ffcc33', r: '#ff3b5c' },
 };
 
 export function FateIcon({ kind, size = 18 }: { readonly kind: FateKind; readonly size?: number }) {

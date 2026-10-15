@@ -289,6 +289,7 @@ export function MatchScreen({
         <section className="panel arena">
           <FighterGrid
             players={match.players}
+            championIds={match.championIds}
             highlightId={highlightId}
             opponentId={animation.opponentCursorId}
             lastTargetId={match.lastTurn?.turn.playerId ?? null}
@@ -328,6 +329,8 @@ export function MatchScreen({
         <MatchIntro
           players={match.players}
           timeScale={timeScale}
+          title={match.title}
+          championIds={match.championIds}
           onDone={() => setIntroDoneFor(match.matchId)}
         />
       )}

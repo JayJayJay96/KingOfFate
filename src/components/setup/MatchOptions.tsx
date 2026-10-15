@@ -1,4 +1,5 @@
-import { WINNER_COUNT_OPTIONS, type WinnerCount } from '../../game/config/limits';
+import { MAX_TITLE_LENGTH, WINNER_COUNT_OPTIONS, type WinnerCount } from '../../game/config/limits';
+import { cleanTitle } from '../../storage/setupStorage';
 import { isStageChoice, STAGE_IDS, STAGE_LABELS, type StageChoice } from '../../game/config/stages';
 import {
   FATE_PRESET_IDS,
@@ -16,6 +17,8 @@ interface MatchOptionsProps {
   readonly onStageChange: (stage: StageChoice) => void;
   readonly turbo: boolean;
   readonly onTurboChange: (turbo: boolean) => void;
+  readonly title: string;
+  readonly onTitleChange: (title: string) => void;
 }
 
 export function MatchOptions({
@@ -27,9 +30,25 @@ export function MatchOptions({
   onStageChange,
   turbo,
   onTurboChange,
+  title,
+  onTitleChange,
 }: MatchOptionsProps) {
   return (
     <section className="panel">
+      <label className="fieldset title-input">
+        <span className="panel__title">Prize / title</span>
+        <input
+          type="text"
+          value={title}
+          maxLength={MAX_TITLE_LENGTH}
+          placeholder="Who buys kopi today?"
+          onChange={(e) => onTitleChange(cleanTitle(e.target.value))}
+        />
+        <span className="hint">
+          Optional. Shown in the intro, the finale and on the winner screen.
+        </span>
+      </label>
+
       <fieldset className="fieldset">
         <legend className="panel__title">Winners</legend>
         <div className="segmented">

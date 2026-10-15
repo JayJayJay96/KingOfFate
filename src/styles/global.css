@@ -3117,3 +3117,82 @@ label.button {
   width: 14px;
   height: 14px;
 }
+
+/* ---- Office pack (owner request 2026-10-16) ---- */
+
+/* Prize / title line */
+.prize-line {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: clamp(0.7rem, 1.6vw, 1rem);
+  color: var(--gold);
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 #000;
+  overflow-wrap: anywhere;
+}
+
+.prize-line::before {
+  content: '🏆 ';
+}
+
+.match-intro__prize {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.victory__prize {
+  text-align: center;
+  font-size: clamp(0.9rem, 2.4vw, 1.4rem);
+  margin: -4px 0 8px;
+}
+
+.match-list__title {
+  color: var(--gold);
+}
+
+.title-input {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.title-input input {
+  font: inherit;
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--panel-edge);
+}
+
+/* Champion's crown: last match's winners (cosmetic). */
+.champion-crown {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  z-index: 1;
+  line-height: 0;
+  filter: drop-shadow(1px 1px 0 #000);
+  pointer-events: none;
+}
+
+.champion-crown--big {
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.match-intro__slot,
+.finalist__figure,
+.preview__portrait {
+  position: relative;
+}
+
+/* Victory share card buttons */
+.share-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}

@@ -12,6 +12,8 @@ export interface SetupConfig {
   readonly stage: StageChoice;
   /** Turbo spins: shorter cursor spins for big rosters (presentation only). */
   readonly turbo: boolean;
+  /** Prize / title line shown in the intro, finale and victory (empty = none). */
+  readonly title: string;
 }
 
 export const DEFAULT_WINNER_COUNT: WinnerCount = 1;
@@ -22,4 +24,5 @@ export const DEFAULT_SETUP: SetupConfig = {
   presetId: DEFAULT_PRESET_ID,
   stage: 'random',
   turbo: false,
+  title: '',
 };

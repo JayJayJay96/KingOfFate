@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { scatterFallen } from '../../animation/victoryLayout';
 import { victoryLine } from '../../audio/announcer';
 import { summarizeMatch } from '../../game/history/history';
@@ -6,6 +6,11 @@ import { toCompletedRecord } from '../../storage/matchStorage';
 import { MatchAwards } from '../history/MatchAwards';
 import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
+import { renderShareCard, shareCardData, shareCardFileName } from '../../share/shareCard';
+import { downloadBlob } from '../../utils/download';
+import { fighterSprite } from '../sprites/fighterSprite';
+import { LooksContext, lookKey } from '../sprites/looksContext';
+import { CROWN } from '../sprites/crown';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { Crowd } from '../stage/Crowd';
 import { StageContext } from '../stage/stageContext';
@@ -72,6 +77,11 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
       </div>
 
       <h1 className="victory__title">{f.winnerIds.length === 1 ? 'Winner!' : 'Winners!'}</h1>
+      {match.title && (
+        <p className="prize-line victory__prize" data-testid="victory-prize">
+          {match.title}
+        </p>
+      )}
 
       <div className="victory__podium">
         {losersLeft.map((id) => (
@@ -110,11 +120,68 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
           Result saved to History.
         </p>
       )}
+      <ShareCardButtons match={match} />
       <button type="button" className="button button--start victory__back" onClick={onLeave}>
         Return to setup
       </button>
       <EventLog match={match} />
     </main>
+  );
+}
+
+/** "Save picture" / "Copy picture" for the office chat (owner request 2026-10-16). */
+function ShareCardButtons({ match }: { readonly match: MatchState }) {
+  const stageId = useContext(StageContext);
+  const looks = useContext(LooksContext);
+  const [status, setStatus] = useState('');
+  const canCopy =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.clipboard?.write === 'function' &&
+    typeof ClipboardItem !== 'undefined';
+
+  async function picture(): Promise<Blob | null> {
+    return renderShareCard(shareCardData(match, stageId), {
+      sprite: (name, look) => fighterSprite(name, look ?? looks.get(lookKey(name))),
+      crown: CROWN,
+    });
+  }
+
+  async function save() {
+    const blob = await picture();
+    if (!blob) {
+      setStatus('This browser cannot make pictures.');
+      return;
+    }
+    const name = shareCardFileName(match);
+    downloadBlob(name, blob);
+    setStatus(`Saved ${name}.`);
+  }
+
+  async function copy() {
+    try {
+      const blob = await picture();
+      if (!blob) throw new Error('no canvas');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setStatus('Copied! Paste it into the chat.');
+    } catch {
+      setStatus('Could not copy the picture. Use Save picture instead.');
+    }
+  }
+
+  return (
+    <div className="share-card" data-testid="share-card">
+      <button type="button" className="button" onClick={() => void save()}>
+        Save picture
+      </button>
+      {canCopy && (
+        <button type="button" className="button" onClick={() => void copy()}>
+          Copy picture
+        </button>
+      )}
+      <span className="hint" role="status">
+        {status}
+      </span>
+    </div>
   );
 }
 

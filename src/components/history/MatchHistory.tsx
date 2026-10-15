@@ -53,6 +53,7 @@ export function MatchHistory({ summaries, records, onDelete }: MatchHistoryProps
                 onClick={() => setOpenId(s.matchId)}
               >
                 <span className="match-list__date">{formatDateTime(s.completedAt)}</span>
+                {s.title && <span className="match-list__title">{s.title}</span>}
                 <span className="match-list__winners">
                   {s.winnerIds.length === 1 ? 'Winner' : 'Winners'}: {winnerNames(s)}
                 </span>
@@ -93,6 +94,7 @@ function MatchDetail({
           All matches
         </button>
       </div>
+      {s.title && <p className="prize-line">{s.title}</p>}
       <p className="history-detail__summary" data-testid="match-summary">
         {s.winnerIds.length === 1 ? 'Winner' : 'Winners'}: <strong>{winnerNames(s)}</strong>.{' '}
         {s.fighterCount} fighters, {s.winnerCount} winner slot{s.winnerCount === 1 ? '' : 's'},{' '}

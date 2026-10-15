@@ -66,6 +66,12 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Overnight batch, phase D: prize line, share card, champion crown
+
+- **Added:** `src/share/shareCard.ts` (+ test: data, file name, fallen line, drawing), `downloadBlob` in `utils/download.ts`, `lastChampionNames` in `history.ts`, `MAX_TITLE_LENGTH` (60), `cleanTitle`.
+- **Changed:** setup config/storage (optional `title`, schema unchanged), `MatchOptions` (Prize / title input), `createMatch` / `MatchState` (optional `title`, `championIds`; schema stays 4; storage validates both), `App.handleStart` (reads completed matches for last champions; errors never block a start), `MatchIntro`, `FighterGrid`, `PreviewPanel`, `FinaleStage`, `VictoryScreen` (prize line, crowns, Save / Copy picture), `MatchHistory` (title in list and detail), CSV export (`title` column), CSS.
+- **Checked:** unit/integration tests (title kept and trimmed, champions filtered, last champion = newest valid record, CSV header, App: prize on finale + winner screen, saved in History, "This browser cannot make pictures." without canvas, crown on last winner next match); in the pane: intro shows the prize and the crown, Save picture produced `kof-winner_2026-10-16_0306.png` (127 KB), the rendered card looked right.
+
 ### 2026-10-16 — Overnight batch, phase C: Bomb Fate
 
 - **Changed:** `presets.ts` (`BOMB` kind, 1 slot per pool from KO; labels), `fateSlots.ts` (spread order Shield → VS → Bomb so Shield stays at slot 10; Sudden Death keeps the Bomb and gives an old strip its Bomb from KO), `matchTypes.ts` (`CommittedBomb`, `bomb?` on `CommittedTurn`, `BOMB` outcome; schema stays 4, old saves remain valid), `match.ts` (side sampled after the slot; resolve with Shield + W + 1 guard; `livingNeighbours`, `eliminatedThisTurn`), `matchStorage.ts` (validates a pending Bomb), `turnTimeline` / `useTurnAnimation` (`bomb` stage, 1.2 s fuse marking the neighbour), `MatchScreen` / `FighterGrid` (both fall, BOOM impact with 18 sparks, shake, crowd cheers), `PreviewPanel`, `FateStrip`, `icons` (original pixel bomb), `describeEvent`, `history.ts` (Shield blocks), `announcer` ("Boom!"), `soundEngine` (`boom`, `fuse` sfx), CSS.

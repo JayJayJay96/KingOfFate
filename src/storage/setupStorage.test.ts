@@ -17,6 +17,7 @@ const sample: SetupConfig = {
   presetId: 'chaotic',
   stage: 'mamak',
   turbo: false,
+  title: 'Who buys kopi today?',
 };
 
 function storeRaw(value: unknown) {
@@ -76,6 +77,7 @@ describe('setup storage', () => {
       presetId: DEFAULT_SETUP.presetId,
       stage: DEFAULT_SETUP.stage,
       turbo: false,
+      title: '',
     });
   });
 
@@ -117,6 +119,20 @@ describe('setup storage', () => {
     const result = loadSetup(localStorage);
     expect(result.status).toBe('repaired');
     expect(result.config.turbo).toBe(false);
+  });
+
+  it('keeps the title on one line and at most 60 characters', () => {
+    storeRaw({
+      schemaVersion: 1,
+      roster: [],
+      winnerCount: 1,
+      presetId: 'normal',
+      title: `Who
+buys ${'x'.repeat(80)}`,
+    });
+    const { config } = loadSetup(localStorage);
+    expect(config.title.startsWith('Who buys x')).toBe(true);
+    expect(config.title).toHaveLength(60);
   });
 
   it('loads settings saved before stages existed', () => {

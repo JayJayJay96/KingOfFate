@@ -36,9 +36,18 @@ export interface MatchLaunch {
   }[];
   readonly winnerCount: number;
   readonly presetId: FatePresetId;
+  /** Prize / title line (owner request 2026-10-16); cosmetic. */
+  readonly title?: string;
+  /** Players who won the previous match: they wear a crown (cosmetic only). */
+  readonly championIds?: readonly string[];
 }
 
 export { IllegalTransitionError };
+
+function championIdsFor(launch: MatchLaunch): string[] {
+  const ids = new Set(launch.players.map((p) => p.id));
+  return [...new Set(launch.championIds ?? [])].filter((id) => ids.has(id));
+}
 
 export function alivePlayers(state: MatchState): readonly MatchPlayer[] {
   return state.players.filter((p) => p.alive);
@@ -68,6 +77,8 @@ export function createMatch(
     startedAt: ids.startedAt,
     presetId: launch.presetId,
     winnerCount: w,
+    ...(launch.title?.trim() ? { title: launch.title.trim() } : {}),
+    ...(championIdsFor(launch).length > 0 ? { championIds: championIdsFor(launch) } : {}),
     players: launch.players.map((p) => ({
       id: p.id,
       name: p.name,

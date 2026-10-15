@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { describeOutcome } from '../../game/engine/describeEvent';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
 import type { TurnStage } from '../../hooks/useTurnAnimation';
-import { FighterSprite } from '../sprites/icons';
+import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { StageArt } from '../stage/StageArt';
 import { StageContext } from '../stage/stageContext';
 
@@ -54,6 +54,11 @@ export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPane
       )}
       {name ? (
         <span className="preview__portrait">
+          {match.players.some((p) => p.name === name && match.championIds?.includes(p.id)) && (
+            <span className="champion-crown champion-crown--big" aria-hidden="true">
+              <CrownIcon size={34} />
+            </span>
+          )}
           <FighterSprite seed={name} size={136} idle={match.phase !== 'SPINNING'} />
         </span>
       ) : (

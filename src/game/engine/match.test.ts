@@ -75,6 +75,18 @@ function koFirst(state: MatchState, times: number): MatchState {
 }
 
 describe('createMatch', () => {
+  it('keeps the prize line and last champions (cosmetic only)', () => {
+    const m = createMatch(
+      { ...launch(4), title: '  Who buys kopi?  ', championIds: ['p2', 'ghost', 'p2'] },
+      ids,
+    );
+    expect(m.title).toBe('Who buys kopi?');
+    expect(m.championIds).toEqual(['p2']);
+    const plain = createMatch({ ...launch(4), title: '   ' }, ids);
+    expect(plain.title).toBeUndefined();
+    expect(plain.championIds).toBeUndefined();
+  });
+
   it('starts READY, everyone alive without Shields, strip = preset normal odds', () => {
     for (const id of FATE_PRESET_IDS) {
       const m = createMatch(launch(5, 2, id), ids);

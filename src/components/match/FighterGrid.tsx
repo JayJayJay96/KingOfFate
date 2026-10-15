@@ -1,5 +1,5 @@
 import type { MatchPlayer } from '../../game/engine/matchTypes';
-import { FighterSprite } from '../sprites/icons';
+import { CrownIcon, FighterSprite } from '../sprites/icons';
 
 interface FighterGridProps {
   readonly players: readonly MatchPlayer[];
@@ -11,6 +11,8 @@ interface FighterGridProps {
   readonly lastTargetId: string | null;
   /** Fighter just knocked out: plays the knock-back fall once. */
   readonly fallingIds?: readonly string[];
+  /** Last match's winners wear a crown (owner request 2026-10-16; cosmetic). */
+  readonly championIds?: readonly string[];
 }
 
 /** Every match participant; eliminated fighters stay visible, greyed and X-marked. */
@@ -20,6 +22,7 @@ export function FighterGrid({
   opponentId = null,
   lastTargetId,
   fallingIds = [],
+  championIds = [],
 }: FighterGridProps) {
   return (
     <ul className="fighter-grid" aria-label="Fighters">
@@ -38,6 +41,12 @@ export function FighterGrid({
             data-cursor={p.id === highlightId ? 'true' : undefined}
             data-shield={p.shield ? 'true' : undefined}
           >
+            {championIds.includes(p.id) && (
+              <span className="champion-crown" title="Last match's champion" data-testid="champion">
+                <CrownIcon size={20} />
+                <span className="sr-only"> (last match's champion)</span>
+              </span>
+            )}
             <FighterSprite seed={p.name} size={72} idle={p.alive} />
             <span className="fighter__name">{p.name}</span>
             {p.shield && (

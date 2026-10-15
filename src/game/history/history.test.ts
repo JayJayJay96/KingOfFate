@@ -8,6 +8,7 @@ import {
   isHistoryRecord,
   sortSummaries,
   summarizeMatch,
+  lastChampionNames,
 } from './history';
 
 const ROSTER = [
@@ -228,5 +229,31 @@ describe('history performance (Phase 7)', () => {
     expect(stats).toHaveLength(20);
     // Generous budget so slow CI machines do not flake; typical is a few milliseconds.
     expect(elapsed).toBeLessThan(1000);
+  });
+});
+
+describe('lastChampionNames (owner request 2026-10-16: champion crown)', () => {
+  const roster = [
+    ['a', 'Aisyah'],
+    ['b', 'Wei Jie'],
+    ['c', 'Kavitha'],
+  ] as const;
+  it('names the winners of the most recent valid match', () => {
+    const older = playCompletedMatch({
+      matchId: 'old',
+      players: roster,
+      seed: 1,
+      completedAt: '2026-10-01T10:00:00.000Z',
+    });
+    const newer = playCompletedMatch({
+      matchId: 'new',
+      players: roster,
+      seed: 2,
+      completedAt: '2026-10-02T10:00:00.000Z',
+    });
+    const names = (r: typeof newer) =>
+      r.winnerIds.map((id) => r.match.players.find((p) => p.id === id)!.name);
+    expect(lastChampionNames([newer, older, { junk: true }])).toEqual(names(newer));
+    expect(lastChampionNames([])).toEqual([]);
   });
 });

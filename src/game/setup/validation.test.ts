@@ -14,6 +14,7 @@ function config(active: number, winnerCount: number, inactive = 0): SetupConfig 
     presetId: 'normal',
     stage: 'random',
     turbo: false,
+    title: '',
   };
 }
 

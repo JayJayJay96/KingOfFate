@@ -46,6 +46,8 @@ export interface MatchSummary {
   readonly turns: number;
   readonly finaleRounds: number;
   readonly winnerIds: readonly string[];
+  /** Prize / title line, if the host set one. */
+  readonly title?: string;
   /** Every VS duel of the match, in order. */
   readonly duels: readonly DuelResult[];
   /** In starting (roster) order. */
@@ -173,6 +175,7 @@ export function summarizeMatch(record: CompletedMatchRecord): MatchSummary {
     turns: m.completedTurns,
     finaleRounds: finale.rounds.length,
     winnerIds: record.winnerIds,
+    ...(typeof m.title === 'string' && m.title ? { title: m.title } : {}),
     duels,
     fighters: m.players.map((p) => ({
       id: p.id,
@@ -206,6 +209,17 @@ function isFlawless(
     .slice(0, at + 1)
     .filter((r) => r.stageNumber === stage)
     .every((r) => r.scorerIds.every((id) => id === winnerId));
+}
+
+/**
+ * Names of the most recent match's winners (owner request 2026-10-16: the last champion wears a
+ * crown in the next match). Invalid records are skipped.
+ */
+export function lastChampionNames(records: readonly unknown[]): string[] {
+  const valid = records.filter(isHistoryRecord);
+  if (valid.length === 0) return [];
+  const latest = valid.reduce((a, b) => (b.completedAt > a.completedAt ? b : a));
+  return latest.winnerIds.map((id) => latest.match.players.find((p) => p.id === id)?.name ?? '');
 }
 
 /** Newest first. */

@@ -31,6 +31,7 @@ export function matchesToCsv(summaries: readonly MatchSummary[]): string {
     'finale_rounds',
     'winners',
     'finalists',
+    'title',
   ];
   const rows = [...summaries]
     .sort((a, b) => a.completedAt.localeCompare(b.completedAt))
@@ -49,6 +50,7 @@ export function matchesToCsv(summaries: readonly MatchSummary[]): string {
         .filter((f) => f.finalist)
         .map((f) => f.name)
         .join('; '),
+      s.title ?? '',
     ]);
   return toCsv([header, ...rows]);
 }

@@ -82,6 +82,8 @@ export function SetupScreen({
             onStageChange={(stage) => update((c) => ({ ...c, stage }))}
             turbo={config.turbo}
             onTurboChange={(turbo) => update((c) => ({ ...c, turbo }))}
+            title={config.title}
+            onTitleChange={(title) => update((c) => ({ ...c, title }))}
           />
 
           <SoundSettings />

@@ -197,6 +197,10 @@ export interface MatchState {
   readonly startedAt: string;
   readonly presetId: FatePresetId;
   readonly winnerCount: number;
+  /** Prize / title line, e.g. "Who buys kopi today?" (optional, cosmetic). */
+  readonly title?: string;
+  /** Winners of the previous match: they wear a crown (optional, cosmetic). */
+  readonly championIds?: readonly string[];
   /** Grid order = array order. */
   readonly players: readonly MatchPlayer[];
   /** The visible 20 equally likely Fate slots; always the real active odds. */
