@@ -66,6 +66,14 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Overnight batch, phase E: victory poses (batch complete)
+
+- **Changed:** `VictoryScreen` (`--beat` = 60 / stage fanfare bpm on the winners list; alternate winners offset by one beat), CSS (`victory-jump` squash/stretch + shadow, reduced-motion guard), App test (beat matches a stage fanfare).
+- **Checked:** in the pane with 2 winners on KL Night: `--beat` 0.455 s (132 bpm), jumps 0.91 s, second winner delayed −0.455 s; one squashed on the ground while the other was 34 px up.
+- **Batch summary (owner asleep; each phase tested, committed and pushed):** A pacing `4fcb6ed`, B visuals `04e8996`, C Bomb `ef0a5ce`, D office pack `c1c4372`, E victory poses (this commit). Owner decisions taken before the batch: Bomb 1 slot everywhere; random adjacent neighbour with Shield + W + 1 guard; Turbo = setup toggle 1.5–4 s; crown = last match's winner(s).
+- **Not heard by ear:** music drop at match point, boom/fuse sounds. **Known:** some App/E2E timing tests are load-sensitive (reproduced on older commits); two were made slower/steadier this session.
+- **Next exact action:** owner plays a match with Turbo + a prize line and reports; owner's voice recordings still pending (`voice-raw/` → `npm run voice`).
+
 ### 2026-10-16 — Overnight batch, phase D: prize line, share card, champion crown
 
 - **Added:** `src/share/shareCard.ts` (+ test: data, file name, fallen line, drawing), `downloadBlob` in `utils/download.ts`, `lastChampionNames` in `history.ts`, `MAX_TITLE_LENGTH` (60), `cleanTitle`.

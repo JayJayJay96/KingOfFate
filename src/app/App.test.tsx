@@ -1,3 +1,4 @@
+import { FANFARES } from '../audio/fanfares';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -199,6 +200,10 @@ describe('Match', () => {
     await user.click(screen.getByRole('button', { name: /start the finale/i }));
     await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
     expect(screen.getByTestId('victory-prize')).toHaveTextContent('Who buys kopi today?');
+    // Victory pose: the winner jumps on the beat of this stage's fanfare.
+    const beat = screen.getByTestId('victory-winners').style.getPropertyValue('--beat');
+    expect(Object.values(FANFARES).map((f) => `${(60 / f.bpm).toFixed(3)}s`)).toContain(beat);
+    expect(document.querySelector('.victory__portrait--jump')).not.toBeNull();
     // No canvas in this test browser: the share card says so instead of failing silently.
     await user.click(screen.getByRole('button', { name: 'Save picture' }));
     expect(await screen.findByText('This browser cannot make pictures.')).toBeInTheDocument();

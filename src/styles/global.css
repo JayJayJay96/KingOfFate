@@ -3196,3 +3196,65 @@ label.button {
   justify-content: center;
   margin: 8px 0;
 }
+
+/* Victory pose (owner request 2026-10-16): winners jump happily on the fanfare's beat. */
+.victory__portrait--jump {
+  position: relative;
+  transform-origin: 50% 100%;
+  animation: victory-jump calc(var(--beat, 0.45s) * 2) cubic-bezier(0.3, 0, 0.4, 1) infinite;
+}
+
+.victory__portrait--jump .fighter-sprite--idle {
+  animation: none;
+}
+
+.victory__portrait--jump::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 70%;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  transform: translateX(-50%);
+  animation: victory-shadow calc(var(--beat, 0.45s) * 2) cubic-bezier(0.3, 0, 0.4, 1) infinite;
+  animation-delay: inherit;
+}
+
+@keyframes victory-jump {
+  0% {
+    transform: translateY(0) scale(1.12, 0.88);
+  }
+  12% {
+    transform: translateY(-6px) scale(0.92, 1.1);
+  }
+  50% {
+    transform: translateY(-34px) scale(1, 1) rotate(-4deg);
+  }
+  88% {
+    transform: translateY(-4px) scale(0.95, 1.06);
+  }
+  100% {
+    transform: translateY(0) scale(1.12, 0.88);
+  }
+}
+
+@keyframes victory-shadow {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(0.55);
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='always']) .victory__portrait--jump,
+  :root:not([data-motion='always']) .victory__portrait--jump::after {
+    animation: none;
+  }
+}

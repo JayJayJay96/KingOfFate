@@ -1,4 +1,5 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type CSSProperties } from 'react';
+import { FANFARES } from '../../audio/fanfares';
 import { scatterFallen } from '../../animation/victoryLayout';
 import { victoryLine } from '../../audio/announcer';
 import { summarizeMatch } from '../../game/history/history';
@@ -43,6 +44,8 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
   const losersRight = finaleLosers.filter((_, i) => i % 2 === 1);
 
   const winnerLine = victoryLine(f.winnerIds.map(nameOf));
+  // Victory pose (owner request 2026-10-16): winners jump on the beat of the stage fanfare.
+  const beatSeconds = 60 / (stageId ? FANFARES[stageId].bpm : 132);
   useEffect(() => {
     engine.fanfare(stageId);
     engine.announce(winnerLine);
@@ -87,10 +90,19 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
         {losersLeft.map((id) => (
           <FinaleLoser key={id} name={nameOf(id)} />
         ))}
-        <ol className="victory__winners" aria-label="Winners">
-          {f.winnerIds.map((id) => (
+        <ol
+          className="victory__winners"
+          aria-label="Winners"
+          data-testid="victory-winners"
+          style={{ '--beat': `${beatSeconds.toFixed(3)}s` } as CSSProperties}
+        >
+          {f.winnerIds.map((id, i) => (
             <li key={id}>
-              <span className="victory__portrait">
+              <span
+                className="victory__portrait victory__portrait--jump"
+                // Several winners take turns: every other one lands on the off-beat.
+                style={{ animationDelay: i % 2 ? 'calc(var(--beat) * -1)' : '0s' }}
+              >
                 <CrownIcon size={28} />
                 <FighterSprite seed={nameOf(id)} size={96} idle />
               </span>
