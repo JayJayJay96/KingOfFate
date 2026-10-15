@@ -5,6 +5,7 @@ import type { CommittedDuel } from '../../game/engine/matchTypes';
 import { beats, type Gesture } from '../../game/engine/rps';
 import { FighterSprite, HandIcon } from '../sprites/icons';
 import { aimAttacks, ATTACK_OF, type AttackAction } from './handAttack';
+import { DrawBurst } from './DrawBurst';
 
 interface DuelPanelProps {
   /**
@@ -113,6 +114,8 @@ export function DuelPanel({
           </div>
         )}
       </div>
+      {/* Draws come first, so this throw's number is the draw count; a duel draw is always a clash. */}
+      {current && !decisive && <DrawBurst key={throwIndex} count={throwIndex + 1} clash />}
       <p className="duel__caption" aria-live="polite">
         {caption}
       </p>

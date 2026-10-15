@@ -7,6 +7,7 @@ import { MatchAwards } from '../history/MatchAwards';
 import { useSound } from '../../audio/soundContext';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
+import { Crowd } from '../stage/Crowd';
 import { StageContext } from '../stage/stageContext';
 import { EventLog } from './EventLog';
 
@@ -90,6 +91,9 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
         {losersRight.map((id) => (
           <FinaleLoser key={id} name={nameOf(id)} />
         ))}
+      </div>
+      <div className="victory__crowd">
+        <Crowd mood="jump" />
       </div>
 
       <p className="victory__summary">

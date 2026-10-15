@@ -21,6 +21,9 @@ import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEv
 import { FINALE_TARGET_SCORE, winningGesture } from '../../game/engine/finale';
 import type { FinaleThrow, MatchState } from '../../game/engine/matchTypes';
 import { useFinaleShow } from '../../hooks/useFinaleShow';
+import { finaleDrawStreak, isClash } from '../../animation/drawCounter';
+import { Crowd } from '../stage/Crowd';
+import { DrawBurst } from './DrawBurst';
 import { CrownIcon, FighterSprite, HandIcon } from '../sprites/icons';
 import { EventLog } from './EventLog';
 import { aimAttacks, ATTACK_OF, type AttackAction } from './handAttack';
@@ -92,6 +95,20 @@ export function FinaleStage({
   const action: AttackAction | null = winGesture ? ATTACK_OF[winGesture] : null;
   const revealKey = revealThrows ? (f.pendingRound?.roundId ?? lastRound?.roundId ?? '') : '';
   const arenaRef = useRef<HTMLElement>(null);
+  const pending = f.pendingRound;
+  // Draw counter: draws in a row in this race, counting a draw being revealed right now.
+  const drawCount =
+    revealThrows && !winGesture ? finaleDrawStreak(f.rounds, f.stageNumber) + (pending ? 1 : 0) : 0;
+  const clash = revealThrows ? isClash(revealThrows.map((t) => t.gesture)) : false;
+  // Camera: at match point it pushes in on whoever is one point from a slot.
+  const leaders = f.contenderIds.filter(
+    (id) => !f.winnerIds.includes(id) && (f.scores[id] ?? 0) >= FINALE_TARGET_SCORE - 1,
+  );
+  const focus =
+    show.dark && leaders.length > 0
+      ? centroid(leaders.map((id) => positions[f.finalistIds.indexOf(id)]!))
+      : null;
+  const impactNow = !!pending && show.word === 'JUICE' && !!winGesture;
 
   // Rising pace: the music speeds up with the chant (owner request); back to normal on exit.
   const paceScale = show.paceScale;
@@ -187,6 +204,7 @@ export function FinaleStage({
             splash && !f.started ? 'finale-stage__arena--entering' : '',
             finishing ? 'finale-stage__arena--final-blow' : '',
             show.dark ? 'finale-stage__arena--last-point' : '',
+            impactNow ? 'finale-stage__arena--impact' : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -194,28 +212,48 @@ export function FinaleStage({
           data-testid="finale-arena"
           style={{ '--pace': paceScale } as CSSProperties}
         >
-          {stageId && (
-            <div className="finale-stage__backdrop" aria-hidden="true">
-              <StageArt stage={stageId} />
-            </div>
-          )}
-          {f.finalistIds.map((id, i) => (
-            <Finalist
-              key={id}
-              name={nameOf(id)}
-              position={positions[i]!}
-              score={f.scores[id] ?? 0}
-              status={
-                f.winnerIds.includes(id) ? 'winner' : f.excludedIds.includes(id) ? 'out' : 'in'
-              }
-              word={show.word}
-              revealed={show.revealThrows?.find((t: FinaleThrow) => t.playerId === id) ?? null}
-              scored={showingResult && lastRound.scorerIds.includes(id)}
-              action={action}
-              winGesture={winGesture}
-              revealKey={revealKey}
+          <div
+            className={
+              focus ? 'finale-stage__camera finale-stage__camera--focus' : 'finale-stage__camera'
+            }
+            data-testid="finale-camera"
+            style={focus ? { transformOrigin: `${focus.x}% ${focus.y}%` } : undefined}
+          >
+            {stageId && (
+              <div className="finale-stage__backdrop" aria-hidden="true">
+                <StageArt stage={stageId} />
+              </div>
+            )}
+            <Crowd
+              mood={finishing ? 'jump' : revealThrows && winGesture ? 'cheer' : 'idle'}
+              cue={revealKey}
             />
-          ))}
+            {f.finalistIds.map((id, i) => (
+              <Finalist
+                key={id}
+                name={nameOf(id)}
+                position={positions[i]!}
+                score={f.scores[id] ?? 0}
+                status={
+                  f.winnerIds.includes(id) ? 'winner' : f.excludedIds.includes(id) ? 'out' : 'in'
+                }
+                word={show.word}
+                revealed={show.revealThrows?.find((t: FinaleThrow) => t.playerId === id) ?? null}
+                scored={showingResult && lastRound.scorerIds.includes(id)}
+                action={action}
+                winGesture={winGesture}
+                revealKey={revealKey}
+              />
+            ))}
+          </div>
+          {show.word === 'JUICE' && (
+            <span
+              key={`flash:${pending?.roundId ?? 'intro'}`}
+              className="finale-flash"
+              aria-hidden="true"
+            />
+          )}
+          {drawCount > 0 && <DrawBurst key={revealKey} count={drawCount} clash={clash} />}
           {splash && !f.started && (
             <p className="finale-splash" data-testid="finale-splash" aria-hidden="true">
               Final round
@@ -269,6 +307,14 @@ export function FinaleStage({
       )}
     </main>
   );
+}
+
+function centroid(points: readonly { x: number; y: number }[]): { x: number; y: number } {
+  const n = points.length;
+  return {
+    x: Math.round(points.reduce((a, p) => a + p.x, 0) / n),
+    y: Math.round(points.reduce((a, p) => a + p.y, 0) / n),
+  };
 }
 
 interface FinalistProps {

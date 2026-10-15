@@ -1935,7 +1935,19 @@ label.button {
 }
 
 .match--shake {
-  animation: screen-shake 0.4s steps(8);
+  /* Hit-stop: a frozen, high-contrast frame before the shake (owner request 2026-10-16). */
+  animation:
+    hit-stop 0.14s steps(1),
+    screen-shake 0.4s steps(8) 0.14s;
+}
+
+@keyframes hit-stop {
+  0% {
+    filter: brightness(1.7) contrast(1.5) saturate(0.2);
+  }
+  100% {
+    filter: none;
+  }
 }
 
 @keyframes screen-shake {
@@ -2872,4 +2884,215 @@ label.button {
   :root:not([data-motion='always']) .finale-last-point {
     animation: none;
   }
+}
+
+/* ---- Big moments (owner request 2026-10-16) ---- */
+
+/* Draw counter: grows with every draw in a row. */
+.draw-burst {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18%;
+  z-index: 4;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-size: calc(clamp(1.1rem, 3vw, 1.9rem) * var(--burst, 1));
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow:
+    3px 3px 0 var(--blue, #2b6cb0),
+    6px 6px 0 #000;
+  pointer-events: none;
+  animation: draw-burst 0.5s ease-out both;
+}
+
+.draw-burst--clash {
+  color: var(--gold);
+  text-shadow:
+    3px 3px 0 var(--red),
+    6px 6px 0 #000;
+}
+
+@keyframes draw-burst {
+  0% {
+    transform: scale(2.2) rotate(-6deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.95) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.duel {
+  position: relative;
+}
+
+.duel .draw-burst {
+  top: 4px;
+}
+
+/* Finale camera: pushes in on the leaders at match point; snaps back on "Juice!". */
+.finale-stage__camera {
+  position: absolute;
+  inset: 0;
+}
+
+.finale-stage__camera--focus {
+  transform: scale(1.18);
+  transition: transform 0.7s ease-out;
+}
+
+/* Impact on a scoring reveal: the stage punches in behind the hands. */
+.finale-stage__arena--impact .finale-stage__backdrop {
+  animation: impact-punch 0.35s ease-out;
+}
+
+@keyframes impact-punch {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* White flash on "Juice!". */
+.finale-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: #fff;
+  pointer-events: none;
+  animation: juice-flash 0.22s ease-out forwards;
+}
+
+@keyframes juice-flash {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Speed lines while the fighter cursor cruises. */
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 9px,
+    rgb(255 255 255 / 0.55) 9px 10px,
+    transparent 10px 23px,
+    rgb(255 255 255 / 0.3) 23px 24px
+  );
+  background-size: 160px 100%;
+  mask-image: linear-gradient(90deg, #000, transparent 30%, transparent 70%, #000);
+  animation: speed-lines 0.18s linear infinite;
+}
+
+@keyframes speed-lines {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -160px 0;
+  }
+}
+
+/* Reacting crowd along the bottom of the stage. */
+.crowd {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 0 8px;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.crowd__fan {
+  display: block;
+  image-rendering: pixelated;
+  animation: crowd-idle 1.6s steps(2) infinite;
+  animation-delay: var(--delay, 0ms);
+}
+
+.crowd__arm--up {
+  visibility: hidden;
+}
+
+.crowd--cheer .crowd__arm--up,
+.crowd--jump .crowd__arm--up {
+  visibility: visible;
+}
+
+.crowd--cheer .crowd__arm--down,
+.crowd--jump .crowd__arm--down {
+  visibility: hidden;
+}
+
+.crowd--cheer .crowd__fan {
+  animation: crowd-hop 0.3s ease-out 4 alternate;
+  animation-delay: var(--delay, 0ms);
+}
+
+.crowd--jump .crowd__fan {
+  animation: crowd-hop 0.35s ease-out infinite alternate;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes crowd-idle {
+  50% {
+    transform: translateY(1px);
+  }
+}
+
+@keyframes crowd-hop {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-9px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='always']) .draw-burst,
+  :root:not([data-motion='always']) .finale-stage__arena--impact .finale-stage__backdrop,
+  :root:not([data-motion='always']) .finale-flash,
+  :root:not([data-motion='always']) .speed-lines,
+  :root:not([data-motion='always']) .crowd__fan {
+    animation: none;
+  }
+  :root:not([data-motion='always']) .finale-stage__camera--focus {
+    transition: none;
+  }
+  :root:not([data-motion='always']) .finale-flash,
+  :root:not([data-motion='always']) .speed-lines {
+    display: none;
+  }
+}
+
+.victory__crowd {
+  position: relative;
+  width: min(100%, 720px);
+  height: 44px;
+  margin: 4px auto 0;
 }

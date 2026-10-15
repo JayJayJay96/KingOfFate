@@ -23,6 +23,7 @@ import { MatchIntro } from './MatchIntro';
 import { PauseMenu } from './PauseMenu';
 import { PreviewPanel } from './PreviewPanel';
 import { VictoryScreen } from './VictoryScreen';
+import { Crowd } from '../stage/Crowd';
 
 interface MatchScreenProps {
   readonly match: MatchState;
@@ -260,6 +261,10 @@ export function MatchScreen({
         ) : (
           <div className="preview-wrap">
             <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
+            {animation.fast && stage === 'player' && (
+              <span className="speed-lines" data-testid="speed-lines" aria-hidden="true" />
+            )}
+            <Crowd mood={impact?.kind === 'ko' ? 'cheer' : 'idle'} cue={impact?.turnId ?? ''} />
             {impact && <ImpactBurst key={impact.turnId} kind={impact.kind} />}
           </div>
         )}

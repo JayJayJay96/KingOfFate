@@ -17,6 +17,8 @@ export interface TurnAnimationState {
   readonly duelThrowIndex: number | null;
   /** Word of the count currently on screen during a duel (null outside the count). */
   readonly duelWord: DuelWord | null;
+  /** Fighter cursor still cruising at full speed (speed lines), before it brakes. */
+  readonly fast: boolean;
 }
 
 const IDLE: TurnAnimationState = {
@@ -26,6 +28,7 @@ const IDLE: TurnAnimationState = {
   opponentCursorId: null,
   duelThrowIndex: null,
   duelWord: null,
+  fast: false,
 };
 
 /** Moments of a turn's show, for sound effects. */
@@ -76,7 +79,7 @@ export function useTurnAnimation(
       turbo,
     );
 
-    let current: TurnAnimationState = { ...IDLE, stage: 'player' };
+    let current: TurnAnimationState = { ...IDLE, stage: 'player', fast: true };
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, change: Partial<TurnAnimationState>, cue: TurnCue | null) =>
       timers.push(
@@ -88,6 +91,7 @@ export function useTurnAnimation(
       );
 
     for (const s of t.playerSteps) at(s.atMs, { playerCursorId: s.id }, { kind: 'player' });
+    at(brakeStartMs(t.playerSteps), { fast: false }, null);
     // The Fate cursor may already be moving; the caption switches once the fighter is revealed.
     at(t.playerRevealMs, { stage: 'fate' }, null);
     for (const s of t.fateSteps) {
@@ -123,5 +127,15 @@ export function useTurnAnimation(
   }, [pendingTurn?.turnId, playerStartId, fateStart, orderKey, timeScale, turbo]);
 
   if (frame && frame.turnId === pendingTurn?.turnId) return frame.state;
-  return pendingTurn ? { ...IDLE, stage: 'player' } : IDLE;
+  return pendingTurn ? { ...IDLE, stage: 'player', fast: true } : IDLE;
+}
+
+/** When the cursor starts braking: the first move clearly slower than the cruise. */
+export function brakeStartMs(steps: readonly { readonly atMs: number }[]): number {
+  if (steps.length < 3) return 0;
+  const cruise = steps[1]!.atMs - steps[0]!.atMs;
+  for (let i = 2; i < steps.length; i++) {
+    if (steps[i]!.atMs - steps[i - 1]!.atMs > cruise * 1.6) return steps[i - 1]!.atMs;
+  }
+  return steps.at(-1)!.atMs;
 }

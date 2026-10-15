@@ -115,3 +115,12 @@ describe('fateStartIndex', () => {
     expect(fateStartIndex(19)).toBe(0);
   });
 });
+
+describe('speed lines: brake start (owner request 2026-10-16)', () => {
+  it('is the last cruise move before the first clearly slower gap', async () => {
+    const { brakeStartMs } = await import('../hooks/useTurnAnimation');
+    const steps = [0, 50, 100, 150, 260, 450].map((atMs) => ({ atMs }));
+    expect(brakeStartMs(steps)).toBe(150);
+    expect(brakeStartMs([{ atMs: 0 }])).toBe(0);
+  });
+});

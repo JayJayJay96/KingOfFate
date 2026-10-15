@@ -66,6 +66,12 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Overnight batch, phase B: visuals (draw counter, camera, big moments, crowd)
+
+- **Added:** `src/animation/drawCounter.ts` (+ test), `src/components/match/DrawBurst.tsx`, `src/components/stage/Crowd.tsx` (18 seeded pixel fans; moods idle / cheer / jump).
+- **Changed:** `FinaleStage` (camera wrapper with focus origin on the leaders while dark; impact punch; "Juice!" flash; draw burst; crowd), `DuelPanel` (clash counter), `MatchScreen` (speed lines while `fast`, crowd cheers on K.O.), `VictoryScreen` (jumping crowd), `useTurnAnimation` (`fast` flag + `brakeStartMs`), CSS (hit-stop before shake; all new motion off under reduced motion unless Animations: Always on).
+- **Checked:** unit tests (streak, clash, labels/scale, brake start, duel counter on draws only); in the pane: speed lines + crowd on the preview during a spin, "Clash!" burst in the finale, camera focus `transform-origin: 20% 50%` on the leader at match point, Juice flash, crowd jumping under the podium; no console errors.
+
 ### 2026-10-16 — Overnight batch, phase A: pacing (tempo curve, last point, turbo)
 
 - **Owner input (before sleeping):** implement enhancement items 2–6 in phases, commit + push each once tested. Item 2 without host/clicker support. Approvals asked up front: Bomb 1 slot everywhere; Bomb neighbour = random adjacent living fighter (shield + finale-size guard); Turbo = setup toggle 1.5–4 s; Crown = last match's winner(s).

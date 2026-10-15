@@ -58,5 +58,16 @@ describe('DuelPanel: count and hand attacks (owner requests 2026-10-10)', () => 
     show(duel('PAPER', 'ROCK', 1), 0, 'SCISSORS');
     expect(screen.getByText('Draw! Throw again…')).toBeInTheDocument();
     expect(document.querySelector('[data-attack]')).toBeNull();
+    expect(screen.getByTestId('draw-burst')).toHaveTextContent('Clash!');
+  });
+
+  it('the draw counter grows with each draw in a row and is gone on the decisive throw', () => {
+    show(duel('PAPER', 'ROCK', 3), 2, 'SCISSORS');
+    expect(screen.getByTestId('draw-burst')).toHaveTextContent('Clash ×3!');
+  });
+
+  it('no draw counter on a decisive throw', () => {
+    show(duel('PAPER', 'ROCK', 3), 3, 'SCISSORS');
+    expect(screen.queryByTestId('draw-burst')).toBeNull();
   });
 });
