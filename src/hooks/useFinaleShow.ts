@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   finalePace,
   introTimeline,
+  isLastPoint,
   roundsWithoutWinner,
   roundTimeline,
   type ChantWord,
@@ -12,6 +13,8 @@ export interface FinaleShowHandlers {
   readonly onNextRound: () => void;
   readonly onResolveRound: (roundId: string) => void;
   readonly onBeat: (word: ChantWord) => void;
+  /** "Last point" pause begins (music drops out for `ms`). */
+  readonly onDark?: (ms: number) => void;
 }
 
 export interface FinaleShowState {
@@ -21,6 +24,8 @@ export interface FinaleShowState {
   readonly revealThrows: readonly FinaleThrow[] | null;
   /** Current pace: 1 = normal, smaller = faster (rising tension, owner request). */
   readonly paceScale: number;
+  /** "Last point" pause: the stage is dark until "Juice!". */
+  readonly dark: boolean;
 }
 
 /**
@@ -48,10 +53,17 @@ export function useFinaleShow(
     ? `${active}|round|${pending.roundId}`
     : `${active}|idle|${roundsCount}|${paused}`;
 
-  const [frame, setFrame] = useState<{ key: string; word: ChantWord | null; reveal: boolean }>({
+  const lastPoint = !!pending && !!f && isLastPoint(f);
+  const [frame, setFrame] = useState<{
+    key: string;
+    word: ChantWord | null;
+    reveal: boolean;
+    dark: boolean;
+  }>({
     key: '',
     word: null,
     reveal: false,
+    dark: false,
   });
   const handlersRef = useRef(handlers);
   useEffect(() => {
@@ -62,14 +74,20 @@ export function useFinaleShow(
     if (!active) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms * timeScale));
-    const show = (word: ChantWord | null, reveal: boolean) => {
-      setFrame({ key, word, reveal });
+    const show = (word: ChantWord | null, reveal: boolean, dark = false) => {
+      setFrame({ key, word, reveal, dark });
       if (word) handlersRef.current.onBeat(word);
     };
 
     if (pending) {
-      const { cues, resolveMs } = roundTimeline(pace);
-      for (const cue of cues) at(cue.atMs, () => show(cue.word, cue.reveal));
+      const { cues, resolveMs } = roundTimeline(pace, lastPoint);
+      cues.forEach((cue, i) =>
+        at(cue.atMs, () => {
+          show(cue.word, cue.reveal, !!cue.dark);
+          const next = cues[i + 1];
+          if (cue.dark && next) handlersRef.current.onDark?.((next.atMs - cue.atMs) * timeScale);
+        }),
+      );
       const roundId = pending.roundId;
       at(resolveMs, () => handlersRef.current.onResolveRound(roundId));
     } else if (paused) {
@@ -86,9 +104,9 @@ export function useFinaleShow(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, timeScale]);
 
-  const current = frame.key === key ? frame : { word: null, reveal: false };
+  const current = frame.key === key ? frame : { word: null, reveal: false, dark: false };
   let revealThrows: readonly FinaleThrow[] | null = null;
   if (pending && current.reveal) revealThrows = pending.throws;
   else if (!pending && roundsCount > 0) revealThrows = f!.rounds[roundsCount - 1]!.throws;
-  return { word: current.word, revealThrows, paceScale: pace.scale };
+  return { word: current.word, revealThrows, paceScale: pace.scale, dark: current.dark };
 }

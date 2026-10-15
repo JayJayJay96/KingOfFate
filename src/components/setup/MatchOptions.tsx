@@ -14,6 +14,8 @@ interface MatchOptionsProps {
   readonly onPresetChange: (presetId: FatePresetId) => void;
   readonly stage: StageChoice;
   readonly onStageChange: (stage: StageChoice) => void;
+  readonly turbo: boolean;
+  readonly onTurboChange: (turbo: boolean) => void;
 }
 
 export function MatchOptions({
@@ -23,6 +25,8 @@ export function MatchOptions({
   onPresetChange,
   stage,
   onStageChange,
+  turbo,
+  onTurboChange,
 }: MatchOptionsProps) {
   return (
     <section className="panel">
@@ -86,6 +90,16 @@ export function MatchOptions({
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="fieldset toggle-option">
+        <input type="checkbox" checked={turbo} onChange={(e) => onTurboChange(e.target.checked)} />
+        <span>
+          <span className="panel__title">Turbo spins</span>
+          <span className="hint">
+            Shorter spins (1.5–4 s instead of 2.5–6.5 s) for big rosters. Same odds.
+          </span>
+        </span>
       </label>
     </section>
   );

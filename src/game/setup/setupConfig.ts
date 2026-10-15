@@ -10,6 +10,8 @@ export interface SetupConfig {
   readonly presetId: FatePresetId;
   /** Stage background: random per match, or pinned. */
   readonly stage: StageChoice;
+  /** Turbo spins: shorter cursor spins for big rosters (presentation only). */
+  readonly turbo: boolean;
 }
 
 export const DEFAULT_WINNER_COUNT: WinnerCount = 1;
@@ -19,4 +21,5 @@ export const DEFAULT_SETUP: SetupConfig = {
   winnerCount: DEFAULT_WINNER_COUNT,
   presetId: DEFAULT_PRESET_ID,
   stage: 'random',
+  turbo: false,
 };

@@ -2212,6 +2212,24 @@ label.button {
   border: 2px solid var(--panel-edge);
 }
 
+/* Turbo spins toggle in setup */
+.toggle-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.toggle-option input {
+  margin-top: 4px;
+}
+
+.toggle-option > span {
+  display: grid;
+  gap: 2px;
+}
+
 /* Roster look button */
 .slot__toggle .fighter-sprite {
   flex: none;
@@ -2803,4 +2821,55 @@ label.button {
 .finale-stage__arena .hand-hit--cut::after {
   animation-duration: calc(2.4s * var(--pace, 1));
   animation-delay: calc(0.15s * var(--pace, 1));
+}
+
+/* "Last point" held breath (owner request 2026-10-16): stage darkens until "Juice!". */
+.finale-stage__arena--last-point .finale-stage__backdrop {
+  filter: brightness(0.25);
+  transition: filter 0.15s;
+}
+
+.finale-stage__arena--last-point::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(circle, transparent 20%, rgb(0 0 0 / 0.75) 75%);
+  pointer-events: none;
+}
+
+.finale-stage__arena--last-point .finalist {
+  z-index: 3;
+}
+
+.finale-last-point {
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+  color: var(--red);
+  text-transform: uppercase;
+  text-shadow: 3px 3px 0 #000;
+  pointer-events: none;
+  animation: last-point-pulse 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes last-point-pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='always']) .finale-last-point {
+    animation: none;
+  }
 }

@@ -71,7 +71,12 @@ export function FinaleStage({
   const show = useFinaleShow(
     match,
     timeScale,
-    { onNextRound, onResolveRound, onBeat: (word: ChantWord) => engine.chant(word) },
+    {
+      onNextRound,
+      onResolveRound,
+      onBeat: (word: ChantWord) => engine.chant(word),
+      onDark: (ms: number) => engine.musicDrop(ms),
+    },
     paused,
   );
 
@@ -181,6 +186,7 @@ export function FinaleStage({
             'finale-stage__arena',
             splash && !f.started ? 'finale-stage__arena--entering' : '',
             finishing ? 'finale-stage__arena--final-blow' : '',
+            show.dark ? 'finale-stage__arena--last-point' : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -213,6 +219,11 @@ export function FinaleStage({
           {splash && !f.started && (
             <p className="finale-splash" data-testid="finale-splash" aria-hidden="true">
               Final round
+            </p>
+          )}
+          {show.dark && (
+            <p className="finale-last-point" data-testid="last-point" aria-hidden="true">
+              Match point
             </p>
           )}
           {finishing && (

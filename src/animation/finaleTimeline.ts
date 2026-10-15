@@ -1,3 +1,4 @@
+import { FINALE_TARGET_SCORE } from '../game/engine/finale';
 import type { FinaleState } from '../game/engine/matchTypes';
 
 /** Chant words of the finale countdown: "1, 2, Juice!" (owner decision 2026-10-10). */
@@ -21,6 +22,8 @@ export interface ChantCue {
   readonly atMs: number;
   /** True on "Juice!" of a round: hands are revealed. */
   readonly reveal: boolean;
+  /** "Last point" drama: the screen darkens and the music drops out until "Juice!". */
+  readonly dark?: boolean;
 }
 
 /** Opening cue "1, 2, Juice!" with no throw (PROJECT.md §5). */
@@ -37,14 +40,22 @@ export function introTimeline(): { cues: ChantCue[]; doneMs: number } {
 }
 
 /**
- * Rising pace (owner request 2026-10-10): every finale round in a row that ends without anyone
- * taking a winner slot makes the next one faster: the chant beat shortens by 50 ms and the result
- * hold, pause, hand attack and music speed up in proportion, down to 60 % of the normal length.
- * A new winner (or a tiebreak, which starts a new race) resets it. Derived from the saved rounds,
- * so a refresh replays the same pace. Presentation only.
+ * Rising pace (owner request 2026-10-10, curve 2026-10-16): every finale round in a row that ends
+ * without anyone taking a winner slot makes the next one faster. The chant beat closes 30 % of the
+ * remaining gap to the floor each round (600 → 528 → 478 → 442 → 418 ms …), so it speeds up
+ * steeply at first, then levels off; the result hold, pause, hand attack and music follow in
+ * proportion, down to 60 % of the normal length. A new winner (or a tiebreak, which starts a new
+ * race) resets it. Derived from the saved rounds, so a refresh replays the same pace.
+ * Presentation only.
  */
-export const FINALE_PACE_STEP_MS = 50;
+export const FINALE_PACE_KEEP = 0.7;
 export const FINALE_MIN_BEAT_MS = 360;
+/**
+ * "Last point" (owner request 2026-10-16): when someone in the race is one point from a slot,
+ * "2" is followed by a dark, silent pause before "Juice!". Fixed length: it is a held breath, not
+ * part of the rising pace.
+ */
+export const LAST_POINT_PAUSE_MS = 900;
 
 export interface FinalePace {
   readonly beatMs: number;
@@ -78,7 +89,8 @@ export function roundsWithoutWinner(
 }
 
 export function finalePace(streak: number): FinalePace {
-  const beatMs = Math.max(FINALE_MIN_BEAT_MS, CHANT_BEAT_MS - FINALE_PACE_STEP_MS * streak);
+  const gap = (CHANT_BEAT_MS - FINALE_MIN_BEAT_MS) * FINALE_PACE_KEEP ** Math.max(0, streak);
+  const beatMs = Math.max(FINALE_MIN_BEAT_MS, Math.round(FINALE_MIN_BEAT_MS + gap));
   const scale = beatMs / CHANT_BEAT_MS;
   return {
     beatMs,
@@ -88,17 +100,31 @@ export function finalePace(streak: number): FinalePace {
   };
 }
 
-/** Each reveal: "1" (fists bounce), "2" (bounce), "Juice!" (all hands shown at once). */
-export function roundTimeline(pace: FinalePace = NORMAL_PACE): {
+/**
+ * Each reveal: "1" (fists bounce), "2" (bounce), "Juice!" (all hands shown at once).
+ * `lastPoint`: "2" darkens the stage and a held pause comes before "Juice!".
+ */
+export function roundTimeline(
+  pace: FinalePace = NORMAL_PACE,
+  lastPoint = false,
+): {
   cues: ChantCue[];
   resolveMs: number;
 } {
+  const juiceAt = 2 * pace.beatMs + (lastPoint ? LAST_POINT_PAUSE_MS : 0);
   const cues: ChantCue[] = [
     { word: 'ONE', atMs: 0, reveal: false },
-    { word: 'TWO', atMs: pace.beatMs, reveal: false },
-    { word: 'JUICE', atMs: 2 * pace.beatMs, reveal: true },
+    { word: 'TWO', atMs: pace.beatMs, reveal: false, ...(lastPoint ? { dark: true } : {}) },
+    { word: 'JUICE', atMs: juiceAt, reveal: true },
   ];
-  return { cues, resolveMs: 2 * pace.beatMs + pace.holdMs };
+  return { cues, resolveMs: juiceAt + pace.holdMs };
+}
+
+/** Someone still in the race is one point from a winner slot. */
+export function isLastPoint(f: FinaleState): boolean {
+  return f.contenderIds.some(
+    (id) => !f.winnerIds.includes(id) && (f.scores[id] ?? 0) >= FINALE_TARGET_SCORE - 1,
+  );
 }
 
 /** Stage positions (percent of the arena) for 2–6 finalists: 1v1, triangle, then a ring. */

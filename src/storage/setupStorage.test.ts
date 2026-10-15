@@ -16,6 +16,7 @@ const sample: SetupConfig = {
   winnerCount: 2,
   presetId: 'chaotic',
   stage: 'mamak',
+  turbo: false,
 };
 
 function storeRaw(value: unknown) {
@@ -74,6 +75,7 @@ describe('setup storage', () => {
       winnerCount: DEFAULT_SETUP.winnerCount,
       presetId: DEFAULT_SETUP.presetId,
       stage: DEFAULT_SETUP.stage,
+      turbo: false,
     });
   });
 
@@ -106,6 +108,15 @@ describe('setup storage', () => {
     expect(result.status).toBe('repaired');
     expect(result.config.roster).toEqual([{ id: 'p1', name: 'An', active: true }]);
     expect(result.config.stage).toBe('random');
+  });
+
+  it('keeps the turbo toggle; a damaged value falls back to off', () => {
+    expect(saveSetup({ ...sample, turbo: true }, localStorage).ok).toBe(true);
+    expect(loadSetup(localStorage).config.turbo).toBe(true);
+    storeRaw({ schemaVersion: 1, roster: [], winnerCount: 1, presetId: 'normal', turbo: 'yes' });
+    const result = loadSetup(localStorage);
+    expect(result.status).toBe('repaired');
+    expect(result.config.turbo).toBe(false);
   });
 
   it('loads settings saved before stages existed', () => {

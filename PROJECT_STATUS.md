@@ -6,33 +6,33 @@
 
 ## 1. Current snapshot
 
-| Item | State |
-|---|---|
-| Audience | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English. |
-| Technical stack | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier |
-| Storage | Setup: `localStorage` `kof.setup` (schema 1); sound settings `kof.audio` (replaces `kof.sound`, migrated). Custom music: IndexedDB db `kof-assets` v1 store `files` key `custom-music` (raw bytes + name/type/size/savedAt; local only). IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 4** since the Shield redesign; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
-| RNG | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only |
-| Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3) |
-| Finale rules (D2, D3) | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards. |
-| Pause/skip (D4) | **Approved and implemented (Phase 5)**: Esc pauses at the next finale round boundary; resume continues; no skip. |
-| Audio | AI chant via browser text-to-speech; original chiptune loops + synthesized SFX (Web Audio); music/voice/SFX volumes; optional local custom music. See `THIRD_PARTY_NOTICES.md`. |
-| Git | `main`; see `git log` (follow-up commit follows this update) |
-| Deployment | **Live:** https://king-of-fate.vercel.app/ (Vercel, from GitHub `JayJayJay96/KingOfFate` `main`, auto-deploy on push) |
+| Item                       | State                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Audience                   | **Malaysian office** (owner, 2026-10-09). "Một Hai Ba Yo" kept only as finale countdown flavor; UI English.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Technical stack            | React 19 + TypeScript 6 + Vite 8; Vitest 5 + Testing Library + fake-indexeddb; Playwright 1.64 (Edge channel); oxlint; Prettier                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Storage                    | Setup: `localStorage` `kof.setup` (schema 1); sound settings `kof.audio` (replaces `kof.sound`, migrated). Custom music: IndexedDB db `kof-assets` v1 store `files` key `custom-music` (raw bytes + name/type/size/savedAt; local only). IndexedDB db `kof` **v2**: store `current-match` key `current` (**match schema 4** since the Shield redesign; older saved matches discarded with a notice; corrupt ones moved to `corrupt-backup`) and store `completed-matches` (keyPath `matchId`, one record per won match, written in the same transaction as the victory checkpoint). |
+| RNG                        | `crypto.getRandomValues` + rejection-sampled bounded ints (no modulo bias); seeded mulberry32 + scripted RNG for tests only                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Normal / Sudden Death odds | Approved and **live** on the Fate strip (Phase 3)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Finale rules (D2, D3)      | Approved and implemented (Phase 4). Both are provably unreachable with W + 1 finalists; kept as tested guards.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Pause/skip (D4)            | **Approved and implemented (Phase 5)**: Esc pauses at the next finale round boundary; resume continues; no skip.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Audio                      | AI chant via browser text-to-speech; original chiptune loops + synthesized SFX (Web Audio); music/voice/SFX volumes; optional local custom music. See `THIRD_PARTY_NOTICES.md`.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Git                        | `main`; see `git log` (follow-up commit follows this update)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Deployment                 | **Live:** https://king-of-fate.vercel.app/ (Vercel, from GitHub `JayJayJay96/KingOfFate` `main`, auto-deploy on push)                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ## 2. Phase tracker
 
-| Phase | Status | Next acceptance goal |
-|---|---|---|
-| 1 — Foundation & Setup | **Done** (owner tested, committed `bf7dfdd`) | — |
-| 2 — KO-only playable loop | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added | — |
-| 3 — Full Fate System | **Done** (owner: "tested, all good") | — |
-| 4 — Vietnamese-chant RPS Finale | **Done** (owner: "tested, all good"; `44407f9`) | — |
-| 5 — Retro Arcade Experience | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | — |
-| 6 — History & Analytics | **Done** (owner: "pretty perfect") | — |
-| Pack A — Arcade show | **Done** (owner: "tested, all good") | — |
-| Pack B — Looks (sprites, stages) | **Done** (owner: "tested, all good") | — |
-| Pack C — Rivalries & badges | **Done** (owner: "tested, all good") | — |
-| 7 — Hardening & Deployment | **Done** — live at https://king-of-fate.vercel.app/ | Owner acceptance |
+| Phase                            | Status                                                                                         | Next acceptance goal |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------- |
+| 1 — Foundation & Setup           | **Done** (owner tested, committed `bf7dfdd`)                                                   | —                    |
+| 2 — KO-only playable loop        | **Done** (owner: "pretty solid"); sequential cursor + Shuffle added                            | —                    |
+| 3 — Full Fate System             | **Done** (owner: "tested, all good")                                                           | —                    |
+| 4 — Vietnamese-chant RPS Finale  | **Done** (owner: "tested, all good"; `44407f9`)                                                | —                    |
+| 5 — Retro Arcade Experience      | **Done** (owner: "tested, all good"; follow-ups + Shield redesign accepted "tested very nice") | —                    |
+| 6 — History & Analytics          | **Done** (owner: "pretty perfect")                                                             | —                    |
+| Pack A — Arcade show             | **Done** (owner: "tested, all good")                                                           | —                    |
+| Pack B — Looks (sprites, stages) | **Done** (owner: "tested, all good")                                                           | —                    |
+| Pack C — Rivalries & badges      | **Done** (owner: "tested, all good")                                                           | —                    |
+| 7 — Hardening & Deployment       | **Done** — live at https://king-of-fate.vercel.app/                                            | Owner acceptance     |
 
 ## 3. Requirements that are already approved
 
@@ -47,17 +47,17 @@
 
 ## 4. Open decisions (owner follow-up)
 
-| ID | Question | Recommendation | Blocks |
-|---|---|---|---|
-| D6 | Future Fate presets must fit 20 slots and need approval. | Current presets fit. | Only if presets change |
-| P4-c | Pacing: ~3.4 s per finale round; big finales (4–6 finalists, many draws) can take a few minutes. | Watch in play; tune if needed. | Optional |
-| P4-d | No Abandon during the finale (it must finish); Esc pause exists (D4). | Keep. | — |
-| P5-d | Turn length now: fighter (2.5–6.5 s) + Fate (2.5–6.5 s); VS adds ~1 s "VS!" + opponent (2.5–6.5 s) + duel (~2–4 s). Typical KO turn ≈ 8–10 s, typical VS turn ≈ 15–20 s. | Tune ranges if it drags. | Follow-up acceptance |
-| P5-c | Custom *chant recording* upload with cue sync (spec §5) not built; AI voice chosen instead. | Optional later. | Optional |
-| P5-e | Small matches: with 5 fighters there is 1 Shield in total and Sudden Death never happens (finale first). | Intended by the formula; revisit if Shields feel too rare. | Owner play-test |
-| P6-a | Abandoned matches are not recorded (only completed ones). | Keep: an abandoned match has no result. | Optional |
-| P6-b | JSON export is a backup only; there is no import. | Add import later if the office moves browsers. | Optional |
-| D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24). | Keep 20; hosts use short/nick names. Raise if it bites. | Optional |
+| ID      | Question                                                                                                                                                                 | Recommendation                                             | Blocks                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------- |
+| D6      | Future Fate presets must fit 20 slots and need approval.                                                                                                                 | Current presets fit.                                       | Only if presets change |
+| P4-c    | Pacing: ~3.4 s per finale round; big finales (4–6 finalists, many draws) can take a few minutes.                                                                         | Watch in play; tune if needed.                             | Optional               |
+| P4-d    | No Abandon during the finale (it must finish); Esc pause exists (D4).                                                                                                    | Keep.                                                      | —                      |
+| P5-d    | Turn length now: fighter (2.5–6.5 s) + Fate (2.5–6.5 s); VS adds ~1 s "VS!" + opponent (2.5–6.5 s) + duel (~2–4 s). Typical KO turn ≈ 8–10 s, typical VS turn ≈ 15–20 s. | Tune ranges if it drags.                                   | Follow-up acceptance   |
+| P5-c    | Custom _chant recording_ upload with cue sync (spec §5) not built; AI voice chosen instead.                                                                              | Optional later.                                            | Optional               |
+| P5-e    | Small matches: with 5 fighters there is 1 Shield in total and Sudden Death never happens (finale first).                                                                 | Intended by the formula; revisit if Shields feel too rare. | Owner play-test        |
+| P6-a    | Abandoned matches are not recorded (only completed ones).                                                                                                                | Keep: an abandoned match has no result.                    | Optional               |
+| P6-b    | JSON export is a backup only; there is no import.                                                                                                                        | Add import later if the office moves browsers.             | Optional               |
+| D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24).                                                                                                 | Keep 20; hosts use short/nick names. Raise if it bites.    | Optional               |
 
 ## 5. Planned next steps
 
@@ -66,7 +66,14 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Overnight batch, phase A: pacing (tempo curve, last point, turbo)
+
+- **Owner input (before sleeping):** implement enhancement items 2–6 in phases, commit + push each once tested. Item 2 without host/clicker support. Approvals asked up front: Bomb 1 slot everywhere; Bomb neighbour = random adjacent living fighter (shield + finale-size guard); Turbo = setup toggle 1.5–4 s; Crown = last match's winner(s).
+- **Changed:** `finaleTimeline.ts` (curve `FINALE_PACE_KEEP` 0.7; `LAST_POINT_PAUSE_MS` 900; `roundTimeline(pace, lastPoint)`; `isLastPoint`), `useFinaleShow` (`dark` state, `onDark`), `FinaleStage` (dark arena + "Match point" banner, `engine.musicDrop`), `soundEngine` (`musicDrop(ms)`: cancels ducking, silences music bus / custom track, restores), `timing.ts` (`SpinLimits`, `NORMAL_SPIN_LIMITS`, `TURBO_SPIN_LIMITS`), `spinPlan.ts` (turbo styles, limits param), `turnTimeline.ts` / `useTurnAnimation` / `MatchScreen` / `App` (turbo flag), `setupConfig` + `setupStorage` (optional `turbo`, schema unchanged), `MatchOptions` + `SetupScreen` (Turbo spins checkbox), CSS, tests.
+- **Checked:** unit/integration tests (curve values, monotonic + decelerating steps, last-point cues, turbo spins ≤ 4 s for 300 styles × 5 roster sizes, turbo storage round-trip, App finale calls `musicDrop`); in the pane: 2-player finale showed the dark stage + "MATCH POINT" on "2", no console errors.
+
 ### 2026-10-15 — Sound pack: voice clips, music that builds, stage fanfares
+
 - **Owner input:** start enhancements with sound: recorded MP3s for 1 / 2 / Juice / K.O. / Versus / Fight (owner gathers them; I edit them), music that builds, a victory fanfare per stage.
 - **Added:** `src/audio/voiceClips.ts` (clip ids, labels, chant/announcer mapping, manifest parser), `src/audio/fanfares.ts` (5 original stage fanfares), `public/voice/manifest.json` (empty: no clips shipped yet), `scripts/prepare-voice.mjs` + `npm run voice` (ffmpeg: trim silence, loudnorm −14 LUFS, mono 44.1 kHz, fit to target length by ≤ 1.6× speed-up then trim, fades, MP3 128 k, manifest), tests `src/audio/fanfares.test.ts` (fanfares, finale layers, manifest).
 - **Changed:** `soundEngine.ts` (voice bus; clips loaded at unlock from the manifest so a missing clip never 404s; chant/announce play the clip else TTS; new chant word fades the previous; `setMusicIntensity`, layered sequencer with arp, extra hats, +1 semitone at level 3; `fanfare(stage)` with gong/crash; `loadedClips`/`onClipsChanged`), `chiptune.ts` (finale `layered`, `arp`, `drumsExtra`), `finaleTimeline.ts` (`finaleIntensity`), `FinaleStage` (intensity → engine), `VictoryScreen` (stage fanfare), `SoundSettings` ("Recorded voices" status), README, THIRD_PARTY_NOTICES, `.gitignore` (`voice-raw/`), tests.
@@ -74,6 +81,7 @@
 - **Next exact action:** owner drops raw recordings in `voice-raw/` → I run `npm run voice`, check the table, commit the clips with their licence note.
 
 ### 2026-10-10 — Chant "1, 2, Juice!"; VS count beat only
+
 - **Owner input:** in-match VS: no voice, just the beat; finale chant "1 2 juice" instead of "Một Hai Ba Yo".
 - **Changed:** `ChantWord` = `ONE | TWO | JUICE` (labels "1", "2", "Juice!"; intro 3 beats, round 1/2/Juice! with reveal on Juice!), `voice.ts` (`chantText` English; `pickVoice` = host choice → English natural → any; Vietnamese logic removed), `soundEngine` chant thumps, `FinaleStage` (bounce on 1/2, idle label, rules text), `describeEvent` ("1, 2, Juice! The finale begins…"), `SoundSettings` (test words, hint), `MatchScreen` (duel count = `count` beat only; no announcer words), `index.html` description, tests (voice, finale timeline, finale log text, App chant + "no spoken RPS words", E2E chant regex).
 - **Checked (headless Edge, 6 finalists at 1366 px):** chant shows 1 → 2 → JUICE! and stays inside the arena.
@@ -82,6 +90,7 @@
 - **Next exact action:** owner listens to the chant in the finale.
 
 ### 2026-10-10 — Final-showdown finale music + rising pace
+
 - **Owner input:** finale music should be more energetic, "final showdown" (prefers the retro synth over an MP3); each finale round without a winner should get ~0.05 s faster so it builds excitement.
 - **Changed:** `chiptune.ts` new FINALE theme (172 bpm, D minor, Dm–B♭–C–A with a C♯ leading tone, galloping octave bass, heroic lead/arpeggios, kick + backbeat snare + hats, snare/tom fill); `finaleTimeline.ts` (`roundsWithoutWinner`, `finalePace`, `NORMAL_PACE`, `roundTimeline(pace)`: beat 600 ms − 50 ms per round without a new winner, floor 360 ms; hold/pause scale); `useFinaleShow` (pace from saved rounds; returns `paceScale`); `soundEngine.ts` (`setMusicRate`, tempo read per step, clamped 0.5–2); `FinaleStage` (music rate = 1/pace, reset on exit; `--pace` on the arena); CSS (finale hand attack duration/delay × pace); tests (pace unit tests incl. "attack still fits at every pace", App: three draws → music rates 1 → 1.09 → 1.2 → 1.33 and back to 1 at the end; chiptune: finale faster than select).
 - **Not verified by ear:** no speakers here; theme data, tempo calls and timing are covered by tests.
@@ -89,6 +98,7 @@
 - **Next exact action:** owner listens to the new finale theme and a long finale with several draws.
 
 ### 2026-10-10 — Slower hand attack (1 s flight) + test hardening
+
 - **Owner input:** "didn't see the flying action, make it last ~1 whole second".
 - **Changed:** hand-attack/hit keyframes now 2.4 s (≈ 1.0 s flight, 0.55 s action, hold, fly back); `DUEL_RESULT_HOLD_MS` 1800 → 2800 and `FINALE_REVEAL_HOLD_MS` 1500 → 2000 so the next step does not cut it off (finale round ≈ 3.9 s, was ≈ 3.4 s); the attacking finalist's card is raised above the chant word (`.finalist:has(.hand-attack)`). Mid-flight frames captured in headless Edge (duel: rock crossing the panel; finale: rock arcing over "YO!").
 - **Test hardening:** the second-tab warning now uses **Web Locks** (no tab waits for another to reply; the browser frees a closed or crashed tab's place), with BroadcastChannel heartbeats as the fallback; the E2E waits up to 10 s for the warning to clear. `playwright.config.ts` `workers: 4`: with ~10 parallel Edge windows the cursor-order spec occasionally saw two cursor steps in one frame (test load, not a game bug).
@@ -96,6 +106,7 @@
 - **Next exact action:** owner watches a VS and a finale round (with Animations: Always on on the office PC).
 
 ### 2026-10-10 — Animations setting, RPS count, hand attacks, side event log (owner requests)
+
 - **Owner input:** add the Animations: Always on setting; roll back the announcer delay ("it's an Edge thing"); in-match RPS too fast → "rock paper scissors" count with the result on Scissors; winning hand flies at the loser and acts (rock crushes scissors, paper wraps rock, scissors cut paper) in duel and finale; move the event log to the side, partly transparent. Logged in `PROJECT.md` §10.
 - **Added:** `src/storage/displaySettings.ts` (+ test), `src/components/setup/DisplaySettings.tsx` (Animations panel with a hint when the computer asks for reduced motion), `src/components/match/handAttack.ts` (`ATTACK_OF`, `aimAttacks`: each winning hand aims at the nearest losing hand via `--ax/--ay`), `src/components/match/DuelPanel.test.tsx`, `src/audio/soundEngine.test.ts` (no-op safety).
 - **Changed:** `soundEngine.ts` restored to `6d3d274` (no announcer delay) + new `count` sfx; all reduced-motion CSS scoped with `:root:not([data-motion='always'])`; `main.tsx` applies the motion setting at startup; `turnTimeline.ts` (`DUEL_COUNT_BEAT_MS` 550, `DUEL_DRAW_HOLD_MS` 900, `DUEL_RESULT_HOLD_MS` 1800, `duelCounts`), `useTurnAnimation` (`duelWord`, `duelCount` cue), `MatchScreen` (count sound + "Rock!/Paper!/Scissors!" announcer; content wrapped in `.match__main`), `DuelPanel` rewritten (count word, bouncing fists, attack/hit classes), `FinaleStage` (attack roles on "Yo!", `.finale-stage__main`), CSS (count, attack-crush/wrap/cut, hit-crushed/wrapped/cut with slash, side see-through log ≥ 1600 px), tests (turn timeline, App: VS count sounds/words, finale crush; E2E: Always on vs reduced motion incl. reload and switching back; side log beside the preview at 1920 with 6 per row and a 0.55 background).
@@ -105,6 +116,7 @@
 - **Next exact action:** owner plays a Chaotic match (VS duels) and a finale; check the office PC with Animations: Always on.
 
 ### 2026-10-10 — Bigger roster and fighter cards (owner request)
+
 - **Owner input:** (1) setup roster 2 per row so long names are identifiable; (2) bigger in-match fighter cards, about 6 per row, so people can see their own character. Also asked why animations don't play on an office PC (Windows Server 2019, browser 155): diagnosed as Windows animations being off, so the browser reports reduced motion, which the game honours. Owner given the console check and the Windows / Remote Desktop settings; an in-game "Animations: always on" override was offered (needs owner OK, not built).
 - **Changed:** `RosterGrid.tsx` (thumbnail 28 → 36 px), `FighterGrid.tsx` (sprite 40 → 72 px), `global.css` (setup roster fixed 2 columns, 1 below 520 px; status pushed right; match grid `minmax(170px, 1fr)`; fighter names wrap to a second line instead of being cut off).
 - **Checked (headless Edge):** 1366×768 and 1920×1080 → setup roster 2 per row, match 6 per row; long names ("Aisyah binti Ahmad", "Kavitha Ramasamy") fully visible.
@@ -112,20 +124,23 @@
 - **Next exact action:** owner checks the live site; decide on the animation override.
 
 ### 2026-10-10 — Post-launch fixes: Edge effect sounds, idle bob
+
 - **Owner reports:** (1) K.O./Shield effect sounds silent in Edge, fine in Chrome; asked whether files were missing from GitHub. (2) Idle animation not visible in Chrome; pasted console errors.
 - **Findings:** GitHub `origin/main` = local `6d3d274`; nothing untracked. The game has **no audio files** by design (all effects synthesized in `soundEngine.ts`). Instrumented the live site (Web Audio node tracing): K.O. (sine 180→35 + noise + square 440→110) and Shield (triangles 880/1175/1568) fire on the effects bus with the context running. Likely cause in Edge: the announcer (Pack A) starts a Microsoft online voice at the same instant and Edge swallows the overlapping effect; Chrome uses a different voice. **Not verified audibly** (no speakers here); owner to confirm in Edge. The pasted console errors come from a browser extension (`ch-content-script-dend.js`, `content-script-idle.js`, `dom-utils.js`), not the game. The idle animation was running but only ~1 px on grid sprites (3% of height).
 - **Changed:** `soundEngine.ts` (`announceDelayMs`, `ANNOUNCE_AFTER_SFX_MS` = 450: every callout waits until the latest effect has landed; queued callout cleared on pause/dispose), `global.css` (idle bob `clamp(-5px, -5%, -2px)`), tests `src/audio/soundEngine.test.ts`, `e2e/hardening.spec.ts` (bob travel 2–5.5 px on a grid sprite).
 - **Tests:** `npm test` → **28 files, 303 passed**; `npm run e2e` → **22 passed** (one earlier run had a one-off `page.goto` ERR_ABORTED in the 32-fighter test before any game code; it then passed 4/4 on repeat and in the full rerun). Typecheck, oxlint, Prettier clean.
-- **Pending:** owner retests in Edge after the deploy. If effects are still silent with the announcer on, try unticking *Announcer* in Sound settings to confirm the cause. If the bob is still invisible, check Windows *Settings → Accessibility → Visual effects → Animation effects* (off = reduced motion, which the game honours).
+- **Pending:** owner retests in Edge after the deploy. If effects are still silent with the announcer on, try unticking _Announcer_ in Sound settings to confirm the cause. If the bob is still invisible, check Windows _Settings → Accessibility → Visual effects → Animation effects_ (off = reduced motion, which the game honours).
 - **Next exact action:** owner Edge retest.
 
 ### 2026-10-10 — Phase 7: deployment
+
 - **Owner input:** chose "GitHub + Vercel import"; created `https://github.com/JayJayJay96/KingOfFate.git` and imported it in Vercel; live URL https://king-of-fate.vercel.app/.
 - **Done:** added remote `origin`, pushed `main` (remote head = local `f38711a`, verified with `git ls-remote`).
 - **Live checks (observed):** all security headers present on `/` (CSP, X-Frame-Options DENY, nosniff, no-referrer, Permissions-Policy); `/assets/*` served `Cache-Control: public, max-age=31536000, immutable`; deployed JS bundle hash `index-D5y9COvE.js` = local build of `f38711a`. In the browser pane on the live site: INSERT COIN → 2 fighters → finale ran to Victory ("Result saved to History.") → reload restored the victory screen → Return → History showed the match and a correct luck board (±0.50); Press Start 2P font loaded and covers "Một"; zero console errors. Test data then cleared from the pane's storage for that origin.
 - **Next exact action:** owner acceptance; nothing blocking.
 
 ### 2026-10-10 — Phase 7: hardening (deployment pending)
+
 - **Owner input:** Pack C "tested, all good, proceed to phase 7".
 - **Added:** `vercel.json` (Vite static build; strict CSP `default-src 'self'` with `style-src 'unsafe-inline'` for React style attributes and `media-src blob:` for local custom music; `X-Frame-Options DENY`, `nosniff`, `no-referrer`, `Permissions-Policy`; immutable caching for `/assets/`), `src/app/ErrorBoundary.tsx` (crash screen + Reload; saved data untouched), `src/hooks/useOtherTabWarning.ts` (BroadcastChannel; banner while a second tab is open), `e2e/hardening.spec.ts` (axe WCAG 2.1 AA on title, setup, look editor, match, pause menu, finale, victory, luck board, rivalries, match details, profile, with zero console/CSP errors; no IndexedDB; blocked localStorage; no Web Audio/speech; reduced motion; 32 fighters without sideways scroll + a turn; second-tab warning), `src/utils/ids.test.ts`, a history performance test (300 matches × 20 fighters < 1 s), devDependency `@axe-core/playwright` (MPL-2.0, dev only).
 - **Changed:** `vite.config.ts` (preview serves the vercel.json headers so E2E runs under the production CSP; fonts never inlined as data: URLs), `ids.ts` (v4 UUID fallback when `crypto.randomUUID` is missing on plain-http LAN addresses), `main.tsx` (ErrorBoundary), `index.html` (description, theme-color, color-scheme, noscript), `App.tsx` (tab warning), `FinaleStage` (score pips `role="img"`), `VictoryScreen` (fallen field `role="group"`), `EventLog` + match-details log (keyboard-focusable scroll regions), `.button--danger` (#c4132f: 6.0:1 with white), README (deploy + known limitations), THIRD_PARTY_NOTICES (stages, announcer, dev-only tools), `tsconfig.json` formatting. Commit `daa8a8e`.
@@ -136,10 +151,11 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack C: rivalries, fighter profiles, badges
+
 - **Owner input:** Pack B "tested, all good, proceed to pack C".
 - **Added:** `src/game/history/awards.ts` (`rivalries`, `headToHead` from VS duels only; `BADGES`; `matchAwards`: First Blood, Magnet (2+ picks), Iron Wall (2+ blocks), Duelist (2+ VS wins), Flawless; `careerBadges`: counts of match awards + Back-to-back (best run, 2+), Survivor (3+ finales), Shield Hoarder (most Shields, ties share)), `components/history/{Badges,Rivalries,FighterProfile,MatchAwards}.tsx`, tests `awards.test.ts` (Flawless on real engine finales 3–0 vs 3–1, awards, rivalries, head-to-head, career badges) and Pack C UI tests in `HistoryScreen.test.tsx` (UI compared with the pure functions on engine-played Chaotic matches).
 - **Changed:** `history.ts` (`MatchSummary.duels`; `FighterResult.flawless` and `look`), `useHistory` (rivalries, badges), `Leaderboard` (names open the profile; Badges column), `HistoryScreen` (Rivalries tab; profile view), `MatchHistory` (Awards in match details), `VictoryScreen` (this match's awards), CSS, `src/test/historyFixtures.ts` (`fakeSummary`).
-- **Interpretations (owner may adjust):** *Flawless* = won their finale race without anyone else scoring before they qualified (= 3–0 in a 1v1; draws allowed; automatic D2 slots never count). *Back-to-back* = consecutive wins among the matches that person played (sitting out does not break a streak). Rivalries count VS duels only (approved).
+- **Interpretations (owner may adjust):** _Flawless_ = won their finale race without anyone else scoring before they qualified (= 3–0 in a 1v1; draws allowed; automatic D2 slots never count). _Back-to-back_ = consecutive wins among the matches that person played (sitting out does not break a streak). Rivalries count VS duels only (approved).
 - **Flaky tests fixed:** the final-blow App test had a 7 ms window at test speed → slower scale + longer waits; the E2E "hands off at W+1" failed once under parallel load and passed on rerun; its settle poll widened 5 s → 10 s (trace lost on rerun, so root cause not confirmed). Full E2E then passed twice (28/28).
 - **Process note:** patch scripts that wrote a file twice left Vite serving a half-written module; restarting the dev server fixed it (twice this session). Not an app bug.
 - **Tests:** `npm test` → **26 files, 297 passed**; `npm run e2e` → **14 passed** (×2). Typecheck, oxlint, Prettier, build clean.
@@ -148,6 +164,7 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack B: looks and stages
+
 - **Owner input:** Pack A "tested, all good, proceed to pack B".
 - **Added:** `src/game/config/looks.ts` (10 hairstyles, 6 headwear incl. tudung/songkok, 5 face extras, 6 outfits incl. baju Melayu and shirt & tie; 6 skin, 8 hair, 12 outfit, 8 accent colours; `neutralLook` = stable random look from the name that **never** uses tudung/songkok; `isFighterLook`, `cleanLook`, `lookFor`), `src/game/config/stages.ts` (5 stages; `stageForMatch` = pinned, or picked from the match ID so a refresh keeps it), `src/components/stage/StageArt.tsx` (KL Night with twin towers, Mamak stall, Office pantry, Pasar malam, Rooftop sunset; original rect-drawn SVG; twinkle/drift/steam), `stageContext.ts`, `src/components/sprites/looksContext.ts`, `src/components/setup/LookEditor.tsx` (live preview, selects + swatches, Random, Use default, Cancel/Esc, Save), tests `stages.test.ts`, rewritten `fighterSprite.test.ts`.
 - **Changed:** `fighterSprite.ts` (layered renderer: head, hair, headwear, face, outfit), `icons.tsx` (`FighterSprite` uses the custom look from context or a `look` prop), `roster.ts` (`look?`, `setParticipantLook`), `setupConfig.ts`/`setupStorage.ts` (`stage` choice, per-person `look`; schema 1 kept, both optional; damaged look/stage dropped → "repaired"), `matchTypes.ts`/`match.ts` (match players keep a cosmetic snapshot of their look; no schema bump: the field is optional), `App.tsx` (looks + stage providers, full-screen dimmed backdrop), `MatchOptions` (Stage select), `RosterGrid` (thumbnail + 🎨 "Change look for X"), `PreviewPanel` (stage behind the chosen fighter), `FinaleStage` (stage in the arena, darker spotlight), `TitleScreen` (KL Night), CSS, tests (App: tudung saved and carried into the match, Use default/Cancel/Esc, pinned + random stage incl. reload), `e2e/polish.spec.ts` (look + stage survive reload and show in the match).
@@ -159,6 +176,7 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-10 — Arcade Pack A: title, intro, announcer, impacts, idle
+
 - **Owner input:** asked for enhancement ideas, then approved: announcer + impact FX, character-select intro, stage backgrounds, idle/KO animations, INSERT COIN title, costume/colour variety, rivalries, badges. Decisions (logged in `PROJECT.md` §10): intro ~4 s, Space/click skips; title once per page load; random neutral looks + per-person picker incl. tudung/songkok; stage random per match, host can pin.
 - **Added:** `src/components/TitleScreen.tsx` (INSERT COIN, any key/click, coin sfx, unlocks audio), `src/components/match/MatchIntro.tsx` + `src/animation/matchIntro.ts` (select-cursor sweep, ROUND 1, FIGHT!; constants for finale splash 2.6 s and final blow 1.4 s), `src/audio/announcer.ts` (lines, impact kinds), tests `matchIntro.test.ts`, `e2e/helpers.ts` (`insertCoin`, `skipIntro`).
 - **Changed:** `voice.ts` (`pickAnnouncerVoice`, `announce`: English voice, deep pitch, silent if none), `soundEngine.ts` (`announce`, sfx `coin`/`fight`), `audioSettings.ts` (`announcer` on by default; checkbox in Sound settings; Voice slider now "Voices"), `MatchScreen.tsx` (intro gate; K.O./Blocked/Shield/Wasted stamp + sparks + flash + screen shake; announcer callouts incl. Versus/Sudden death; K.O. that reaches W+1 shown ~1.1 s before the finale; slow-motion "Finish!" before the ceremony; effects derived in render so a restored match never replays them), `FighterGrid` (knock-back fall), `FinaleStage` (FINAL ROUND splash + walk-in; final-blow zoom), `VictoryScreen` ("X wins!"), `FighterSprite` (idle bob, per-fighter offset), `App.tsx` (`titleScreen` prop, default on), CSS (all motion off under reduced-motion), App/History tests (`startMatch` waits out the intro; `titleScreen={false}`), all E2E specs (insert coin after load/reload).
@@ -170,6 +188,7 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Phase 6: History & Analytics
+
 - **Owner input:** "okay tested very nice so far, move to next phase" (Phase 5 + Shield redesign accepted).
 - **Owner decisions (asked this session, logged in `PROJECT.md` §7):** stats add up per **roster entry** (internal ID; latest name shown); host may **delete one match** or **clear all** (both confirmed, suggest exporting first); leaderboard ranks by **luck vs expected** (expected = Σ W/N over matches played; luck = wins − expected).
 - **Added:** `src/game/history/history.ts` (lenient record check incl. schema-3 records, `summarizeMatch`, `aggregateStats`, `historyLog` with legacy Sudden Death text), `exportData.ts` (versioned JSON backup; matches CSV; luck-board CSV; RFC 4180 + UTF-8 BOM; spreadsheet-formula guard), `format.ts`; `src/hooks/useHistory.ts`; `src/components/history/{HistoryScreen,Leaderboard,MatchHistory,ConfirmButton}.tsx`; `src/utils/download.ts`; `src/test/historyFixtures.ts` (real engine, seeded); tests `history.test.ts`, `exportData.test.ts`, `HistoryScreen.test.tsx`, `e2e/history.spec.ts`.
@@ -182,6 +201,7 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Shield redesign: limited supply + Sudden Death at one-third left
+
 - **Owner decision:** "Supply + half-way break", "1 per 5 fighters", "One-third left". Replaces the 3-consecutive-no-elimination streak. Logged in `PROJECT.md` §4/§10 and the `AGENTS.md` invariants.
 - **Rules implemented:** supply `ceil(N/5)`; Shield Fate or VS win uses one; Shield Fate with empty supply is wasted, VS winner gets `NO_SUPPLY`; when the last Shield is earned the Shield slots become KO (`SHIELD_SUPPLY_EXHAUSTED`, logged). Sudden Death when alive ≤ `round(N/3)`: supply → 0, D1 odds, all owned Shields shatter (`SUDDEN_DEATH_STARTED` now carries `aliveCount`, `shatteredIds`). Finale check runs first. `noEliminationStreak` removed.
 - **Changed:** `matchTypes.ts` (schema 4: `shieldSupply`, `suddenDeathAt`; new event), `match.ts` (`shieldSupplyFor`, `suddenDeathAtFor`), `describeEvent.ts` (log text), `matchStorage.ts` (validation; schema-3 saves discarded with the "older version" notice), `FateStrip.tsx` (header: "Shields left" pips, "Sudden Death at N left" or "No Sudden Death: finale at N left"; class `fate-strip__streak` → `fate-strip__meter`), `MatchScreen.tsx`, `global.css` (`.pip--shield`), `match.test.ts`, `App.test.tsx`.
@@ -192,6 +212,7 @@
 - **Build/run state:** builds and runs; dev server on port 5173.
 
 ### 2026-10-09 — Fate overlap, bigger hand signs; Shield redesign proposed
+
 - **Owner input:** loves it; asked to start the Fate spin mid fighter spin to save time; hand signs near the head are hard to read → move below the avatar and enlarge; asked for a recommendation on redefining Shields and the streak (options: shields lose effect past a threshold; limited shield supply that turns into KO; shields stop working once a number are owned).
 - **Changed:** `src/animation/turnTimeline.ts` (`FATE_START_FRACTION` 0.5, `FATE_LANDS_AFTER_FIGHTER_MS` 400, `playerRevealMs`), `src/hooks/useTurnAnimation.ts` ("Fate is choosing…" switches at the fighter reveal), `DuelPanel.tsx` (hand 60 px below fighter), `FinaleStage.tsx` (hand 52 px below fighter, crown above winners), `finaleTimeline.ts` (`stagePositions`: triangle pulled in; 4–6 finalists in two rows), CSS (arena `max(480px, 62vh)`; hands in a framed box under the sprite), tests; docs `PROJECT.md` §10, `AGENTS.md` invariant. Commit `16a3adc`.
 - **Found while checking:** taller cards made the 6-finalist ring overlap on short screens → two-row layout (verified in the pane).
@@ -200,6 +221,7 @@
 - **Next exact action:** owner chooses the Shield design → implement with tests → Phase 6.
 
 ### 2026-10-09 — Phase 5 accepted; owner follow-ups: step-by-step reveal, VS opponent spin, fallen fighters
+
 - **Owner input:** Phase 5 "tested, all good". Requests: (1) Fate should start only after the fighter is known, with shorter spins to compensate; (2) VS: show "VS" first, then spin for P2, then RPS and result; (3) victory screen: knocked-out fighters scattered lying dead, finale losers lying beside the winners.
 - **Changed:** `src/game/config/timing.ts` (per-cursor: land 2.5–5 s, cap 6.5 s, braking ≤ 3.5 s), `src/animation/spinPlan.ts` (uses new limits), `src/animation/turnTimeline.ts` (sequential: fighter → Fate → VS announce 1 s → opponent cursor over the other living fighters, starting after the challenger → throws), `src/hooks/useTurnAnimation.ts` (stages player/fate/vs/opponent/duel, opponent cursor, cues), `MatchScreen.tsx`, `PreviewPanel.tsx` ("Choosing a fighter…" → "Fate is choosing…"), `DuelPanel.tsx` (announce/pick/fight modes, mystery opponent), `VictoryScreen.tsx` + new `src/animation/victoryLayout.ts` (+test; deterministic scatter in side bands), CSS, tests; docs `PROJECT.md` §1/§4/§9/§10, `AGENTS.md` invariant.
 - **Bugs found + fixed:** (a) scatter used a poorly mixed hash bit, so all bodies landed on one side (caught by a unit test) → alternate sides; (b) the victory "keep content above confetti" CSS rule also hit the fallen layer and stacked every body at one spot (caught visually in the pane) → rule excludes fixed layers; ceremony kept in the centre column on wide screens.
@@ -209,6 +231,7 @@
 - **Next exact action:** owner review of the follow-ups → Phase 6.
 
 ### 2026-10-09 — Phase 5: Retro Arcade Experience
+
 - **Owner input:** chant = "ai sound"; music = would download the KOF character-select song or accept something similar; sprites = "you do it". Explained the KOF song is copyrighted and cannot be bundled; built an original chiptune plus a local-only "my music file" option (recorded in `PROJECT.md` §5 and `THIRD_PARTY_NOTICES.md`).
 - **Added:** `src/audio/{audioSettings,chiptune,voice,soundEngine,soundContext}.ts`, `SoundProvider.tsx` (+ tests for settings/chiptune/voice); `src/storage/assetStorage.ts` (+test); `src/components/sprites/{PixelArt.tsx,fighterSprite.ts,icons.tsx}` (+test); `src/components/setup/SoundSettings.tsx`; `src/components/match/PauseMenu.tsx`; `e2e/polish.spec.ts`; `THIRD_PARTY_NOTICES.md`; dependency `@fontsource/press-start-2p` (OFL-1.1).
 - **Changed:** `App.tsx` (SoundProvider; injectable engine/asset store), `MatchScreen.tsx` (music per phase, cursor/outcome/duel SFX, shortcuts Space/Enter/S/M/Esc, pause menu with Abandon), `FinaleStage.tsx` (AI chant per beat, result SFX, D4 pause), `VictoryScreen.tsx`, `useTurnAnimation.ts` (sound cues), `useFinaleShow.ts` (D4 pause at round boundary without restarting a running round), grid/preview/Fate strip/duel (pixel sprites + icons), `SetupScreen.tsx` (Sound panel), `main.tsx` (font), CSS (pixel font for big labels, CRT scanlines, sprite/pause/sound styles). Removed `src/hooks/useSound.ts`, `src/audio/finaleAudio.ts`.
@@ -219,11 +242,13 @@
 - **Next exact action:** owner review of Phase 5 with sound on → Phase 6.
 
 ### 2026-10-09 — Phase 4 accepted; D4 approved
+
 - **Owner:** "ok tested, all good, D4 go with your suggestion". Asked to confirm 2 Rock + 1 Scissors → both Rock players +1: confirmed (rule in `winningGesture` / `resolveFinaleRound`; covered by the unit test "every player throwing the winning hand scores 1" with Rock, Rock, Scissors).
 - **Docs only:** `PROJECT.md` §6 + §10 (D4 approved: pause at next round boundary, resume continues, no skip), this file. No code changed; last verified build/test state unchanged from the Phase 4 entry.
 - **Next exact action:** owner go-ahead for Phase 5 + P5-inputs.
 
 ### 2026-10-09 — Phase 4: Vietnamese-chant RPS finale + winner ceremony
+
 - **Owner input:** "ok tested, all good, proceed to phase 4" (Phase 3 accepted).
 - **Added:** `src/game/engine/finale.ts` (+test), `errors.ts`, `matchEvents.ts`; `src/animation/finaleTimeline.ts` (+test); `src/audio/finaleAudio.ts` (placeholder Web Audio); `src/hooks/useFinaleShow.ts`, `useSound.ts`; `src/components/match/FinaleStage.tsx`, `VictoryScreen.tsx`; `e2e/finale.spec.ts`.
 - **Changed:** `matchTypes.ts` (schema 3: `FINALE`/`VICTORY` phases, `FinaleState`, rounds audit, finale events, `completedAt`), `match.ts` (W+1 → finale state; Shields cleared), `describeEvent.ts`, `matchStorage.ts` (DB v2 + `completed-matches`, VICTORY save writes the record in the same transaction, v3 validation, `listCompleted`), `useMatch.ts` (begin/next/complete finale round), `MatchScreen`, `App`, CSS, tests; removed `FinaleGate.tsx`. Docs: `PROJECT.md` §5 D3 note.
@@ -236,6 +261,7 @@
 - **Next exact action:** owner review of Phase 4 (P4-a…d) → D4 decision → Phase 5.
 
 ### 2026-10-09 — Phase 3: Complete Fate System
+
 - **Owner input:** "feels good now, proceed to phase 3"; shuffle should not appear in the event log (done first: `5b5b1f9`; event kept in state for audit).
 - **Added:** `src/game/engine/fateSlots.ts` (even spread layout, in-place Sudden Death conversion, counts), `rps.ts` (gestures, uniform throws, rethrow draws until decisive), `src/animation/turnTimeline.ts` (player + Fate cursors together with separate seeded styles; VS duel beats), `src/hooks/useTurnAnimation.ts` (replaces `useSpinCursor`), `src/components/match/{FateStrip,DuelPanel}.tsx`, tests `fateSlots.test.ts`, `rps.test.ts`, `turnTimeline.test.ts`.
 - **Changed:** `matchTypes.ts` (schema 2: player `shield`, `fateSlots`, `suddenDeath`, committed turn incl. slot, Fate, VS opponent + all throws; `TURN_RESOLVED` with structured outcome; `SUDDEN_DEATH_STARTED`, `SHIELDS_CLEARED`, `POSITIONS_SHUFFLED`), `match.ts` (KO/Shield/VS rules, streak, Sudden Death, finale clears Shields, `shufflePositions`), `describeEvent.ts`, `matchStorage.ts` (v2 validation incl. duel consistency; `outdated` status), `useMatch.ts`, `MatchScreen`, `FighterGrid` (Shield icon, VS opponent highlight), `PreviewPanel` (outcome captions), CSS, `src/test/stats.ts` (weighted chi-square + p=0.001 critical values), App/E2E tests.
@@ -246,14 +272,16 @@
 - **Next exact action:** owner plays Phase 3 (try Chaotic for VS/Shields; watch for Sudden Death) and confirms P3-a…P3-d → Phase 4 (Một Hai Ba Yo RPS finale + winners).
 
 ### 2026-10-09 — Phase 2 follow-up: 4–10 s spins, snap/crawl braking, honest dwell
+
 - **Owner feedback:** still too samey; "the last one that feels slow confirms it will move 1 more block". Asked for max 10 s and a longer, random deceleration: sometimes an immediate stop after a brief slow, sometimes slower and slower with doubt whether it stops or moves once more.
-- **Root cause found:** (1) the previous "fake-out" stretched the wait on the box *before* the target, so a long pause always meant one more move; (2) after landing, the KO came after a fixed 0.4 s, shorter than the preceding slow gaps, so a short pause meant "stopped".
+- **Root cause found:** (1) the previous "fake-out" stretched the wait on the box _before_ the target, so a long pause always meant one more move; (2) after landing, the KO came after a fixed 0.4 s, shorter than the preceding slow gaps, so a short pause meant "stopped".
 - **Changed:** `src/animation/spinPlan.ts` rewritten (cruise → geometric braking; styles: snap 40% with 3–5 braking moves / crawl 60% with 7–14; final gap 300–1100 ms; ~25% tease on the pre-target box; whole laps chosen to land 4–8 s; **dwell on target = 1.0–1.8× last move**; reveal ≤ 10 s). `src/game/config/timing.ts` (`MIN_LAND_MS`, `MAX_SPIN_MS`, `MIN_DWELL_MS`; removed fixed hold). `useSpinCursor` + `MatchScreen` + `App` now take a single `timeScale` (tests 0.005). `playwright.config.ts` test timeout 60 s. Docs: `PROJECT.md` §1, §4, §9, §10 and `AGENTS.md` invariant now say random 4–10 s (owner decision, supersedes 4–5 s).
 - **Tests:** `npm test` → **9 files, 120 passed** (300 sampled styles × 5 roster sizes: never speeds up, reveal ≤ 10 s; dwell never shorter than final move; snap and crawl both frequent; lands on every target from every start). `npm run e2e` → **6 passed**; cursor-order E2E repeated 6× → 6 passed. One E2E failed first on an outdated "≥20 moves" assumption (snap spins make fewer); threshold lowered to 10.
 - **Impact:** average turn now ~6–9 s; a 20-player match spends roughly 2–3 min in spins (3–5 min target remains "not guaranteed").
 - **Next exact action:** owner feel-test; then Phase 3 (Fate cursor reuses this spin model with its own seed).
 
 ### 2026-10-09 — Phase 2 follow-up: unpredictable spin rhythm
+
 - **Owner request:** sequential cursor became predictable after a few rounds; add randomness.
 - **Cause:** every spin used identical timing (4.5 s, same curve, same min steps), so "how slow = how many steps left" was learnable.
 - **Changed:** `src/animation/spinPlan.ts` (`SpinStyle`, `spinStyleFor(turnId)` seeded via FNV-1a hash → mulberry32: duration 4000–5000 ms, minSteps 20–36, easePower 1.5–2.4, ~35% fake-out 1.4–2.0× on final move capped at 30% of spin), `src/hooks/useSpinCursor.ts`, `src/game/config/timing.ts` (`SPIN_DURATION_RANGE_MS`), `src/app/App.tsx`, `MatchScreen.tsx`, tests, `PROJECT.md` §10.
@@ -262,6 +290,7 @@
 - **Next exact action:** Phase 3.
 
 ### 2026-10-09 — Phase 2 follow-up: sequential cursor + player Shuffle
+
 - **Owner request:** cursor should walk boxes in order (1 2 3 … wrap … slow 3 … 4) instead of random jumps, for "one more step" tension; Shuffle button for visually fair positions. Owner said Phase 2 "seemed pretty solid" (P2-a Abandon and P2-b replay-on-restore treated as accepted; revisit if not).
 - **Changed:** `src/animation/spinPlan.ts` (deterministic sequential path: ≥24 moves, whole laps + distance to target, quadratic ease-out ≈80–110 ms first gaps → ≈0.8–1 s final gap; `spinStartId` = next living fighter after previous target), `src/hooks/useSpinCursor.ts`, `src/game/engine/{match,matchTypes,describeEvent}.ts` (`shufflePlayers`, `PLAYERS_SHUFFLED` event; identity draws redrawn), `src/hooks/useMatch.ts` (`shuffle`), `src/components/match/MatchScreen.tsx` (Shuffle button, start position), `src/app/App.tsx`, CSS, tests, `PROJECT.md` §10 (approved decisions).
 - **Tests:** `npm test` → **9 files, 121 passed** (sequential path from every start/target, deceleration, laps on tiny rosters, 32-grid; shuffle permutation/logging/identity redraw/READY-only; seeded chi-square proves odds unchanged with shuffles). `npm run e2e` → **6 passed** incl. DOM-recorded cursor moves are consecutive in grid order with last gap >4× first, and shuffle order survives reload. Typecheck + lint clean. Manual: Shuffle button layout and log entry checked in browser pane.
@@ -269,6 +298,7 @@
 - **Next exact action:** Phase 3 (Fate strip with its own sequential cursor + Fate shuffle, KO/VS/Shield, RPS duel, Sudden Death).
 
 ### 2026-10-09 — Phase 2: KO-only playable loop
+
 - **Objective:** Commit Phase 1 (owner tested + approved), then implement Phase 2 only.
 - **Owner input:** "tested phase 1, its good … can commit and proceed"; audience is Malaysian, Vietnamese chant only liked as countdown (recorded in `PROJECT.md` §10).
 - **Commits:** `bf7dfdd feat: phase 1 setup, roster and local config`. Phase 2 commit made right after this file update.
@@ -294,14 +324,17 @@
 - **Next exact action:** owner review of Phase 2 → answer P2-a/P2-b → start Phase 3 (Fate strip + KO/VS/Shield).
 
 ### 2026-10-09 — Phase 1: Foundation & Setup
+
 - Decisions: baseline accepted; D1, D2, D3, D5 approved. Implemented roster paste (D5), attendance, winners, presets with real odds, start validation, versioned localStorage. Verified: typecheck, lint, 54 tests, build, 1 E2E. Owner tested and approved; committed `bf7dfdd`.
 
 ### 2026-10-09 — Specification consolidation
+
 - Documentation only; no code, tests or deployment.
 
 ---
 
 ### Template for future development sessions
+
 - **When / Phase / objective:**
 - **What changed (file paths):**
 - **Completed functionality and acceptance evidence:**

@@ -448,6 +448,7 @@ function spyEngine() {
     setPaused: (p) => calls.push(`paused:${p}`),
     setMusicRate: (rate) => calls.push(`rate:${rate.toFixed(2)}`),
     setMusicIntensity: (level) => calls.push(`intensity:${level}`),
+    musicDrop: () => calls.push('musicDrop'),
     fanfare: (stage) => calls.push(`fanfare:${stage}`),
     loadedClips: () => [],
     onClipsChanged: () => () => undefined,
@@ -854,10 +855,12 @@ describe('Finale rising pace and showdown music (owner request 2026-10-10)', () 
     await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
     expect(calls).toContain('music:finale');
     const rates = calls.filter((c) => c.startsWith('rate:')).map((c) => Number(c.slice(5)));
-    // 600 → 550 → 500 → 450 ms beats after 1, 2 and 3 rounds without a new winner.
-    expect(rates).toEqual(expect.arrayContaining([1, 1.09, 1.2, 1.33]));
-    const firstFast = rates.indexOf(1.33);
-    expect(rates.slice(0, firstFast + 1).filter((r) => r > 1)).toEqual([1.09, 1.2, 1.33]);
+    // 600 → 528 → 478 → 442 ms beats after 1, 2 and 3 rounds without a new winner.
+    expect(rates).toEqual(expect.arrayContaining([1, 1.14, 1.26, 1.36]));
+    const firstFast = rates.indexOf(1.36);
+    expect(rates.slice(0, firstFast + 1).filter((r) => r > 1)).toEqual([1.14, 1.26, 1.36]);
     expect(rates.at(-1)).toBe(1); // back to normal when the finale ends
+    // Someone reached match point before winning: the music dropped out for the held breath.
+    expect(calls).toContain('musicDrop');
   });
 });

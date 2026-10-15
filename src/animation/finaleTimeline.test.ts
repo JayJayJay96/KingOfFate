@@ -6,6 +6,8 @@ import {
   finaleIntensity,
   finalePace,
   introTimeline,
+  isLastPoint,
+  LAST_POINT_PAUSE_MS,
   NORMAL_PACE,
   roundsWithoutWinner,
   roundTimeline,
@@ -73,18 +75,20 @@ describe('finale rising pace (owner request 2026-10-10)', () => {
     expect(roundsWithoutWinner([draw, winner])).toBe(0);
   });
 
-  it('each such round makes the beat 50 ms shorter, everything in proportion, floor 60 %', () => {
+  it('speeds up steeply, then levels off toward the 60 % floor (curve 2026-10-16)', () => {
     expect(finalePace(0)).toEqual(NORMAL_PACE);
     const p1 = finalePace(1);
-    expect(p1.beatMs).toBe(CHANT_BEAT_MS - 50);
-    expect(p1.scale).toBeCloseTo((CHANT_BEAT_MS - 50) / CHANT_BEAT_MS);
+    expect(p1.beatMs).toBe(528);
+    expect(p1.scale).toBeCloseTo(528 / CHANT_BEAT_MS);
     expect(p1.holdMs).toBe(Math.round(FINALE_REVEAL_HOLD_MS * p1.scale));
-    expect(finalePace(4).beatMs).toBe(CHANT_BEAT_MS - 200);
+    expect([2, 3, 4].map((k) => finalePace(k).beatMs)).toEqual([478, 442, 418]);
     expect(finalePace(50).beatMs).toBe(FINALE_MIN_BEAT_MS);
     expect(finalePace(50).scale).toBeCloseTo(0.6);
-    // Monotonic: never slower as the streak grows.
+    // Never slower as the streak grows, and each step is smaller than the one before.
     for (let k = 0; k < 20; k++) {
-      expect(finalePace(k + 1).beatMs).toBeLessThanOrEqual(finalePace(k).beatMs);
+      const [a, b, c] = [finalePace(k), finalePace(k + 1), finalePace(k + 2)].map((p) => p.beatMs);
+      expect(b).toBeLessThanOrEqual(a!);
+      expect(b! - c!).toBeLessThanOrEqual(a! - b! + 1); // ±1 ms rounding
     }
   });
 
@@ -97,6 +101,36 @@ describe('finale rising pace (owner request 2026-10-10)', () => {
       // Visible after "Juice!": hold + pause ≥ attack delay + duration, both scaled.
       expect(pace.holdMs + pace.pauseMs).toBeGreaterThanOrEqual((0.15 + 2.4) * 1000 * pace.scale);
     }
+  });
+});
+
+describe('"last point" drama (owner request 2026-10-16)', () => {
+  const race = (scores: Record<string, number>, winnerIds: string[] = []) => ({
+    started: true,
+    stageNumber: 1,
+    finalistIds: ['a', 'b', 'c'],
+    contenderIds: ['a', 'b', 'c'],
+    scores,
+    winnerIds,
+    excludedIds: [],
+    pendingRound: null,
+    rounds: [],
+  });
+
+  it('is on when someone still racing is one point from a slot', () => {
+    expect(isLastPoint(race({ a: 1, b: 1, c: 0 }))).toBe(false);
+    expect(isLastPoint(race({ a: 2, b: 0, c: 0 }))).toBe(true);
+    expect(isLastPoint(race({ a: 3, b: 1, c: 0 }, ['a']))).toBe(false);
+  });
+
+  it('"2" darkens, and "Juice!" waits for the held breath; the hold after is unchanged', () => {
+    const pace = finalePace(2);
+    const plain = roundTimeline(pace);
+    const drama = roundTimeline(pace, true);
+    expect(drama.cues[1]).toMatchObject({ word: 'TWO', dark: true });
+    expect(plain.cues.some((c) => c.dark)).toBe(false);
+    expect(drama.cues[2]!.atMs).toBe(2 * pace.beatMs + LAST_POINT_PAUSE_MS);
+    expect(drama.resolveMs - drama.cues[2]!.atMs).toBe(plain.resolveMs - plain.cues[2]!.atMs);
   });
 });
 

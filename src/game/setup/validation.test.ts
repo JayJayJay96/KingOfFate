@@ -8,7 +8,13 @@ function config(active: number, winnerCount: number, inactive = 0): SetupConfig 
   const roster: Participant[] = [];
   for (let i = 0; i < active; i++) roster.push({ id: `a${i}`, name: `A${i}`, active: true });
   for (let i = 0; i < inactive; i++) roster.push({ id: `i${i}`, name: `I${i}`, active: false });
-  return { roster, winnerCount: winnerCount as WinnerCount, presetId: 'normal', stage: 'random' };
+  return {
+    roster,
+    winnerCount: winnerCount as WinnerCount,
+    presetId: 'normal',
+    stage: 'random',
+    turbo: false,
+  };
 }
 
 describe('validateSetup', () => {

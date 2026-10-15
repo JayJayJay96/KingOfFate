@@ -1,4 +1,9 @@
-import { MAX_BRAKE_MS, MAX_SPIN_MS, MIN_DWELL_MS, MIN_LAND_MS } from '../game/config/timing';
+import {
+  MIN_DWELL_MS,
+  NORMAL_SPIN_LIMITS,
+  TURBO_SPIN_LIMITS,
+  type SpinLimits,
+} from '../game/config/timing';
 import { createSeededRng } from '../game/rng/rng';
 
 export interface SpinStep {
@@ -49,11 +54,21 @@ export const DEFAULT_SPIN_STYLE: SpinStyle = {
  * Random-looking style for a turn, seeded from its (random, unguessable) turn ID so a replay
  * after refresh is identical. Cosmetic randomness only; outcomes use the crypto RNG.
  */
-export function spinStyleFor(turnId: string): SpinStyle {
+export function spinStyleFor(turnId: string, turbo = false): SpinStyle {
   const rng = createSeededRng(hashString(turnId));
   const snap = rng.nextInt(100) < 40;
+  if (turbo) {
+    return {
+      targetLandMs: TURBO_SPIN_LIMITS.minLandMs + rng.nextInt(1501), // 1.5–3 s
+      cruiseGapMs: 40 + rng.nextInt(21), // 40–60 ms
+      brakeSteps: snap ? 3 + rng.nextInt(2) : 5 + rng.nextInt(5), // snap 3–4, crawl 5–9
+      finalGapMs: snap ? 200 + rng.nextInt(201) : 400 + rng.nextInt(301), // 200–400 / 400–700
+      teaseFactor: rng.nextInt(100) < 25 ? 1.2 + rng.nextInt(4) / 10 : 1, // ~1 in 4: 1.2–1.5×
+      dwellFactor: 1 + rng.nextInt(6) / 10, // 1.0–1.5×
+    };
+  }
   return {
-    targetLandMs: MIN_LAND_MS + rng.nextInt(2501), // 2.5–5 s
+    targetLandMs: NORMAL_SPIN_LIMITS.minLandMs + rng.nextInt(2501), // 2.5–5 s
     cruiseGapMs: 45 + rng.nextInt(31), // 45–75 ms
     brakeSteps: snap ? 3 + rng.nextInt(3) : 7 + rng.nextInt(8), // snap 3–5, crawl 7–14
     finalGapMs: snap ? 300 + rng.nextInt(301) : 600 + rng.nextInt(501), // 300–600 / 600–1100
@@ -65,14 +80,16 @@ export function spinStyleFor(turnId: string): SpinStyle {
 /**
  * Visual-only roulette path: the cursor walks the living fighters in grid order (wrapping),
  * starting on `startId`, cruising, then braking until it stops on the ALREADY COMMITTED
- * `targetId`. Gaps never shrink. The whole spin (to reveal) never exceeds MAX_SPIN_MS.
+ * `targetId`. Gaps never shrink. The whole spin (to reveal) never exceeds `limits.maxSpinMs`.
  */
 export function buildSpinPlan(
   orderedIds: readonly string[],
   startId: string,
   targetId: string,
   style: SpinStyle = DEFAULT_SPIN_STYLE,
+  limits: SpinLimits = NORMAL_SPIN_LIMITS,
 ): SpinPlan {
+  const { minLandMs, maxSpinMs, maxBrakeMs } = limits;
   const n = orderedIds.length;
   const start = orderedIds.indexOf(startId);
   const target = orderedIds.indexOf(targetId);
@@ -81,19 +98,19 @@ export function buildSpinPlan(
   // Braking gaps grow geometrically from cruise speed to the final gap.
   let brakeSteps = style.brakeSteps;
   let brake = brakeGaps(style, brakeSteps);
-  while (sum(brake) > MAX_BRAKE_MS && brakeSteps > 3) brake = brakeGaps(style, --brakeSteps);
+  while (sum(brake) > maxBrakeMs && brakeSteps > 3) brake = brakeGaps(style, --brakeSteps);
   const brakeMs = sum(brake);
 
   // Choose whole laps so the landing time is in bounds and closest to the preferred time.
   const offset = (target - start + n) % n;
-  const latestLand = MAX_SPIN_MS - MIN_DWELL_MS;
+  const latestLand = maxSpinMs - MIN_DWELL_MS;
   const landFor = (moves: number) => (moves - brakeSteps) * style.cruiseGapMs + brakeMs;
   let laps = Math.max(0, Math.ceil((brakeSteps + MIN_CRUISE_STEPS - offset) / n));
   let best = laps;
   for (; landFor(offset + laps * n) <= latestLand; laps++) {
     const land = landFor(offset + laps * n);
     const bestLand = landFor(offset + best * n);
-    const inRange = (t: number) => t >= MIN_LAND_MS && t <= latestLand;
+    const inRange = (t: number) => t >= minLandMs && t <= latestLand;
     if (
       (inRange(land) && !inRange(bestLand)) ||
       (inRange(land) === inRange(bestLand) &&
@@ -113,7 +130,7 @@ export function buildSpinPlan(
   }
   const landMs = steps.at(-1)!.atMs;
   const lastGap = brake.at(-1)!;
-  const dwell = Math.max(MIN_DWELL_MS, Math.min(lastGap * style.dwellFactor, MAX_SPIN_MS - landMs));
+  const dwell = Math.max(MIN_DWELL_MS, Math.min(lastGap * style.dwellFactor, maxSpinMs - landMs));
   return { steps, landMs, revealMs: Math.round(landMs + dwell) };
 }
 

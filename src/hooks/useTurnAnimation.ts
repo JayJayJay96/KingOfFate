@@ -52,6 +52,8 @@ export function useTurnAnimation(
   timeScale: number,
   onComplete: (turnId: string) => void,
   onCue: (cue: TurnCue) => void = () => undefined,
+  /** Turbo spins (setup toggle): shorter cursors, same outcome. */
+  turbo = false,
 ): TurnAnimationState {
   const [frame, setFrame] = useState<{ turnId: string; state: TurnAnimationState } | null>(null);
   const onCompleteRef = useRef(onComplete);
@@ -66,7 +68,13 @@ export function useTurnAnimation(
   useEffect(() => {
     if (!pendingTurn || !playerStartId) return;
     const turnId = pendingTurn.turnId;
-    const t = buildTurnTimeline(pendingTurn, orderKey.split('\u0000'), playerStartId, fateStart);
+    const t = buildTurnTimeline(
+      pendingTurn,
+      orderKey.split('\u0000'),
+      playerStartId,
+      fateStart,
+      turbo,
+    );
 
     let current: TurnAnimationState = { ...IDLE, stage: 'player' };
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -112,7 +120,7 @@ export function useTurnAnimation(
     return () => timers.forEach(clearTimeout);
     // pendingTurn identity is stable for a committed turn; key on its id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingTurn?.turnId, playerStartId, fateStart, orderKey, timeScale]);
+  }, [pendingTurn?.turnId, playerStartId, fateStart, orderKey, timeScale, turbo]);
 
   if (frame && frame.turnId === pendingTurn?.turnId) return frame.state;
   return pendingTurn ? { ...IDLE, stage: 'player' } : IDLE;

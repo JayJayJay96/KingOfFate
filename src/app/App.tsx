@@ -106,6 +106,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
           <MatchScreen
             match={game.match}
             timeScale={timeScale}
+            turbo={setup.config.turbo}
             saveError={game.saveError}
             onSpin={() => void game.spin()}
             onShuffle={() => void game.shuffle()}

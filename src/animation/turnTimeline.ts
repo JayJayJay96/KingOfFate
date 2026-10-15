@@ -1,4 +1,5 @@
 import { FATE_SLOT_COUNT } from '../game/config/presets';
+import { NORMAL_SPIN_LIMITS, TURBO_SPIN_LIMITS } from '../game/config/timing';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 import { buildSpinPlan, spinStyleFor, type SpinStep } from './spinPlan';
 
@@ -76,18 +77,23 @@ export function buildTurnTimeline(
   aliveIdsInGridOrder: readonly string[],
   playerStartId: string,
   fateStart: number,
+  /** Turbo spins (setup toggle): shorter cursors, same outcome. */
+  turbo = false,
 ): TurnTimeline {
+  const limits = turbo ? TURBO_SPIN_LIMITS : NORMAL_SPIN_LIMITS;
   const player = buildSpinPlan(
     aliveIdsInGridOrder,
     playerStartId,
     turn.playerId,
-    spinStyleFor(turn.turnId),
+    spinStyleFor(turn.turnId, turbo),
+    limits,
   );
   const fate = buildSpinPlan(
     FATE_SLOT_IDS,
     String(fateStart),
     String(turn.fateSlotIndex),
-    spinStyleFor(`${turn.turnId}:fate`),
+    spinStyleFor(`${turn.turnId}:fate`, turbo),
+    limits,
   );
   const fateStartMs = Math.max(
     Math.round(player.landMs * FATE_START_FRACTION),
@@ -126,7 +132,8 @@ export function buildTurnTimeline(
     others,
     opponentStartId,
     turn.duel.opponentId,
-    spinStyleFor(`${turn.turnId}:opponent`),
+    spinStyleFor(`${turn.turnId}:opponent`, turbo),
+    limits,
   );
   const duelStartMs = opponentStartMs + opponent.revealMs;
   const duelCounts: DuelCount[] = [];

@@ -16,6 +16,8 @@ interface StoredSetupV1 {
   readonly presetId: string;
   /** Added 2026-10-10 (optional, schema unchanged). */
   readonly stage?: string;
+  /** Added 2026-10-16 (optional, schema unchanged). */
+  readonly turbo?: boolean;
 }
 
 /**
@@ -80,8 +82,12 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   if (isStageChoice(parsed.stage)) stage = parsed.stage;
   else if (parsed.stage !== undefined) repaired = true;
 
+  let turbo = DEFAULT_SETUP.turbo;
+  if (typeof parsed.turbo === 'boolean') turbo = parsed.turbo;
+  else if (parsed.turbo !== undefined) repaired = true;
+
   return {
-    config: { roster: roster.entries, winnerCount, presetId, stage },
+    config: { roster: roster.entries, winnerCount, presetId, stage, turbo },
     status: repaired ? 'repaired' : 'loaded',
   };
 }
@@ -99,6 +105,7 @@ export function saveSetup(
     winnerCount: config.winnerCount,
     presetId: config.presetId,
     stage: config.stage,
+    turbo: config.turbo,
   };
   try {
     storage.setItem(SETUP_STORAGE_KEY, JSON.stringify(stored));

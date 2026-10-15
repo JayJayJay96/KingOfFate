@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_SPIN_MS, MIN_LAND_MS } from '../game/config/timing';
+import { MAX_SPIN_MS, MIN_LAND_MS, TURBO_SPIN_LIMITS } from '../game/config/timing';
 import {
   buildSpinPlan,
   DEFAULT_SPIN_STYLE,
@@ -110,6 +110,47 @@ describe('buildSpinPlan (sequential roulette)', () => {
   it('rejects ids that are not on the grid', () => {
     expect(() => buildSpinPlan(ids, 'zzz', 'a')).toThrow();
     expect(() => buildSpinPlan(ids, 'a', 'zzz')).toThrow();
+  });
+});
+
+describe('turbo spins (owner decision 2026-10-16)', () => {
+  const turboStyles = Array.from({ length: 300 }, (_, i) => spinStyleFor(`turn-${i}`, true));
+
+  it('every turbo spin lands on the target, never speeds up and reveals within 4 s', () => {
+    for (const roster of rosters) {
+      for (const s of turboStyles) {
+        const plan = buildSpinPlan(
+          roster,
+          roster[0]!,
+          roster[roster.length - 1]!,
+          s,
+          TURBO_SPIN_LIMITS,
+        );
+        const g = gaps(plan);
+        for (let i = 1; i < g.length; i++) expect(g[i]).toBeGreaterThanOrEqual(g[i - 1]! - 1);
+        expect(plan.steps.at(-1)!.id).toBe(roster[roster.length - 1]);
+        expect(plan.revealMs).toBeLessThanOrEqual(TURBO_SPIN_LIMITS.maxSpinMs);
+        expect(plan.revealMs).toBeGreaterThan(plan.landMs);
+      }
+    }
+  });
+
+  it('mostly lands after 1.5 s, and is clearly shorter than a normal spin', () => {
+    const turbo = turboStyles.map(
+      (s) => buildSpinPlan(ids, 'a', 'e', s, TURBO_SPIN_LIMITS).revealMs,
+    );
+    const normal = sampleStyles.map((s) => buildSpinPlan(ids, 'a', 'e', s).revealMs);
+    const early = turboStyles.filter(
+      (s) =>
+        buildSpinPlan(ids, 'a', 'e', s, TURBO_SPIN_LIMITS).landMs < TURBO_SPIN_LIMITS.minLandMs,
+    ).length;
+    expect(early / turboStyles.length).toBeLessThan(0.05);
+    const avg = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
+    expect(avg(turbo)).toBeLessThan(avg(normal) * 0.7);
+  });
+
+  it('is deterministic per turn id', () => {
+    expect(spinStyleFor('abc', true)).toEqual(spinStyleFor('abc', true));
   });
 });
 

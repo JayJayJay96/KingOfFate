@@ -27,6 +27,8 @@ import { VictoryScreen } from './VictoryScreen';
 interface MatchScreenProps {
   readonly match: MatchState;
   readonly timeScale: number;
+  /** Turbo spins (setup toggle). */
+  readonly turbo?: boolean;
   readonly saveError: string | null;
   readonly onSpin: () => void;
   readonly onShuffle: () => void;
@@ -45,6 +47,7 @@ const IMPACT_MS = 1100;
 export function MatchScreen({
   match,
   timeScale,
+  turbo = false,
   saveError,
   onSpin,
   onShuffle,
@@ -105,6 +108,7 @@ export function MatchScreen({
     timeScale,
     onSpinComplete,
     onCue,
+    turbo,
   );
   const highlightId = animation.playerCursorId;
   const stage = animation.stage;

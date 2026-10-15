@@ -50,6 +50,8 @@ export interface SoundEngine {
    * 2 + arpeggio and extra hats, 3 everything one semitone up. null = play every layer.
    */
   setMusicIntensity(level: number | null): void;
+  /** Silences the music for `ms`, then brings it back ("last point" held breath). */
+  musicDrop(ms: number): void;
   sfx(name: SfxName): void;
   /** Victory jingle for the stage (falls back to the generic victory sting). */
   fanfare(stage: StageId | null): void;
@@ -90,6 +92,9 @@ export function createSoundEngine(): SoundEngine {
   let customEl: HTMLAudioElement | null = null;
   let musicRate = 1;
   let musicIntensity: number | null = null;
+  /** Audio-clock time until which the music is dropped out (ducking waits). */
+  let dropUntil = 0;
+  let dropTimer: ReturnType<typeof setTimeout> | null = null;
   const clips = new Map<VoiceClipId, AudioBuffer>();
   const clipListeners = new Set<() => void>();
   let clipsRequested = false;
@@ -407,7 +412,7 @@ export function createSoundEngine(): SoundEngine {
 
   function duck() {
     const c = running();
-    if (!c || !musicBus) return;
+    if (!c || !musicBus || c.currentTime < dropUntil) return;
     const level = musicLevel() * 0.35;
     musicBus.gain.setTargetAtTime(level * 0.35, c.currentTime, 0.02);
     musicBus.gain.setTargetAtTime(level, c.currentTime + 0.35, 0.1);
@@ -456,6 +461,28 @@ export function createSoundEngine(): SoundEngine {
     },
     setMusicIntensity(level) {
       musicIntensity = level === null ? null : Math.min(3, Math.max(0, Math.round(level)));
+    },
+    musicDrop(ms) {
+      const seconds = Math.max(0, ms) / 1000;
+      const c = running();
+      if (c && musicBus) {
+        const now = c.currentTime;
+        const gain = musicBus.gain;
+        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
+        else gain.cancelScheduledValues(now);
+        gain.setTargetAtTime(0.0001, now, 0.03);
+        gain.setTargetAtTime(musicLevel() * 0.35, now + seconds, 0.04);
+        dropUntil = now + seconds;
+      }
+      if (customEl) {
+        const el = customEl;
+        el.volume = 0;
+        if (dropTimer) clearTimeout(dropTimer);
+        dropTimer = setTimeout(() => {
+          el.volume = musicLevel();
+          dropTimer = null;
+        }, ms);
+      }
     },
     sfx: playSfx,
     fanfare: playFanfare,
