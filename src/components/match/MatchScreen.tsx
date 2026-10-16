@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ANNOUNCE,
   IMPACT_LINE,
@@ -11,7 +11,12 @@ import { FINAL_BLOW_MS } from '../../animation/matchIntro';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
 import { presetName } from '../../game/config/presets';
-import { alivePlayers, eliminatedThisTurn, shieldSupplyFor } from '../../game/engine/match';
+import {
+  alivePlayers,
+  eliminatedThisTurn,
+  resolveTurn,
+  shieldSupplyFor,
+} from '../../game/engine/match';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
 import { DuelPanel } from './DuelPanel';
@@ -73,7 +78,9 @@ export function MatchScreen({
       ? {
           turnId: lastTurnId!,
           kind: turnImpact(match.lastTurn),
-          fallenIds: eliminatedThisTurn(match.lastTurn),
+          // A Bomb's fighters already fell during its blast sequence.
+          fallenIds:
+            match.lastTurn.outcome.fate === 'BOMB' ? [] : eliminatedThisTurn(match.lastTurn),
         }
       : null;
   /** Slow-motion final blow between the last finale reveal and the ceremony. */
@@ -83,12 +90,31 @@ export function MatchScreen({
   const showIntro =
     match.phase === 'READY' && match.completedTurns === 0 && introDoneFor !== match.matchId;
   const duel = match.pendingTurn?.duel ?? null;
+  // Bomb: preview the already-committed result (pure; the real result is applied once at the
+  // end) so each blast can show what it does, one fighter at a time.
+  const pendingId = match.pendingTurn?.turnId ?? null;
+  const bomb = useMemo(() => {
+    const turn = match.pendingTurn;
+    if (!turn?.bomb || !pendingId) return null;
+    const o = resolveTurn(match, pendingId).lastTurn?.outcome;
+    if (o?.fate !== 'BOMB') return null;
+    return { pickedId: turn.playerId, neighbourId: o.neighbourId, outcome: o };
+    // The committed turn never changes while it plays.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingId]);
 
   const onCue = (cue: TurnCue) => {
     if (cue.kind === 'player' || cue.kind === 'opponent') engine.sfx('tick');
     else if (cue.kind === 'fate') engine.sfx('fateTick');
-    else if (cue.kind === 'bomb') engine.sfx('fuse');
-    else if (cue.kind === 'vsAnnounce') {
+    else if (cue.kind === 'bomb') {
+      // Marks fizz; each blast booms (or clinks on a Shield; a spared neighbour stays quiet).
+      if (cue.step <= 2) engine.sfx('fuse');
+      else if (bomb) {
+        const result = cue.step === 3 ? bomb.outcome.result : bomb.outcome.neighbourResult;
+        if (result === 'ELIMINATED') engine.sfx('boom');
+        else if (result === 'BLOCKED') engine.sfx('blocked');
+      }
+    } else if (cue.kind === 'vsAnnounce') {
       engine.sfx('vs');
       engine.announce(ANNOUNCE.versus);
     } else if (cue.kind === 'duelIntro') engine.sfx('clash');
@@ -135,7 +161,8 @@ export function MatchScreen({
   const impactTurnId = impact?.turnId ?? null;
   useEffect(() => {
     if (!impactTurnId || !impactKind) return;
-    engine.sfx(impactKind);
+    // A Bomb's two booms already played during its blast sequence.
+    if (impactKind !== 'boom') engine.sfx(impactKind);
     engine.announce(IMPACT_LINE[impactKind]);
     const timer = setTimeout(() => setImpactDoneFor(impactTurnId), IMPACT_MS * timeScale);
     return () => clearTimeout(timer);
@@ -263,7 +290,12 @@ export function MatchScreen({
           />
         ) : (
           <div className="preview-wrap">
-            <PreviewPanel match={match} highlightId={highlightId} stage={stage} />
+            <PreviewPanel
+              match={match}
+              highlightId={highlightId}
+              stage={stage}
+              bombStep={animation.bombStep}
+            />
             {animation.fast && stage === 'player' && (
               <span className="speed-lines" data-testid="speed-lines" aria-hidden="true" />
             )}
@@ -294,6 +326,7 @@ export function MatchScreen({
             opponentId={animation.opponentCursorId}
             lastTargetId={match.lastTurn?.turn.playerId ?? null}
             fallingIds={impact?.fallenIds ?? []}
+            {...bombGridMarks(bomb, animation.bombStep)}
           />
           <div className="arena__controls">
             <div className="arena__buttons">
@@ -371,6 +404,27 @@ export function MatchScreen({
       )}
     </main>
   );
+}
+
+/** Which fighters the Bomb sequence marks, blasts or blocks at a given step. */
+function bombGridMarks(
+  bomb: {
+    pickedId: string;
+    neighbourId: string;
+    outcome: { result: string; neighbourResult: string };
+  } | null,
+  step: number,
+): { bombIds: string[]; blastIds: string[]; blockedIds: string[] } {
+  if (!bomb || step === 0) return { bombIds: [], blastIds: [], blockedIds: [] };
+  const hits = [
+    { id: bomb.pickedId, result: bomb.outcome.result, markAt: 1, blastAt: 3 },
+    { id: bomb.neighbourId, result: bomb.outcome.neighbourResult, markAt: 2, blastAt: 4 },
+  ];
+  return {
+    bombIds: hits.filter((h) => step >= h.markAt && step < h.blastAt).map((h) => h.id),
+    blastIds: hits.filter((h) => step >= h.blastAt && h.result === 'ELIMINATED').map((h) => h.id),
+    blockedIds: hits.filter((h) => step >= h.blastAt && h.result !== 'ELIMINATED').map((h) => h.id),
+  };
 }
 
 /** Big stamp, hit sparks and a flash over the preview. Decorative only. */

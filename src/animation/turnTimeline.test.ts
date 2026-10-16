@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { MAX_SPIN_MS } from '../game/config/timing';
 import type { CommittedTurn } from '../game/engine/matchTypes';
 import {
+  BOMB_DONE_MS,
+  BOMB_STEP_OFFSETS_MS,
   buildTurnTimeline,
   DUEL_INTRO_MS,
   DUEL_COUNT_BEAT_MS,
@@ -122,5 +124,16 @@ describe('speed lines: brake start (owner request 2026-10-16)', () => {
     const steps = [0, 50, 100, 150, 260, 450].map((atMs) => ({ atMs }));
     expect(brakeStartMs(steps)).toBe(150);
     expect(brakeStartMs([{ atMs: 0 }])).toBe(0);
+  });
+});
+
+describe('Bomb sequence (owner request 2026-10-16)', () => {
+  it('marks the picked fighter, then the neighbour, then two blasts, then applies the result', () => {
+    const bombTurn: CommittedTurn = { ...koTurn, fate: 'BOMB', bomb: { neighbourId: 'd' } };
+    const t = buildTurnTimeline(bombTurn, alive, 'a', 0);
+    expect(t.bombStepsAtMs).toEqual(BOMB_STEP_OFFSETS_MS.map((ms) => t.fateDoneMs + ms));
+    expect(t.completeMs).toBe(t.fateDoneMs + BOMB_DONE_MS);
+    expect(t.completeMs).toBeGreaterThan(t.bombStepsAtMs.at(-1)!);
+    expect(buildTurnTimeline(koTurn, alive, 'a', 0).bombStepsAtMs).toEqual([]);
   });
 });

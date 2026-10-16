@@ -19,6 +19,8 @@ export interface TurnAnimationState {
   readonly duelWord: DuelWord | null;
   /** Fighter cursor still cruising at full speed (speed lines), before it brakes. */
   readonly fast: boolean;
+  /** Bomb: 1 picked marked, 2 neighbour marked, 3 first blast, 4 second blast (0 = none). */
+  readonly bombStep: 0 | 1 | 2 | 3 | 4;
 }
 
 const IDLE: TurnAnimationState = {
@@ -29,13 +31,14 @@ const IDLE: TurnAnimationState = {
   duelThrowIndex: null,
   duelWord: null,
   fast: false,
+  bombStep: 0,
 };
 
 /** Moments of a turn's show, for sound effects. */
 export type TurnCue =
   | { readonly kind: 'player' }
   | { readonly kind: 'fate' }
-  | { readonly kind: 'bomb' }
+  | { readonly kind: 'bomb'; readonly step: 1 | 2 | 3 | 4 }
   | { readonly kind: 'vsAnnounce' }
   | { readonly kind: 'opponent' }
   | { readonly kind: 'duelIntro' }
@@ -98,13 +101,10 @@ export function useTurnAnimation(
     for (const s of t.fateSteps) {
       at(s.atMs, { fateCursorIndex: Number(s.id) }, { kind: 'fate' });
     }
-    if (t.bombAtMs !== null && pendingTurn.bomb) {
-      at(
-        t.bombAtMs,
-        { stage: 'bomb', opponentCursorId: pendingTurn.bomb.neighbourId },
-        { kind: 'bomb' },
-      );
-    }
+    t.bombStepsAtMs.forEach((ms, i) => {
+      const step = (i + 1) as 1 | 2 | 3 | 4;
+      at(ms, { stage: 'bomb', bombStep: step }, { kind: 'bomb', step });
+    });
     if (t.vsAnnounceMs !== null && t.opponentStartMs !== null && t.duelStartMs !== null) {
       at(t.vsAnnounceMs, { stage: 'vs' }, { kind: 'vsAnnounce' });
       at(t.opponentStartMs, { stage: 'opponent' }, null);

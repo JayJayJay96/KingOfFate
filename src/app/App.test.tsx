@@ -571,6 +571,38 @@ describe('Phase 5: sound, shortcuts and pause', () => {
     expect(calls.at(-1)).not.toBe('music:finale');
   });
 
+  it('Bomb: red marks one by one, then two blasts with two booms (owner request 2026-10-16)', async () => {
+    const { engine, calls } = spyEngine();
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        rng={createScriptedRng([1, BOMB, 1])}
+        timeScale={0.1}
+        soundEngine={engine}
+        titleScreen={false}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha{Enter}Hafiz{Enter}Siti');
+    await startMatch(user, 8000);
+    await user.click(randomButton());
+    const marked = () =>
+      [...document.querySelectorAll('.fighter--bomb .fighter__name')].map((n) => n.textContent);
+    await waitFor(() => expect(marked()).toEqual(['Wei Jie']), { timeout: 8000 });
+    await waitFor(() => expect(marked()).toEqual(['Wei Jie', 'Kavitha']));
+    await waitFor(() =>
+      expect(document.querySelector('.fighter--blasted .fighter__name')).toHaveTextContent(
+        'Wei Jie',
+      ),
+    );
+    await findInLog(
+      'Turn 1: Wei Jie picks a Bomb. Wei Jie is blown out! The blast also eliminates Kavitha!',
+    );
+    expect(calls.filter((c) => c === 'sfx:boom')).toHaveLength(2);
+    expect(eliminatedCount()).toBe(2);
+  }, 30_000);
+
   it('D4: Esc pauses the finale after the current round; Resume continues', async () => {
     // Two finalists; the slow scale lets the test act between rounds.
     const players = ['Aisyah', 'Wei Jie'].map((name, i) => ({ id: `p${i}`, name }));

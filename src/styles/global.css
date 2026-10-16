@@ -3298,3 +3298,61 @@ label.button {
   min-width: 6.5em;
   text-align: center;
 }
+
+/* Bomb sequence (owner request 2026-10-16): red mark, then a blast per fighter. */
+.fighter.fighter--bomb {
+  border-color: var(--red);
+  background: #3a0f1a;
+  color: #fff;
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 18px var(--red);
+  animation: bomb-mark 0.35s steps(2) infinite;
+}
+
+@keyframes bomb-mark {
+  50% {
+    box-shadow:
+      0 0 0 3px #000,
+      0 0 4px var(--red);
+  }
+}
+
+.fighter.fighter--blasted {
+  border-color: #ffb347;
+  filter: grayscale(0.8) brightness(0.8);
+}
+
+.fighter--blast-blocked {
+  border-color: var(--cyan);
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 18px var(--cyan);
+}
+
+.fighter__boom {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  color: #ffb347;
+  text-shadow:
+    2px 2px 0 #000,
+    -1px -1px 0 var(--red);
+  pointer-events: none;
+  animation: banner-slam 0.3s ease-out;
+}
+
+.fighter--blast-blocked .fighter__boom {
+  color: var(--cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='always']) .fighter.fighter--bomb,
+  :root:not([data-motion='always']) .fighter__boom {
+    animation: none;
+  }
+}

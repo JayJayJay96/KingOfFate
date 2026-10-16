@@ -66,6 +66,12 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Bomb blast sequence (owner: tested custom odds + match point, "all good")
+
+- **Owner request:** longer Bomb: red border on the picked fighter, then on the neighbour, then KO 1, then KO 2, two boom sounds.
+- **Changed:** `turnTimeline.ts` (`BOMB_STEP_OFFSETS_MS` 0 / 700 / 1500 / 2300, `BOMB_DONE_MS` 3200, `bombStepsAtMs`), `useTurnAnimation` (`bombStep`, cue per step), `MatchScreen` (pure preview of the committed outcome via `resolveTurn` so each blast shows its own result; fuse on marks, boom / Shield clink per blast; no third boom or second fall after the result), `FighterGrid` (`bombIds`, `blastIds`, `blockedIds`; "BOOM!" / "BLOCK" on the tile), `PreviewPanel` ("BOOM!" during blasts), CSS.
+- **Checked:** timeline test, App test (marks Wei Jie then Kavitha, blast, two `boom` sounds, both out); in the pane mid-sequence: first fighter blasted and greyed while the neighbour is still marked red.
+
 ### 2026-10-16 — Match point once; Custom Fate odds
 
 - **Owner feedback:** match-point zoom + delay repeated on every clash was a nuisance → play once when someone reaches match point. **Owner request:** make the Fate % adjustable → Custom preset (owner chose: 4th "Custom" card; Sudden Death editable too).

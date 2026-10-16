@@ -19,8 +19,13 @@ export const DUEL_COUNT_BEAT_MS = 550;
 export const DUEL_DRAW_HOLD_MS = 900;
 /** Long enough for the 2.4 s hand-attack animation (owner: 1 s flight). */
 export const DUEL_RESULT_HOLD_MS = 2800;
-/** Bomb: the lit fuse marks the neighbour the blast will also hit, then it goes off. */
-export const BOMB_FUSE_MS = 1200;
+/**
+ * Bomb sequence (owner request 2026-10-16), from the moment the Fate lands on Bomb:
+ * 1. the picked fighter is marked red, 2. the neighbour is marked red, 3. the first blast hits
+ * the picked fighter, 4. the second blast hits the neighbour; then the result is applied.
+ */
+export const BOMB_STEP_OFFSETS_MS = [0, 700, 1500, 2300] as const;
+export const BOMB_DONE_MS = 3200;
 
 export type DuelWord = 'ROCK' | 'PAPER' | 'SCISSORS';
 
@@ -49,8 +54,8 @@ export interface TurnTimeline {
   readonly fateStartMs: number;
   /** When the Fate has landed and dwelled. */
   readonly fateDoneMs: number;
-  /** Bomb only: when the blast's neighbour is marked (null otherwise). */
-  readonly bombAtMs: number | null;
+  /** Bomb only: the four steps of the blast sequence (empty otherwise). */
+  readonly bombStepsAtMs: readonly number[];
   /** VS only (null otherwise). */
   readonly vsAnnounceMs: number | null;
   readonly opponentSteps: readonly SpinStep[];
@@ -110,7 +115,7 @@ export function buildTurnTimeline(
     playerRevealMs: player.revealMs,
     fateStartMs,
     fateDoneMs,
-    bombAtMs: turn.bomb ? fateDoneMs : null,
+    bombStepsAtMs: turn.bomb ? BOMB_STEP_OFFSETS_MS.map((ms) => fateDoneMs + ms) : [],
   };
 
   if (!turn.duel) {
@@ -122,7 +127,7 @@ export function buildTurnTimeline(
       duelStartMs: null,
       duelCounts: [],
       duelThrowsAtMs: [],
-      completeMs: turn.bomb ? fateDoneMs + BOMB_FUSE_MS : fateDoneMs,
+      completeMs: turn.bomb ? fateDoneMs + BOMB_DONE_MS : fateDoneMs,
     };
   }
 

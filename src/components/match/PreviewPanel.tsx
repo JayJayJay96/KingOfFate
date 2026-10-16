@@ -10,10 +10,17 @@ interface PreviewPanelProps {
   readonly match: MatchState;
   readonly highlightId: string | null;
   readonly stage?: TurnStage;
+  /** Bomb sequence step (3–4 = the blasts). */
+  readonly bombStep?: number;
 }
 
 /** Large nameplate with the selected fighter's pixel portrait. */
-export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPanelProps) {
+export function PreviewPanel({
+  match,
+  highlightId,
+  stage = 'idle',
+  bombStep = 0,
+}: PreviewPanelProps) {
   const stageId = useContext(StageContext);
   const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
@@ -26,7 +33,9 @@ export function PreviewPanel({ match, highlightId, stage = 'idle' }: PreviewPane
     // The fighter is revealed first; only then does Fate decide what happens to them.
     caption =
       stage === 'bomb'
-        ? 'Bomb! The blast spreads…'
+        ? bombStep >= 3
+          ? 'BOOM!'
+          : 'Bomb! The blast spreads…'
         : stage === 'fate'
           ? 'Fate is choosing…'
           : 'Choosing a fighter…';

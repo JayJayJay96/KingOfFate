@@ -13,6 +13,12 @@ interface FighterGridProps {
   readonly fallingIds?: readonly string[];
   /** Last match's winners wear a crown (owner request 2026-10-16; cosmetic). */
   readonly championIds?: readonly string[];
+  /** Bomb sequence: fighters marked red for the blast. */
+  readonly bombIds?: readonly string[];
+  /** Bomb sequence: fighters the blast has just knocked out (shown falling, greyed). */
+  readonly blastIds?: readonly string[];
+  /** Bomb sequence: fighters whose Shield just absorbed the blast. */
+  readonly blockedIds?: readonly string[];
 }
 
 /** Every match participant; eliminated fighters stay visible, greyed and X-marked. */
@@ -23,6 +29,9 @@ export function FighterGrid({
   lastTargetId,
   fallingIds = [],
   championIds = [],
+  bombIds = [],
+  blastIds = [],
+  blockedIds = [],
 }: FighterGridProps) {
   return (
     <ul className="fighter-grid" aria-label="Fighters">
@@ -33,6 +42,9 @@ export function FighterGrid({
         if (p.id === opponentId) classes.push('fighter--opponent');
         if (!highlightId && p.id === lastTargetId) classes.push('fighter--selected');
         if (fallingIds.includes(p.id)) classes.push('fighter--falling');
+        if (bombIds.includes(p.id)) classes.push('fighter--bomb');
+        if (blastIds.includes(p.id)) classes.push('fighter--falling', 'fighter--blasted');
+        if (blockedIds.includes(p.id)) classes.push('fighter--blast-blocked');
         return (
           <li
             key={p.id}
@@ -49,6 +61,11 @@ export function FighterGrid({
             )}
             <FighterSprite seed={p.name} size={72} idle={p.alive} />
             <span className="fighter__name">{p.name}</span>
+            {(blastIds.includes(p.id) || blockedIds.includes(p.id)) && (
+              <span className="fighter__boom" aria-hidden="true">
+                {blastIds.includes(p.id) ? 'BOOM!' : 'BLOCK'}
+              </span>
+            )}
             {p.shield && (
               <span className="fighter__shield" title="Has a Shield">
                 <span aria-hidden="true">🛡️</span>
