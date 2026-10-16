@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { roleFlavour } from '../../game/config/looks';
+import { LooksContext, lookKey } from '../sprites/looksContext';
 import type { DuelWord } from '../../animation/turnTimeline';
 import { GESTURE_LABEL } from '../../game/engine/describeEvent';
 import type { CommittedDuel } from '../../game/engine/matchTypes';
@@ -141,6 +143,7 @@ function Side({
   readonly action: AttackAction | null;
   readonly revealKey: number;
 }) {
+  const flavour = roleFlavour(useContext(LooksContext).get(lookKey(name)));
   const classes = ['duel__hand'];
   if (bounce) classes.push('duel__hand--bounce');
   if (role === 'winner' && action) classes.push('hand-attack', `hand-attack--${action}`);
@@ -154,6 +157,8 @@ function Side({
             key={`${revealKey}:${bounce ?? ''}`}
             className={classes.join(' ')}
             data-attack={role ?? undefined}
+            data-fx={role === 'winner' && action && flavour.fx ? flavour.fx : undefined}
+            style={{ '--fx-glow': flavour.glow } as CSSProperties}
           >
             <HandIcon gesture={gesture ?? 'ROCK'} size={60} />
           </span>

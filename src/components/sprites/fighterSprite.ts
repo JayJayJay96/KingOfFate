@@ -9,6 +9,7 @@ import {
   type HairStyle,
   type Outfit,
   type Race,
+  type Role,
 } from '../../game/config/looks';
 import type { PixelImage } from './PixelArt';
 
@@ -187,6 +188,7 @@ export function renderLook(look: FighterLook): PixelImage {
   }
 
   applyRace(g, look.race ?? 'human');
+  applyRole(g, look.role ?? 'none');
 
   const outfit = swatchHex(OUTFIT_COLOURS, look.outfitColour);
   const accent = swatchHex(ACCENT_COLOURS, look.accent);
@@ -211,6 +213,12 @@ export function renderLook(look: FighterLook): PixelImage {
       p: '#ff9ab8',
       r: '#ff3b5c',
       v: '#3be8ff',
+      P: '#5b3fa6',
+      y: '#ffcc33',
+      n: '#7a4a1e',
+      q: '#c0392b',
+      g: '#2f8f3a',
+      W: '#a9a9b8',
     },
   };
 }
@@ -299,6 +307,58 @@ function applyRace(g: Grid, race: Race): void {
       for (const r of [4, 5]) pair(g, r, 4, 'e');
       break;
     case 'human':
+      break;
+  }
+}
+
+/**
+ * Class accessories (owner decision 2026-10-16), drawn last so hats sit on top of everything.
+ * Purely cosmetic.
+ */
+function applyRole(g: Grid, role: Role): void {
+  switch (role) {
+    case 'warrior':
+      overlay(g, 1, ['...xxxxxx...', '..xxxxxxxx..', '..xxxyyxxx..']);
+      pair(g, 4, 5, 'x');
+      for (const c of [1, 2]) pair(g, 10, c, 'x');
+      break;
+    case 'samurai':
+      overlay(g, 0, ['.....hh.....', '.....hh.....']);
+      for (let c = 3; c <= 8; c++) set(g, 3, c, 'q');
+      set(g, 7, 11, 'k');
+      set(g, 8, 10, 'k');
+      set(g, 9, 10, 'y');
+      break;
+    case 'mage':
+      overlay(g, 0, ['......PP....', '.....PPP....', '....PPyPP...', '.PPPPPPPPPP.']);
+      break;
+    case 'healer':
+      overlay(g, 1, ['...wwqqww...', '..wqqqqqqw..', '..wwwqqwww..']);
+      break;
+    case 'ninja':
+      overlay(g, 1, ['...kkkkkk...', '..kkkkkkkk..', '..kqqqqqqk..']);
+      pair(g, 4, 2, 'k');
+      set(g, 3, 10, 'q');
+      set(g, 4, 11, 'q');
+      overlay(g, 6, ['...kkkkkk...', '...kkkkkk...', '....kkkk....']);
+      break;
+    case 'archer':
+      overlay(g, 1, ['...gggggg...', '..gggggggg..', '.gggggggggg.']);
+      set(g, 0, 9, 'q');
+      set(g, 1, 10, 'q');
+      for (const r of [8, 9, 10, 11]) set(g, r, 11, 'n');
+      break;
+    case 'pirate':
+      overlay(g, 2, ['...qqqqqq...', '..qqqqqqqqq.']);
+      set(g, 4, 10, 'q');
+      set(g, 5, 11, 'q');
+      set(g, 5, 4, 'k');
+      set(g, 4, 3, 'k');
+      break;
+    case 'chef':
+      overlay(g, 0, ['...wwwwww...', '..wwwwwwww..', '...wwwwww...', '...WWWWWW...']);
+      break;
+    case 'none':
       break;
   }
 }

@@ -1,5 +1,5 @@
 import type { StageId } from '../game/config/stages';
-import type { FighterLook } from '../game/config/looks';
+import { lookTitle, type FighterLook } from '../game/config/looks';
 import type { MatchState } from '../game/engine/matchTypes';
 import { fileStamp } from '../game/history/exportData';
 import type { PixelImage } from '../components/sprites/PixelArt';
@@ -144,6 +144,9 @@ export function drawShareCard(
     const spriteY = y + art.crown.rows.length * crownScale + 6;
     drawPixels(ctx, img, cx - width / 2, spriteY, scale);
     shadowText(ctx, fit(w.name.toUpperCase(), 18), cx, spriteY + height + 12, 22, '#ffffff');
+    const title = lookTitle(w.look);
+    if (title)
+      shadowText(ctx, fit(title.toUpperCase(), 22), cx, spriteY + height + 42, 12, '#ffcc33');
   });
 
   ctx.textAlign = 'center';

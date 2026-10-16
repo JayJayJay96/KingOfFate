@@ -10,9 +10,12 @@ import {
   neutralLook,
   OUTFIT_COLOURS,
   OUTFITS,
+  lookTitle,
   RACE_SKIN,
   RACES,
+  ROLES,
   type Race,
+  type Role,
   CUSTOM_COLOUR,
   FANTASY_SKIN_TONES,
   NATURAL_SKIN_TONES,
@@ -133,7 +136,7 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
           >
             <FighterSprite seed={person.name} look={look} size={160} idle />
             <p className="look-editor__preview-note">
-              {custom ? 'Custom look' : 'Default look (from the name)'}
+              {lookTitle(look) ?? (custom ? 'Custom look' : 'Default look (from the name)')}
             </p>
             <button
               type="button"
@@ -163,6 +166,20 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
                 {RACES.map((r) => (
                   <option key={r} value={r}>
                     {LOOK_LABELS.race[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="look-editor__field">
+              <label htmlFor={`${titleId}-role`}>Class</label>
+              <select
+                id={`${titleId}-role`}
+                value={look.role ?? 'none'}
+                onChange={(e) => change({ role: e.target.value as Role })}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {LOOK_LABELS.role[r]}
                   </option>
                 ))}
               </select>

@@ -12,7 +12,10 @@ import {
   OUTFITS,
   NATURAL_SKIN_TONES,
   RACES,
+  ROLES,
   cleanLook,
+  lookTitle,
+  roleFlavour,
   SKIN_TONES,
   type FighterLook,
 } from '../../game/config/looks';
@@ -102,6 +105,30 @@ describe('fighter looks (Pack B)', () => {
     expect(renderLook(BASE)).toEqual(renderLook({ ...BASE, race: 'human' }));
     expect(cleanLook({ ...BASE, race: 'human' })).toEqual(cleanLook(BASE));
     expect(cleanLook({ ...BASE, race: 'elf' }).race).toBe('elf');
+  });
+
+  it('every class renders well-formed on every race and hair, and looks different', () => {
+    const seen = new Set<string>();
+    for (const role of ROLES) {
+      for (const race of RACES) {
+        for (const hair of HAIR_STYLES) expectWellFormed({ ...BASE, role, race, hair });
+      }
+      seen.add(JSON.stringify(renderLook({ ...BASE, role }).rows));
+    }
+    expect(seen.size).toBe(ROLES.length);
+    expect(isFighterLook({ ...BASE, role: 'mage' })).toBe(true);
+    expect(isFighterLook({ ...BASE, role: 'bard' })).toBe(false);
+    expect(cleanLook({ ...BASE, role: 'none' })).toEqual(cleanLook(BASE));
+  });
+
+  it('titles and flavour: looks only (owner decision 2026-10-16)', () => {
+    expect(lookTitle({ ...BASE, race: 'goblin', role: 'mage' })).toBe('Goblin Mage');
+    expect(lookTitle({ ...BASE, role: 'chef' })).toBe('Chef');
+    expect(lookTitle({ ...BASE, race: 'elf' })).toBe('Elf');
+    expect(lookTitle(BASE)).toBeNull();
+    expect(lookTitle(null)).toBeNull();
+    expect(roleFlavour({ ...BASE, role: 'mage' })).toMatchObject({ fx: '🔥', pose: 'spin' });
+    expect(roleFlavour(BASE)).toMatchObject({ fx: null, pose: 'jump' });
   });
 
   it('a tudung hides all hair and frames the face', () => {

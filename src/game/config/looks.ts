@@ -37,6 +37,19 @@ export type Headwear = (typeof HEADWEAR)[number];
 export type FaceExtra = (typeof FACE_EXTRAS)[number];
 export type Outfit = (typeof OUTFITS)[number];
 export type Race = (typeof RACES)[number];
+/** Cosplay classes (owner decision 2026-10-16): looks and flavour only, never any effect on play. */
+export const ROLES = [
+  'none',
+  'warrior',
+  'samurai',
+  'mage',
+  'healer',
+  'ninja',
+  'archer',
+  'pirate',
+  'chef',
+] as const;
+export type Role = (typeof ROLES)[number];
 
 export interface Swatch {
   readonly id: string;
@@ -124,6 +137,8 @@ export interface FighterLook {
   readonly accent: string;
   /** Absent = human (looks saved before races existed). */
   readonly race?: Race;
+  /** Class. Absent = none. */
+  readonly role?: Role;
 }
 
 export const LOOK_LABELS = {
@@ -166,6 +181,17 @@ export const LOOK_LABELS = {
     robot: 'Robot',
     alien: 'Alien',
   },
+  role: {
+    none: 'None',
+    warrior: 'Warrior',
+    samurai: 'Samurai',
+    mage: 'Mage',
+    healer: 'Healer',
+    ninja: 'Ninja',
+    archer: 'Archer',
+    pirate: 'Pirate',
+    chef: 'Chef',
+  },
   outfit: {
     gi: 'Karate gi',
     'shirt-tie': 'Shirt & tie',
@@ -179,6 +205,7 @@ export const LOOK_LABELS = {
   headwear: Record<Headwear, string>;
   face: Record<FaceExtra, string>;
   race: Record<Race, string>;
+  role: Record<Role, string>;
   outfit: Record<Outfit, string>;
 };
 
@@ -208,13 +235,14 @@ export function isFighterLook(value: unknown): value is FighterLook {
     has(ids(OUTFIT_COLOURS), v.outfitColour) &&
     (has(ids(SKIN_TONES), v.skin) || (typeof v.skin === 'string' && CUSTOM_COLOUR.test(v.skin))) &&
     has(ids(ACCENT_COLOURS), v.accent) &&
-    (v.race === undefined || has(RACES, v.race))
+    (v.race === undefined || has(RACES, v.race)) &&
+    (v.role === undefined || has(ROLES, v.role))
   );
 }
 
 /** Only the fields we know, so a stored look never carries anything else. */
 export function cleanLook(look: FighterLook): FighterLook {
-  const { hair, hairColour, headwear, face, outfit, outfitColour, skin, accent, race } = look;
+  const { hair, hairColour, headwear, face, outfit, outfitColour, skin, accent, race, role } = look;
   return {
     hair,
     hairColour,
@@ -225,6 +253,7 @@ export function cleanLook(look: FighterLook): FighterLook {
     skin,
     accent,
     ...(race && race !== 'human' ? { race } : {}),
+    ...(role && role !== 'none' ? { role } : {}),
   };
 }
 
@@ -301,4 +330,38 @@ export function lookFor(name: string, look: FighterLook | null | undefined): Fig
 
 export function swatchHex(list: readonly Swatch[], id: string): string {
   return (list.find((s) => s.id === id) ?? list[0]!).hex;
+}
+
+/** "Goblin Mage", "Elf", "Chef" … or null for a plain human with no class. */
+export function lookTitle(look: FighterLook | null | undefined): string | null {
+  if (!look) return null;
+  const parts = [
+    look.race && look.race !== 'human' ? LOOK_LABELS.race[look.race] : null,
+    look.role && look.role !== 'none' ? LOOK_LABELS.role[look.role] : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' ') : null;
+}
+
+export type VictoryPose = 'jump' | 'spin' | 'float' | 'flex';
+
+/**
+ * Class flavour (owner decision 2026-10-16): the winning hand's effect in duels and the finale,
+ * and the victory pose. Presentation only.
+ */
+export const ROLE_FLAVOUR: Readonly<
+  Record<Role, { readonly fx: string | null; readonly glow: string; readonly pose: VictoryPose }>
+> = {
+  none: { fx: null, glow: 'transparent', pose: 'jump' },
+  warrior: { fx: '⚔️', glow: '#ffcc33', pose: 'flex' },
+  samurai: { fx: '⚔️', glow: '#ff3b5c', pose: 'flex' },
+  mage: { fx: '🔥', glow: '#ff7a1a', pose: 'spin' },
+  healer: { fx: '✨', glow: '#7dffb2', pose: 'float' },
+  ninja: { fx: '💨', glow: '#9b6bff', pose: 'spin' },
+  archer: { fx: '🏹', glow: '#4dff88', pose: 'jump' },
+  pirate: { fx: '☠️', glow: '#e8d3b0', pose: 'flex' },
+  chef: { fx: '🍳', glow: '#ffffff', pose: 'jump' },
+};
+
+export function roleFlavour(look: FighterLook | null | undefined) {
+  return ROLE_FLAVOUR[look?.role ?? 'none'];
 }

@@ -2,6 +2,8 @@ import { useContext } from 'react';
 import { describeOutcome } from '../../game/engine/describeEvent';
 import type { MatchState, ResolvedTurn } from '../../game/engine/matchTypes';
 import type { TurnStage } from '../../hooks/useTurnAnimation';
+import { lookTitle } from '../../game/config/looks';
+import { LooksContext, lookKey } from '../sprites/looksContext';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { StageArt } from '../stage/StageArt';
 import { StageContext } from '../stage/stageContext';
@@ -22,6 +24,7 @@ export function PreviewPanel({
   bombStep = 0,
 }: PreviewPanelProps) {
   const stageId = useContext(StageContext);
+  const looks = useContext(LooksContext);
   const nameOf = (id: string | null) => match.players.find((p) => p.id === id)?.name ?? '???';
   const last = match.lastTurn;
 
@@ -77,6 +80,9 @@ export function PreviewPanel({
         <p className="preview__name" data-testid="preview-name">
           {name ?? '???'}
         </p>
+        {name && lookTitle(looks.get(lookKey(name))) && (
+          <p className="preview__class">{lookTitle(looks.get(lookKey(name)))}</p>
+        )}
         <p className="preview__caption">{caption}</p>
       </div>
       <p className="sr-only" aria-live="polite">

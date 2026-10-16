@@ -66,6 +66,13 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Character customisation: light editor, cosplay skins, races, classes
+
+- **Owner request:** white-ish editor background, open skin colours (goblin cosplay), races and classes (owner picked: looks + flavour only; races Dwarf, Elf, Cat, Goblin, Orc, Demon, Vampire, Robot, Alien; classes Warrior, Samurai, Mage, Healer, Ninja, Archer, Pirate, Chef; skins = fantasy swatches + any-colour picker).
+- **Commits:** `1b820ce` editor + skins, `aaa98c6` races, this commit classes.
+- **Changed:** `looks.ts` (NATURAL / FANTASY skins, `CUSTOM_COLOUR`, `skinHex`, `RACES`, `RACE_SKIN`, `ROLES`, `lookTitle`, `ROLE_FLAVOUR`; optional `race` / `role` on looks, old looks stay valid), `fighterSprite.ts` (`applyRace`, `applyRole`, extra palette keys), `LookEditor` (light checkerboard preview + toggle, fun skins, any colour, Race and Class selects, title), `PreviewPanel` / `FinaleStage` / `VictoryScreen` / share card (titles), `DuelPanel` / `FinaleStage` (winning-hand `data-fx` glow + emoji), `VictoryScreen` (pose per class), CSS.
+- **Checked:** unit tests (every race × hair × headwear and every class × race × hair render well-formed and distinct; skins; titles; flavour); in the pane: goblin skin on the light preview, all races and 27 class combos at small size, finale shows "MAGE" / "ORC WARRIOR" and the mage's winning hand carries 🔥, mage winner spins (fixed: spin around the middle so it never covers the name).
+
 ### 2026-10-16 — Bomb blast sequence (owner: tested custom odds + match point, "all good")
 
 - **Owner request:** longer Bomb: red border on the picked fighter, then on the neighbour, then KO 1, then KO 2, two boom sounds.

@@ -22,6 +22,8 @@ import { describeFinaleRound, GESTURE_LABEL } from '../../game/engine/describeEv
 import { FINALE_TARGET_SCORE, winningGesture } from '../../game/engine/finale';
 import type { FinaleThrow, MatchState } from '../../game/engine/matchTypes';
 import { useFinaleShow } from '../../hooks/useFinaleShow';
+import { lookTitle, roleFlavour } from '../../game/config/looks';
+import { LooksContext, lookKey } from '../sprites/looksContext';
 import { finaleDrawStreak, isClash } from '../../animation/drawCounter';
 import { Crowd } from '../stage/Crowd';
 import { DrawBurst } from './DrawBurst';
@@ -350,6 +352,8 @@ function Finalist({
   winGesture,
   revealKey,
 }: FinalistProps) {
+  const look = useContext(LooksContext).get(lookKey(name));
+  const flavour = roleFlavour(look);
   const classes = ['finalist', `finalist--${status}`];
   if (scored) classes.push('finalist--scored');
   const bouncing = status === 'in' && !revealed && (word === 'ONE' || word === 'TWO');
@@ -386,12 +390,15 @@ function Finalist({
             key={bouncing ? word : `still:${revealKey}:${role ?? ''}`}
             className={handClasses.join(' ')}
             data-attack={role ?? undefined}
+            data-fx={role === 'winner' && flavour.fx ? flavour.fx : undefined}
+            style={{ '--fx-glow': flavour.glow } as CSSProperties}
           >
             <HandIcon gesture={revealed?.gesture ?? 'ROCK'} size={52} />
           </span>
         )}
       </div>
       <span className="finalist__name">{name}</span>
+      {lookTitle(look) && <span className="finalist__class">{lookTitle(look)}</span>}
       {status === 'winner' && <span className="finalist__badge">Winner</span>}
       {status === 'out' && <span className="finalist__badge">Out</span>}
       {status === 'in' && (

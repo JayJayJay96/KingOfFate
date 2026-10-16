@@ -11,6 +11,7 @@ import { renderShareCard, shareCardData, shareCardFileName } from '../../share/s
 import { downloadBlob } from '../../utils/download';
 import { fighterSprite } from '../sprites/fighterSprite';
 import { LooksContext, lookKey } from '../sprites/looksContext';
+import { lookTitle, roleFlavour } from '../../game/config/looks';
 import { CROWN } from '../sprites/crown';
 import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { Crowd } from '../stage/Crowd';
@@ -44,6 +45,7 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
   const losersRight = finaleLosers.filter((_, i) => i % 2 === 1);
 
   const winnerLine = victoryLine(f.winnerIds.map(nameOf));
+  const looks = useContext(LooksContext);
   // Victory pose (owner request 2026-10-16): winners jump on the beat of the stage fanfare.
   const beatSeconds = 60 / (stageId ? FANFARES[stageId].bpm : 132);
   useEffect(() => {
@@ -99,7 +101,9 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
           {f.winnerIds.map((id, i) => (
             <li key={id}>
               <span
-                className="victory__portrait victory__portrait--jump"
+                className={`victory__portrait victory__portrait--jump victory__portrait--${
+                  roleFlavour(looks.get(lookKey(nameOf(id)))).pose
+                }`}
                 // Several winners take turns: every other one lands on the off-beat.
                 style={{ animationDelay: i % 2 ? 'calc(var(--beat) * -1)' : '0s' }}
               >
@@ -107,6 +111,9 @@ export function VictoryScreen({ match, saveError, onLeave }: VictoryScreenProps)
                 <FighterSprite seed={nameOf(id)} size={96} idle />
               </span>
               <span className="victory__name">{nameOf(id)}</span>
+              {lookTitle(looks.get(lookKey(nameOf(id)))) && (
+                <span className="victory__class">{lookTitle(looks.get(lookKey(nameOf(id))))}</span>
+              )}
             </li>
           ))}
         </ol>
