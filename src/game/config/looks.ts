@@ -30,7 +30,8 @@ export interface Swatch {
   readonly hex: string;
 }
 
-export const SKIN_TONES: readonly Swatch[] = [
+/** Natural skin tones: the only ones a random default look uses. */
+export const NATURAL_SKIN_TONES: readonly Swatch[] = [
   { id: 'light', label: 'Light', hex: '#ffdbac' },
   { id: 'fair', label: 'Fair', hex: '#f1c27d' },
   { id: 'tan', label: 'Tan', hex: '#e0ac69' },
@@ -38,6 +39,27 @@ export const SKIN_TONES: readonly Swatch[] = [
   { id: 'dark', label: 'Dark', hex: '#8d5524' },
   { id: 'deep', label: 'Deep', hex: '#5c3a1e' },
 ];
+
+/** Fun skins for cosplay (owner request 2026-10-16), only when the host picks them. */
+export const FANTASY_SKIN_TONES: readonly Swatch[] = [
+  { id: 'goblin', label: 'Goblin green', hex: '#6fbf4a' },
+  { id: 'orc', label: 'Orc olive', hex: '#7a8f3a' },
+  { id: 'smurf', label: 'Smurf blue', hex: '#4a86d9' },
+  { id: 'alien', label: 'Alien purple', hex: '#9b6bd6' },
+  { id: 'zombie', label: 'Zombie grey-green', hex: '#9fb8a0' },
+  { id: 'demon', label: 'Demon red', hex: '#c93c3c' },
+  { id: 'vampire', label: 'Vampire pale', hex: '#f2efe9' },
+  { id: 'golden', label: 'Golden', hex: '#e8c547' },
+];
+
+export const SKIN_TONES: readonly Swatch[] = [...NATURAL_SKIN_TONES, ...FANTASY_SKIN_TONES];
+
+/** A skin is a swatch id or, with the "any colour" picker, a #rrggbb colour. */
+export const CUSTOM_COLOUR = /^#[0-9a-f]{6}$/;
+
+export function skinHex(skin: string): string {
+  return CUSTOM_COLOUR.test(skin) ? skin : swatchHex(SKIN_TONES, skin);
+}
 
 export const HAIR_COLOURS: readonly Swatch[] = [
   { id: 'black', label: 'Black', hex: '#1b1b1b' },
@@ -145,7 +167,7 @@ export function isFighterLook(value: unknown): value is FighterLook {
     has(FACE_EXTRAS, v.face) &&
     has(OUTFITS, v.outfit) &&
     has(ids(OUTFIT_COLOURS), v.outfitColour) &&
-    has(ids(SKIN_TONES), v.skin) &&
+    (has(ids(SKIN_TONES), v.skin) || (typeof v.skin === 'string' && CUSTOM_COLOUR.test(v.skin))) &&
     has(ids(ACCENT_COLOURS), v.accent)
   );
 }
@@ -217,7 +239,7 @@ export function neutralLook(seed: string): FighterLook {
     face: pick(RANDOM_FACE, key, 4),
     outfit: pick(OUTFITS, key, 5),
     outfitColour: pick(ids(OUTFIT_COLOURS), key, 6),
-    skin: pick(ids(SKIN_TONES), key, 7),
+    skin: pick(ids(NATURAL_SKIN_TONES), key, 7),
     accent: pick(ids(ACCENT_COLOURS), key, 8),
   };
 }

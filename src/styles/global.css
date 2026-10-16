@@ -3356,3 +3356,47 @@ label.button {
     animation: none;
   }
 }
+
+/* Look editor: light preview by default, checkerboard so white parts still show. */
+.look-editor .look-editor__preview {
+  gap: 8px;
+  background-color: #eceaf2;
+  background-image: conic-gradient(#dcd9e6 25%, transparent 0 50%, #dcd9e6 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
+.look-editor .look-editor__preview--dark {
+  background: #0b0613;
+}
+
+.look-editor__preview-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #3a3550;
+}
+
+.look-editor__preview--dark .look-editor__preview-note {
+  color: var(--muted);
+}
+
+.look-editor__any-colour {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.look-editor__any-colour input {
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid #000;
+  background: none;
+  cursor: pointer;
+}
+
+.look-editor__any-colour[data-selected='true'] input {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}

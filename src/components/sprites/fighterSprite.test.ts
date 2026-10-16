@@ -10,6 +10,7 @@ import {
   neutralLook,
   OUTFIT_COLOURS,
   OUTFITS,
+  NATURAL_SKIN_TONES,
   SKIN_TONES,
   type FighterLook,
 } from '../../game/config/looks';
@@ -72,6 +73,16 @@ describe('fighter looks (Pack B)', () => {
     expect(hairs.size).toBe(HAIR_STYLES.length);
     expect(outfits.size).toBe(OUTFITS.length);
     expect(new Set(NAMES.map((n) => JSON.stringify(fighterSprite(n)))).size).toBe(NAMES.length);
+  });
+
+  it('fun skins and any colour work; random looks keep natural skin (owner request 2026-10-16)', () => {
+    expect(renderLook({ ...BASE, skin: 'goblin' }).palette.s).toBe('#6fbf4a');
+    expect(isFighterLook({ ...BASE, skin: '#12ab34' })).toBe(true);
+    expect(renderLook({ ...BASE, skin: '#12ab34' }).palette.s).toBe('#12ab34');
+    expect(isFighterLook({ ...BASE, skin: 'rainbow' })).toBe(false);
+    expect(isFighterLook({ ...BASE, skin: '#12ab3' })).toBe(false);
+    const natural = new Set(NATURAL_SKIN_TONES.map((s) => s.id));
+    for (const name of MANY) expect(natural.has(neutralLook(name).skin)).toBe(true);
   });
 
   it('a tudung hides all hair and frames the face', () => {

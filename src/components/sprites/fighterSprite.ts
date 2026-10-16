@@ -3,7 +3,7 @@ import {
   HAIR_COLOURS,
   lookFor,
   OUTFIT_COLOURS,
-  SKIN_TONES,
+  skinHex,
   swatchHex,
   type FighterLook,
   type HairStyle,
@@ -190,7 +190,7 @@ export function renderLook(look: FighterLook): PixelImage {
   return {
     rows: g.map((r) => r.join('')),
     palette: {
-      s: swatchHex(SKIN_TONES, look.skin),
+      s: skinHex(look.skin),
       e: '#1b1b2a',
       m: '#7a2a2a',
       h: swatchHex(HAIR_COLOURS, look.hairColour),

@@ -10,7 +10,9 @@ import {
   neutralLook,
   OUTFIT_COLOURS,
   OUTFITS,
-  SKIN_TONES,
+  CUSTOM_COLOUR,
+  FANTASY_SKIN_TONES,
+  NATURAL_SKIN_TONES,
   type FighterLook,
   type Swatch,
 } from '../../game/config/looks';
@@ -29,6 +31,8 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
   const titleId = useId();
   const [look, setLook] = useState<FighterLook>(() => lookFor(person.name, person.look));
   const [custom, setCustom] = useState(!!person.look);
+  // Light by default so dark outfits and hair are easy to see (owner request 2026-10-16).
+  const [darkPreview, setDarkPreview] = useState(false);
   const firstField = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
@@ -120,16 +124,56 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
           Look: {person.name}
         </h2>
         <div className="look-editor__body">
-          <div className="look-editor__preview" data-testid="look-preview">
+          <div
+            className={`look-editor__preview${darkPreview ? ' look-editor__preview--dark' : ''}`}
+            data-testid="look-preview"
+          >
             <FighterSprite seed={person.name} look={look} size={160} idle />
-            <p className="hint">{custom ? 'Custom look' : 'Default look (from the name)'}</p>
+            <p className="look-editor__preview-note">
+              {custom ? 'Custom look' : 'Default look (from the name)'}
+            </p>
+            <button
+              type="button"
+              className="button button--small"
+              aria-pressed={darkPreview}
+              onClick={() => setDarkPreview((d) => !d)}
+            >
+              {darkPreview ? 'Light background' : 'Dark background'}
+            </button>
           </div>
           <div className="look-editor__fields">
             {select('hair', 'Hair', HAIR_STYLES, firstField)}
             {select('headwear', 'Headwear', HEADWEAR)}
             {select('face', 'Face', FACE_EXTRAS)}
             {select('outfit', 'Outfit', OUTFITS)}
-            {swatches('skin', 'Skin tone', SKIN_TONES)}
+            {swatches('skin', 'Skin tone', NATURAL_SKIN_TONES)}
+            <div className="look-editor__swatches" role="group" aria-label="Fun skin">
+              <span className="look-editor__swatch-label">Fun skin (cosplay)</span>
+              {FANTASY_SKIN_TONES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="look-editor__swatch"
+                  style={{ background: s.hex }}
+                  aria-label={`Skin: ${s.label}`}
+                  aria-pressed={look.skin === s.id}
+                  title={s.label}
+                  onClick={() => change({ skin: s.id })}
+                />
+              ))}
+              <label
+                className="look-editor__any-colour"
+                data-selected={CUSTOM_COLOUR.test(look.skin) ? 'true' : undefined}
+              >
+                <input
+                  type="color"
+                  aria-label="Skin: any colour"
+                  value={CUSTOM_COLOUR.test(look.skin) ? look.skin : '#6fbf4a'}
+                  onChange={(e) => change({ skin: e.target.value.toLowerCase() })}
+                />
+                Any colour…
+              </label>
+            </div>
             {swatches('hairColour', 'Hair colour', HAIR_COLOURS)}
             {swatches('outfitColour', 'Outfit colour', OUTFIT_COLOURS)}
             {swatches('accent', 'Accent / headwear colour', ACCENT_COLOURS)}
