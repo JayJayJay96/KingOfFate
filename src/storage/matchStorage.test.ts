@@ -74,6 +74,22 @@ describe('IndexedDB match repository', () => {
     expect((await repo.load()).status).toBe('corrupt');
   });
 
+  it('keeps a Custom match with its odds; one without odds is corrupt', async () => {
+    const customOdds = {
+      normal: { KO: 10, VS: 6, SHIELD: 2, BOMB: 2 },
+      suddenDeath: { KO: 15, VS: 3, SHIELD: 0, BOMB: 2 },
+    };
+    const players = ['Aisyah', 'Wei Jie', 'Kavitha'].map((name, i) => ({ id: `p${i}`, name }));
+    const ids = { matchId: 'c1', startedAt: '2026-10-16T07:00:00.000Z' };
+    const m = createMatch({ players, winnerCount: 1, presetId: 'custom', customOdds }, ids);
+    const repo = createIndexedDbMatchRepository(new IDBFactory());
+    await repo.save(m);
+    expect(await repo.load()).toEqual({ status: 'loaded', match: m });
+    const broken = { ...m, customOdds: undefined };
+    await repo.save(broken as MatchState);
+    expect((await repo.load()).status).toBe('corrupt');
+  });
+
   it('discards a corrupt checkpoint and reports it', async () => {
     const factory = new IDBFactory();
     const repo = createIndexedDbMatchRepository(factory);

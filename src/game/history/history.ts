@@ -1,5 +1,5 @@
 import { isFighterLook, type FighterLook } from '../config/looks';
-import { FATE_PRESETS, isFatePresetId, type FatePresetId } from '../config/presets';
+import { isFatePresetId, presetName, type FatePresetId } from '../config/presets';
 import { countSlots } from '../engine/fateSlots';
 import { describeEvent } from '../engine/describeEvent';
 import type { MatchEvent, MatchState } from '../engine/matchTypes';
@@ -285,7 +285,7 @@ function describeStored(event: MatchEvent, match: MatchState): string | null {
 }
 
 export function presetLabel(id: FatePresetId): string {
-  return FATE_PRESETS[id].label;
+  return presetName(id);
 }
 
 function isObj(value: unknown): value is Record<string, unknown> {

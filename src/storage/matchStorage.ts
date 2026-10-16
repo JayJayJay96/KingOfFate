@@ -1,5 +1,5 @@
 import { isWinnerCount } from '../game/config/limits';
-import { FATE_SLOT_COUNT, isFatePresetId } from '../game/config/presets';
+import { FATE_SLOT_COUNT, isFatePresetId, isValidCustomOdds } from '../game/config/presets';
 import { isFateKind } from '../game/engine/fateSlots';
 import { MATCH_SCHEMA_VERSION, type MatchState } from '../game/engine/matchTypes';
 import { isGesture } from '../game/engine/rps';
@@ -243,6 +243,7 @@ export function isMatchState(value: unknown): value is MatchState {
   if (value.schemaVersion !== MATCH_SCHEMA_VERSION) return false;
   if (typeof value.matchId !== 'string' || typeof value.startedAt !== 'string') return false;
   if (!isFatePresetId(value.presetId) || !isWinnerCount(value.winnerCount)) return false;
+  if (value.presetId === 'custom' && !isValidCustomOdds(value.customOdds)) return false;
   if (typeof value.phase !== 'string' || !PHASES.has(value.phase)) return false;
   if (value.title !== undefined && (typeof value.title !== 'string' || value.title.length > 200)) {
     return false;

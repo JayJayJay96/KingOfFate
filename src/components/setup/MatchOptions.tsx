@@ -2,9 +2,14 @@ import { MAX_TITLE_LENGTH, WINNER_COUNT_OPTIONS, type WinnerCount } from '../../
 import { cleanTitle } from '../../storage/setupStorage';
 import { isStageChoice, STAGE_IDS, STAGE_LABELS, type StageChoice } from '../../game/config/stages';
 import {
+  adjustOdds,
+  CUSTOM_PRESET_ID,
   FATE_PRESET_IDS,
   FATE_PRESETS,
   formatOdds,
+  slotsToPercent,
+  type AdjustableKind,
+  type FateOdds,
   type FatePresetId,
 } from '../../game/config/presets';
 
@@ -19,6 +24,8 @@ interface MatchOptionsProps {
   readonly onTurboChange: (turbo: boolean) => void;
   readonly title: string;
   readonly onTitleChange: (title: string) => void;
+  readonly customOdds: FateOdds;
+  readonly onCustomOddsChange: (odds: FateOdds) => void;
 }
 
 export function MatchOptions({
@@ -32,6 +39,8 @@ export function MatchOptions({
   onTurboChange,
   title,
   onTitleChange,
+  customOdds,
+  onCustomOddsChange,
 }: MatchOptionsProps) {
   return (
     <section className="panel">
@@ -91,7 +100,26 @@ export function MatchOptions({
               </label>
             );
           })}
+          <label className="preset-card">
+            <input
+              type="radio"
+              name="fate-preset"
+              value={CUSTOM_PRESET_ID}
+              checked={presetId === CUSTOM_PRESET_ID}
+              onChange={() => onPresetChange(CUSTOM_PRESET_ID)}
+            />
+            <span className="preset-card__body">
+              <span className="preset-card__name">Custom</span>
+              <span className="preset-card__odds">{formatOdds(customOdds.normal)}</span>
+              <span className="preset-card__sd">
+                Sudden Death: {formatOdds(customOdds.suddenDeath)}
+              </span>
+            </span>
+          </label>
         </div>
+        {presetId === CUSTOM_PRESET_ID && (
+          <CustomOddsEditor odds={customOdds} onChange={onCustomOddsChange} />
+        )}
       </fieldset>
 
       <label className="fieldset stage-select">
@@ -121,5 +149,67 @@ export function MatchOptions({
         </span>
       </label>
     </section>
+  );
+}
+
+const KIND_LABEL: Readonly<Record<AdjustableKind, string>> = {
+  VS: 'VS',
+  SHIELD: 'Shield',
+  BOMB: 'Bomb',
+};
+
+/**
+ * Custom Fate odds (owner decision 2026-10-16): +/- moves one of the 20 equally likely slots
+ * (5 %) between a Fate and KO, so the pool always adds up to 100 %.
+ */
+function CustomOddsEditor({
+  odds,
+  onChange,
+}: {
+  readonly odds: FateOdds;
+  readonly onChange: (odds: FateOdds) => void;
+}) {
+  const rows = [
+    { pool: 'normal', title: 'Normal play', kinds: ['VS', 'SHIELD', 'BOMB'] },
+    { pool: 'suddenDeath', title: 'Sudden Death', kinds: ['VS', 'BOMB'] },
+  ] as const;
+  return (
+    <div className="odds-editor" data-testid="odds-editor">
+      {rows.map(({ pool, title, kinds }) => (
+        <div key={pool} className="odds-editor__row" role="group" aria-label={`${title} odds`}>
+          <span className="odds-editor__pool">{title}</span>
+          <span className="odds-editor__ko" data-testid={`odds-${pool}-KO`}>
+            KO {slotsToPercent(odds[pool].KO)}%
+          </span>
+          {kinds.map((kind) => (
+            <span key={kind} className="odds-editor__step">
+              <button
+                type="button"
+                className="button button--small"
+                aria-label={`Less ${KIND_LABEL[kind]} (${title})`}
+                onClick={() => onChange(adjustOdds(odds, pool, kind, -1))}
+              >
+                −
+              </button>
+              <span data-testid={`odds-${pool}-${kind}`}>
+                {KIND_LABEL[kind]} {slotsToPercent(odds[pool][kind])}%
+              </span>
+              <button
+                type="button"
+                className="button button--small"
+                aria-label={`More ${KIND_LABEL[kind]} (${title})`}
+                onClick={() => onChange(adjustOdds(odds, pool, kind, 1))}
+              >
+                +
+              </button>
+            </span>
+          ))}
+        </div>
+      ))}
+      <p className="hint">
+        Each step is 5 % (one of the 20 Fate slots); KO takes whatever is left. Sudden Death has no
+        Shields and never more VS than normal play.
+      </p>
+    </div>
   );
 }

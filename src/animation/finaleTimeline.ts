@@ -120,11 +120,24 @@ export function roundTimeline(
   return { cues, resolveMs: juiceAt + pace.holdMs };
 }
 
-/** Someone still in the race is one point from a winner slot. */
-export function isLastPoint(f: FinaleState): boolean {
-  return f.contenderIds.some(
-    (id) => !f.winnerIds.includes(id) && (f.scores[id] ?? 0) >= FINALE_TARGET_SCORE - 1,
+/**
+ * Fighters who JUST reached match point: they scored in the previous round of this race and now
+ * sit one point from a slot. The "last point" drama plays once for them (owner feedback
+ * 2026-10-16: repeating it on every draw at match point was a nuisance).
+ */
+export function newMatchPointIds(f: FinaleState): string[] {
+  const last = f.rounds.at(-1);
+  if (!last || last.stageNumber !== f.stageNumber) return [];
+  return f.contenderIds.filter(
+    (id) =>
+      !f.winnerIds.includes(id) &&
+      (f.scores[id] ?? 0) === FINALE_TARGET_SCORE - 1 &&
+      last.scorerIds.includes(id),
   );
+}
+
+export function isLastPoint(f: FinaleState): boolean {
+  return newMatchPointIds(f).length > 0;
 }
 
 /** Stage positions (percent of the arena) for 2–6 finalists: 1v1, triangle, then a ring. */

@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOM_ODDS } from '../config/presets';
 import { describe, expect, it } from 'vitest';
 import type { WinnerCount } from '../config/limits';
 import type { Participant } from './roster';
@@ -12,6 +13,7 @@ function config(active: number, winnerCount: number, inactive = 0): SetupConfig 
     roster,
     winnerCount: winnerCount as WinnerCount,
     presetId: 'normal',
+    customOdds: DEFAULT_CUSTOM_ODDS,
     stage: 'random',
     turbo: false,
     title: '',

@@ -1,6 +1,13 @@
 import { cleanLook, isFighterLook, type FighterLook } from '../config/looks';
 import { isWinnerCount, MAX_ACTIVE_PLAYERS, MIN_ACTIVE_PLAYERS } from '../config/limits';
-import { FATE_PRESETS, FATE_SLOT_COUNT, type FatePresetId } from '../config/presets';
+import {
+  CUSTOM_PRESET_ID,
+  FATE_SLOT_COUNT,
+  isValidCustomOdds,
+  oddsFor,
+  type FateOdds,
+  type FatePresetId,
+} from '../config/presets';
 import type { Rng } from '../rng/rng';
 import { IllegalTransitionError } from './errors';
 import { spreadSlots, toSuddenDeathSlots } from './fateSlots';
@@ -36,6 +43,8 @@ export interface MatchLaunch {
   }[];
   readonly winnerCount: number;
   readonly presetId: FatePresetId;
+  /** Required for the Custom preset (owner decision 2026-10-16). */
+  readonly customOdds?: FateOdds;
   /** Prize / title line (owner request 2026-10-16); cosmetic. */
   readonly title?: string;
   /** Players who won the previous match: they wear a crown (cosmetic only). */
@@ -67,6 +76,10 @@ export function createMatch(
   if (!isWinnerCount(w)) throw new IllegalTransitionError(`Invalid winner count ${w}`);
   if (n < w + 1)
     throw new IllegalTransitionError(`Need at least ${w + 1} players for ${w} winners`);
+  const custom = launch.presetId === CUSTOM_PRESET_ID;
+  if (custom && !isValidCustomOdds(launch.customOdds)) {
+    throw new IllegalTransitionError('Custom odds must fill the 20 slots within the rules');
+  }
   if (new Set(launch.players.map((p) => p.id)).size !== n) {
     throw new IllegalTransitionError('Player IDs must be unique');
   }
@@ -76,6 +89,7 @@ export function createMatch(
     matchId: ids.matchId,
     startedAt: ids.startedAt,
     presetId: launch.presetId,
+    ...(custom ? { customOdds: launch.customOdds! } : {}),
     winnerCount: w,
     ...(launch.title?.trim() ? { title: launch.title.trim() } : {}),
     ...(championIdsFor(launch).length > 0 ? { championIds: championIdsFor(launch) } : {}),
@@ -87,7 +101,7 @@ export function createMatch(
       eliminatedOnTurn: null,
       ...(p.look && isFighterLook(p.look) ? { look: cleanLook(p.look) } : {}),
     })),
-    fateSlots: spreadSlots(FATE_PRESETS[launch.presetId].normal),
+    fateSlots: spreadSlots(oddsFor(launch.presetId, launch.customOdds).normal),
     phase: 'READY',
     completedTurns: 0,
     pendingTurn: null,
@@ -284,7 +298,10 @@ export function resolveTurn(state: MatchState, turnId: string): MatchState {
   const aliveCount = alivePlayers(next).length;
   if (!next.suddenDeath && aliveCount <= next.suddenDeathAt) {
     const shatteredIds = next.players.filter((p) => p.shield).map((p) => p.id);
-    const fateSlots = toSuddenDeathSlots(next.fateSlots, FATE_PRESETS[next.presetId].suddenDeath);
+    const fateSlots = toSuddenDeathSlots(
+      next.fateSlots,
+      oddsFor(next.presetId, next.customOdds).suddenDeath,
+    );
     next = appendEvent(
       {
         ...next,

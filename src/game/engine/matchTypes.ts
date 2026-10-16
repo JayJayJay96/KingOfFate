@@ -1,5 +1,5 @@
 import type { FighterLook } from '../config/looks';
-import type { FateKind, FatePresetId } from '../config/presets';
+import type { FateKind, FateOdds, FatePresetId } from '../config/presets';
 import type { DuelThrow, Gesture } from './rps';
 
 /**
@@ -196,6 +196,8 @@ export interface MatchState {
   /** ISO-8601 UTC timestamp. */
   readonly startedAt: string;
   readonly presetId: FatePresetId;
+  /** Custom preset only: the odds the host set for this match. */
+  readonly customOdds?: FateOdds;
   readonly winnerCount: number;
   /** Prize / title line, e.g. "Who buys kopi today?" (optional, cosmetic). */
   readonly title?: string;

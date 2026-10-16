@@ -218,6 +218,20 @@ describe('Match', () => {
     ]);
   });
 
+  it('Custom preset: +/- buttons set the odds the match uses (owner decision 2026-10-16)', async () => {
+    const { user } = await renderApp();
+    await user.click(screen.getByRole('radio', { name: /custom/i }));
+    const editor = screen.getByTestId('odds-editor');
+    await user.click(within(editor).getByRole('button', { name: 'More VS (Normal play)' }));
+    await user.click(within(editor).getByRole('button', { name: 'More VS (Normal play)' }));
+    await user.click(within(editor).getByRole('button', { name: 'Less Shield (Normal play)' }));
+    expect(screen.getByTestId('odds-normal-KO')).toHaveTextContent('KO 65%');
+    expect(screen.getByTestId('odds-normal-VS')).toHaveTextContent('VS 30%');
+    await addNames(user, 'Aisyah{Enter}Wei Jie{Enter}Kavitha');
+    await startMatch(user);
+    expect(await screen.findByTestId('fate-odds')).toHaveTextContent('KO 65% · VS 30% · Bomb 5%');
+  });
+
   it('starts directly in the finale when N = W + 1', async () => {
     const { user } = await renderApp();
     await addNames(user, 'Aisyah{Enter}Wei Jie');
@@ -696,7 +710,7 @@ describe('Arcade pack A: title, intro, announcer, impacts (owner decisions 2026-
     expect(impact).toHaveAttribute('data-kind', 'ko');
     expect(impact).toHaveTextContent('K.O.');
     expect(document.querySelector('.fighter--falling')).toHaveTextContent('Aisyah');
-    expect(calls).toContain('announce:K. O.!');
+    await waitFor(() => expect(calls).toContain('announce:K. O.!'));
     await waitFor(() => expect(screen.queryByTestId('impact')).not.toBeInTheDocument());
   });
 

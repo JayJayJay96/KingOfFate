@@ -1,6 +1,6 @@
 import { isWinnerCount, MAX_NAME_LENGTH, MAX_TITLE_LENGTH } from '../game/config/limits';
 import { cleanLook, isFighterLook } from '../game/config/looks';
-import { isFatePresetId } from '../game/config/presets';
+import { isFatePresetId, isValidCustomOdds } from '../game/config/presets';
 import { isStageChoice } from '../game/config/stages';
 import { nameKey, nameLength, normalizeName, type Participant } from '../game/setup/roster';
 import { DEFAULT_SETUP, type SetupConfig } from '../game/setup/setupConfig';
@@ -20,6 +20,8 @@ interface StoredSetupV1 {
   readonly turbo?: boolean;
   /** Added 2026-10-16 (optional, schema unchanged). */
   readonly title?: string;
+  /** Added 2026-10-16 (optional, schema unchanged). */
+  readonly customOdds?: unknown;
 }
 
 /**
@@ -92,8 +94,12 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   if (typeof parsed.title === 'string') title = cleanTitle(parsed.title);
   else if (parsed.title !== undefined) repaired = true;
 
+  let customOdds = DEFAULT_SETUP.customOdds;
+  if (isValidCustomOdds(parsed.customOdds)) customOdds = parsed.customOdds;
+  else if (parsed.customOdds !== undefined) repaired = true;
+
   return {
-    config: { roster: roster.entries, winnerCount, presetId, stage, turbo, title },
+    config: { roster: roster.entries, winnerCount, presetId, customOdds, stage, turbo, title },
     status: repaired ? 'repaired' : 'loaded',
   };
 }
@@ -110,6 +116,7 @@ export function saveSetup(
     ),
     winnerCount: config.winnerCount,
     presetId: config.presetId,
+    customOdds: config.customOdds,
     stage: config.stage,
     turbo: config.turbo,
     title: config.title,

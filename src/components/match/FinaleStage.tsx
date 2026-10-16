@@ -14,6 +14,7 @@ import { StageContext } from '../stage/stageContext';
 import {
   CHANT_LABEL,
   finaleIntensity,
+  newMatchPointIds,
   stagePositions,
   type ChantWord,
 } from '../../animation/finaleTimeline';
@@ -100,10 +101,8 @@ export function FinaleStage({
   const drawCount =
     revealThrows && !winGesture ? finaleDrawStreak(f.rounds, f.stageNumber) + (pending ? 1 : 0) : 0;
   const clash = revealThrows ? isClash(revealThrows.map((t) => t.gesture)) : false;
-  // Camera: at match point it pushes in on whoever is one point from a slot.
-  const leaders = f.contenderIds.filter(
-    (id) => !f.winnerIds.includes(id) && (f.scores[id] ?? 0) >= FINALE_TARGET_SCORE - 1,
-  );
+  // Camera: pushes in once on whoever just reached match point.
+  const leaders = newMatchPointIds(f);
   const focus =
     show.dark && leaders.length > 0
       ? centroid(leaders.map((id) => positions[f.finalistIds.indexOf(id)]!))

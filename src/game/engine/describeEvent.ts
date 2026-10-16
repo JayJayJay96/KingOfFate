@@ -1,4 +1,4 @@
-import { FATE_PRESETS } from '../config/presets';
+import { presetName } from '../config/presets';
 import { countSlots } from './fateSlots';
 import type {
   CommittedDuel,
@@ -26,7 +26,7 @@ export function describeEvent(event: MatchEvent, state: MatchState): string | nu
     case 'MATCH_STARTED':
       return `Match started: ${event.playerIds.length} fighters, ${event.winnerCount} winner${
         event.winnerCount === 1 ? '' : 's'
-      }, ${FATE_PRESETS[event.presetId].label} preset.`;
+      }, ${presetName(event.presetId)} preset.`;
     case 'TURN_COMMITTED':
     case 'POSITIONS_SHUFFLED':
     case 'FINALE_ROUND_COMMITTED':

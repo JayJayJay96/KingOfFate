@@ -551,3 +551,52 @@ describe('Bomb (owner decision 2026-10-16)', () => {
     expect(Math.abs(right / n - 0.5)).toBeLessThan(0.0125); // about 5 standard deviations
   });
 });
+
+describe('Custom preset (owner decision 2026-10-16)', () => {
+  const customOdds = {
+    normal: { KO: 8, VS: 6, SHIELD: 3, BOMB: 3 },
+    suddenDeath: { KO: 14, VS: 2, SHIELD: 0, BOMB: 4 },
+  };
+
+  it('uses the host odds for the strip and for Sudden Death', () => {
+    let m = createMatch({ ...launch(9, 1, 'custom'), customOdds }, ids);
+    expect(m.customOdds).toEqual(customOdds);
+    expect(countSlots(m.fateSlots)).toEqual(customOdds.normal);
+    expect(describeEvent(m.events[0]!, m)).toMatch(/Custom preset\.$/);
+    while (!m.suddenDeath && m.phase === 'READY') m = ko(m, 0);
+    expect(countSlots(m.fateSlots)).toEqual(customOdds.suddenDeath);
+  });
+
+  it('refuses a Custom match without valid odds', () => {
+    expect(() => createMatch(launch(4, 1, 'custom'), ids)).toThrow(IllegalTransitionError);
+    expect(() =>
+      createMatch(
+        {
+          ...launch(4, 1, 'custom'),
+          customOdds: { ...customOdds, suddenDeath: customOdds.normal },
+        },
+        ids,
+      ),
+    ).toThrow(IllegalTransitionError);
+  });
+
+  it('Fate frequencies follow the custom weights', () => {
+    const base = createMatch({ ...launch(8, 1, 'custom'), customOdds }, ids);
+    const rng = createSeededRng(616);
+    const counts: Record<FateKind, number> = { KO: 0, VS: 0, SHIELD: 0, BOMB: 0 };
+    for (let i = 0; i < 40_000; i++) counts[beginTurn(base, rng, 't').pendingTurn!.fate]++;
+    const stat = chiSquare(
+      KINDS.map((k) => counts[k]),
+      KINDS.map((k) => customOdds.normal[k] / 20),
+    );
+    expect(stat).toBeLessThan(CHI2_P001[3]!);
+  });
+
+  it('plays out to exactly W + 1', () => {
+    const rng = createSeededRng(99);
+    for (const n of [5, 12, 32]) {
+      const final = playOut(createMatch({ ...launch(n, 2, 'custom'), customOdds }, ids), rng);
+      expect(alivePlayers(final)).toHaveLength(3);
+    }
+  });
+});

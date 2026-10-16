@@ -66,6 +66,12 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Match point once; Custom Fate odds
+
+- **Owner feedback:** match-point zoom + delay repeated on every clash was a nuisance → play once when someone reaches match point. **Owner request:** make the Fate % adjustable → Custom preset (owner chose: 4th "Custom" card; Sudden Death editable too).
+- **Changed:** `finaleTimeline.ts` (`newMatchPointIds`: contenders now at 2 who scored in the previous round of this race; `isLastPoint` uses it), `FinaleStage` (camera focuses those fighters), `presets.ts` (`CUSTOM_PRESET_ID`, `FateOdds`, `DEFAULT_CUSTOM_ODDS`, `oddsFor`, `presetName`, `isValidCustomOdds`, `adjustOdds`), `match.ts` / `matchTypes.ts` (optional `customOdds`, required and validated for Custom; schema stays 4), `matchStorage.ts`, setup config/storage (`customOdds`), `MatchOptions` (Custom card + `CustomOddsEditor`), `App`, `describeEvent` / `history` / `MatchScreen` (preset names), CSS. Also fixed a sideways scrollbar on ~1000 px setup screens caused by long voice names in the Sound settings select (pre-existing).
+- **Tests:** match point once (draw / other scorer / winner cases), adjustOdds (totals, clamps, Shield < 20, Sudden Death VS cap + follow), isValidCustomOdds, Custom match strip + Sudden Death + chi-square + play-out, storage (setup + match), App (+/- then the match strip shows the custom odds); one more announcer App test made to wait (load-sensitive).
+
 ### 2026-10-16 — Overnight batch, phase E: victory poses (batch complete)
 
 - **Changed:** `VictoryScreen` (`--beat` = 60 / stage fanfare bpm on the winners list; alternate winners offset by one beat), CSS (`victory-jump` squash/stretch + shadow, reduced-motion guard), App test (beat matches a stage fanfare).

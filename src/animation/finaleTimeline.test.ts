@@ -7,6 +7,7 @@ import {
   finalePace,
   introTimeline,
   isLastPoint,
+  newMatchPointIds,
   LAST_POINT_PAUSE_MS,
   NORMAL_PACE,
   roundsWithoutWinner,
@@ -105,7 +106,21 @@ describe('finale rising pace (owner request 2026-10-10)', () => {
 });
 
 describe('"last point" drama (owner request 2026-10-16)', () => {
-  const race = (scores: Record<string, number>, winnerIds: string[] = []) => ({
+  const round = (scorerIds: string[], stageNumber = 1) => ({
+    roundId: 'r',
+    roundNumber: 1,
+    stageNumber,
+    throws: [],
+    winningGesture: scorerIds.length ? ('ROCK' as const) : null,
+    scorerIds,
+    qualifiedIds: [],
+    tiebreakIds: null,
+  });
+  const race = (
+    scores: Record<string, number>,
+    lastScorers: string[] | null,
+    winnerIds: string[] = [],
+  ) => ({
     started: true,
     stageNumber: 1,
     finalistIds: ['a', 'b', 'c'],
@@ -114,13 +129,17 @@ describe('"last point" drama (owner request 2026-10-16)', () => {
     winnerIds,
     excludedIds: [],
     pendingRound: null,
-    rounds: [],
+    rounds: lastScorers ? [round(lastScorers)] : [],
   });
 
-  it('is on when someone still racing is one point from a slot', () => {
-    expect(isLastPoint(race({ a: 1, b: 1, c: 0 }))).toBe(false);
-    expect(isLastPoint(race({ a: 2, b: 0, c: 0 }))).toBe(true);
-    expect(isLastPoint(race({ a: 3, b: 1, c: 0 }, ['a']))).toBe(false);
+  it('plays once, right after someone reaches match point (owner feedback 2026-10-16)', () => {
+    expect(isLastPoint(race({ a: 1, b: 1, c: 0 }, ['a', 'b']))).toBe(false);
+    expect(isLastPoint(race({ a: 2, b: 0, c: 0 }, ['a']))).toBe(true);
+    expect(newMatchPointIds(race({ a: 2, b: 2, c: 0 }, ['b']))).toEqual(['b']);
+    // Still at match point after a draw (or someone else's point): no repeat.
+    expect(isLastPoint(race({ a: 2, b: 0, c: 0 }, []))).toBe(false);
+    expect(isLastPoint(race({ a: 2, b: 1, c: 0 }, ['b']))).toBe(false);
+    expect(isLastPoint(race({ a: 3, b: 1, c: 0 }, ['a'], ['a']))).toBe(false);
   });
 
   it('"2" darkens, and "Juice!" waits for the held breath; the hold after is unchanged', () => {

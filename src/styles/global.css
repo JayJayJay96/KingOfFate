@@ -1357,7 +1357,10 @@ svg.pixel-icon {
 
 .sound-settings select {
   flex: 1;
-  min-width: 0;
+  /* Long voice names must not widen the setup column (no sideways scrolling). */
+  width: 0;
+  min-width: 12em;
+  max-width: 100%;
   background: #0b0613;
   border: 3px solid var(--panel-edge);
   padding: 4px;
@@ -3257,4 +3260,41 @@ label.button {
   :root:not([data-motion='always']) .victory__portrait--jump::after {
     animation: none;
   }
+}
+
+/* Custom Fate odds editor (owner decision 2026-10-16) */
+.odds-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 2px dashed var(--panel-edge);
+}
+
+.odds-editor__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.odds-editor__pool {
+  min-width: 9em;
+  color: var(--gold);
+}
+
+.odds-editor__ko {
+  min-width: 6em;
+  color: #ff8fa3;
+}
+
+.odds-editor__step {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.odds-editor__step > span {
+  min-width: 6.5em;
+  text-align: center;
 }

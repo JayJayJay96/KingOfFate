@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOM_ODDS } from '../game/config/presets';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETUP, type SetupConfig } from '../game/setup/setupConfig';
 import {
@@ -15,6 +16,7 @@ const sample: SetupConfig = {
   ],
   winnerCount: 2,
   presetId: 'chaotic',
+  customOdds: DEFAULT_CUSTOM_ODDS,
   stage: 'mamak',
   turbo: false,
   title: 'Who buys kopi today?',
@@ -75,6 +77,7 @@ describe('setup storage', () => {
       ],
       winnerCount: DEFAULT_SETUP.winnerCount,
       presetId: DEFAULT_SETUP.presetId,
+      customOdds: DEFAULT_CUSTOM_ODDS,
       stage: DEFAULT_SETUP.stage,
       turbo: false,
       title: '',
@@ -133,6 +136,25 @@ buys ${'x'.repeat(80)}`,
     const { config } = loadSetup(localStorage);
     expect(config.title.startsWith('Who buys x')).toBe(true);
     expect(config.title).toHaveLength(60);
+  });
+
+  it('keeps Custom odds; damaged odds fall back to the default', () => {
+    const customOdds = {
+      normal: { KO: 10, VS: 6, SHIELD: 2, BOMB: 2 },
+      suddenDeath: { KO: 15, VS: 3, SHIELD: 0, BOMB: 2 },
+    };
+    expect(saveSetup({ ...sample, presetId: 'custom', customOdds }, localStorage).ok).toBe(true);
+    expect(loadSetup(localStorage).config).toMatchObject({ presetId: 'custom', customOdds });
+    storeRaw({
+      schemaVersion: 1,
+      roster: [],
+      winnerCount: 1,
+      presetId: 'custom',
+      customOdds: { normal: { KO: 20 }, suddenDeath: {} },
+    });
+    const result = loadSetup(localStorage);
+    expect(result.status).toBe('repaired');
+    expect(result.config.customOdds).toEqual(DEFAULT_CUSTOM_ODDS);
   });
 
   it('loads settings saved before stages existed', () => {

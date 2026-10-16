@@ -10,7 +10,7 @@ import { useSound } from '../../audio/soundContext';
 import { FINAL_BLOW_MS } from '../../animation/matchIntro';
 import { spinStartId } from '../../animation/spinPlan';
 import { fateStartIndex } from '../../animation/turnTimeline';
-import { FATE_PRESETS } from '../../game/config/presets';
+import { presetName } from '../../game/config/presets';
 import { alivePlayers, eliminatedThisTurn, shieldSupplyFor } from '../../game/engine/match';
 import type { MatchState } from '../../game/engine/matchTypes';
 import { useTurnAnimation, type TurnCue } from '../../hooks/useTurnAnimation';
@@ -237,7 +237,7 @@ export function MatchScreen({
           <span>
             {match.winnerCount} winner{match.winnerCount === 1 ? '' : 's'}
           </span>
-          <span>{FATE_PRESETS[match.presetId].label}</span>
+          <span>{presetName(match.presetId)}</span>
           {match.suddenDeath && <span className="match__sudden-death">Sudden Death</span>}
           <span className="match__bar-actions">
             <button type="button" className="button button--small" onClick={() => setPaused(true)}>

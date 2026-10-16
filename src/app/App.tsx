@@ -86,6 +86,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
       players: players.map(({ id, name, look }) => (look ? { id, name, look } : { id, name })),
       winnerCount: config.winnerCount,
       presetId: config.presetId,
+      ...(config.presetId === 'custom' ? { customOdds: config.customOdds } : {}),
       title: config.title,
       championIds: players.filter((p) => champions.has(nameKey(p.name))).map((p) => p.id),
     });
