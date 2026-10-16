@@ -66,6 +66,10 @@
 
 ## 6. Session log
 
+### 2026-10-16 — Random look covers every option (`381d75c`)
+
+- **Owner request:** the editor's Random should cater all selectables. **Changed:** `randomLook` in `looks.ts` (uniform over every option; race skin suggestion 50 %; religious headwear still excluded per 2026-10-10), `LookEditor` uses it with crypto randomness. **Checked:** unit test over 3 000 rolls hits every race, class, skin swatch, hair, outfit and face, never tudung/songkok; pane: six clicks gave e.g. "Cat folk Samurai", "Elf Warrior", "Alien Warrior"; E2E 24/24.
+
 ### 2026-10-16 — Character customisation: light editor, cosplay skins, races, classes
 
 - **Owner request:** white-ish editor background, open skin colours (goblin cosplay), races and classes (owner picked: looks + flavour only; races Dwarf, Elf, Cat, Goblin, Orc, Demon, Vampire, Robot, Alien; classes Warrior, Samurai, Mage, Healer, Ninja, Archer, Pirate, Chef; skins = fantasy swatches + any-colour picker).
