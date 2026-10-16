@@ -8,6 +8,7 @@ import {
   type FighterLook,
   type HairStyle,
   type Outfit,
+  type Race,
 } from '../../game/config/looks';
 import type { PixelImage } from './PixelArt';
 
@@ -185,6 +186,8 @@ export function renderLook(look: FighterLook): PixelImage {
       break;
   }
 
+  applyRace(g, look.race ?? 'human');
+
   const outfit = swatchHex(OUTFIT_COLOURS, look.outfitColour);
   const accent = swatchHex(ACCENT_COLOURS, look.accent);
   return {
@@ -203,8 +206,101 @@ export function renderLook(look: FighterLook): PixelImage {
       J: '#2c4a7a',
       k: '#151515',
       G: '#111111',
+      x: '#8a93a3',
+      X: '#efe3c2',
+      p: '#ff9ab8',
+      r: '#ff3b5c',
+      v: '#3be8ff',
     },
   };
+}
+
+/** Mirror of a column on the 12-wide grid. */
+const mirror = (c: number) => W - 1 - c;
+/** Sets a pixel and its mirror image. */
+const pair = (g: Grid, r: number, c: number, ch: string) => {
+  set(g, r, c, ch);
+  set(g, r, mirror(c), ch);
+};
+
+/**
+ * Race features (owner decision 2026-10-16), drawn on top of hair, headwear and face so they
+ * always read, even at the smallest 44 px size. Purely cosmetic.
+ */
+function applyRace(g: Grid, race: Race): void {
+  switch (race) {
+    case 'dwarf':
+      // Bushy brows and a big beard down over the chest (mouth stays visible).
+      pair(g, 4, 4, 'h');
+      for (const c of [3, 4]) pair(g, 7, c, 'h');
+      overlay(g, 8, ['...hhhhhh...', '....hhhh....', '.....hh.....']);
+      break;
+    case 'elf':
+      // Slim ears from the side of the face, rising to a point.
+      for (const [r, c] of [
+        [6, 2],
+        [5, 2],
+        [4, 1],
+        [3, 1],
+        [2, 0],
+      ] as const)
+        pair(g, r, c, 's');
+      break;
+    case 'cat':
+      for (const [r, c] of [
+        [0, 3],
+        [1, 3],
+      ] as const)
+        pair(g, r, c, 'h');
+      pair(g, 1, 4, 'p');
+      for (const r of [6, 7]) pair(g, r, 2, 'e');
+      break;
+    case 'goblin':
+      for (const [r, c] of [
+        [4, 2],
+        [4, 1],
+        [3, 0],
+      ] as const)
+        pair(g, r, c, 's');
+      set(g, 7, 6, 'w');
+      break;
+    case 'orc':
+      for (const r of [6, 7]) pair(g, r, 4, 'w');
+      pair(g, 4, 2, 's');
+      break;
+    case 'demon':
+      for (const [r, c] of [
+        [2, 3],
+        [1, 3],
+        [0, 2],
+      ] as const)
+        pair(g, r, c, 'X');
+      break;
+    case 'vampire':
+      pair(g, 5, 4, 'r');
+      pair(g, 8, 5, 'w');
+      for (const [r, c] of [
+        [8, 2],
+        [9, 2],
+      ] as const)
+        pair(g, r, c, 'k');
+      pair(g, 9, 3, 'r');
+      break;
+    case 'robot':
+      set(g, 0, 6, 'r');
+      set(g, 1, 6, 'x');
+      for (const r of [4, 5]) pair(g, r, 2, 'x');
+      overlay(g, 5, ['...vvvvvv...']);
+      pair(g, 7, 5, 'x');
+      break;
+    case 'alien':
+      pair(g, 0, 3, 'v');
+      pair(g, 1, 4, 's');
+      for (const r of [4, 5]) pair(g, r, 4, 'e');
+      break;
+    case 'human':
+      break;
+  }
 }
 
 /** Sprite for a person: their custom look, or the stable neutral look from their name. */

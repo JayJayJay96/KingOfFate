@@ -11,6 +11,8 @@ import {
   OUTFIT_COLOURS,
   OUTFITS,
   NATURAL_SKIN_TONES,
+  RACES,
+  cleanLook,
   SKIN_TONES,
   type FighterLook,
 } from '../../game/config/looks';
@@ -83,6 +85,23 @@ describe('fighter looks (Pack B)', () => {
     expect(isFighterLook({ ...BASE, skin: '#12ab3' })).toBe(false);
     const natural = new Set(NATURAL_SKIN_TONES.map((s) => s.id));
     for (const name of MANY) expect(natural.has(neutralLook(name).skin)).toBe(true);
+  });
+
+  it('every race renders well-formed with every hair and headwear, and looks different', () => {
+    const seen = new Set<string>();
+    for (const race of RACES) {
+      for (const hair of HAIR_STYLES) {
+        for (const headwear of HEADWEAR) expectWellFormed({ ...BASE, race, hair, headwear });
+      }
+      seen.add(JSON.stringify(renderLook({ ...BASE, race }).rows));
+    }
+    expect(seen.size).toBe(RACES.length);
+    expect(isFighterLook({ ...BASE, race: 'goblin' })).toBe(true);
+    expect(isFighterLook({ ...BASE, race: 'dragon' })).toBe(false);
+    // Looks saved before races existed are human.
+    expect(renderLook(BASE)).toEqual(renderLook({ ...BASE, race: 'human' }));
+    expect(cleanLook({ ...BASE, race: 'human' })).toEqual(cleanLook(BASE));
+    expect(cleanLook({ ...BASE, race: 'elf' }).race).toBe('elf');
   });
 
   it('a tudung hides all hair and frames the face', () => {

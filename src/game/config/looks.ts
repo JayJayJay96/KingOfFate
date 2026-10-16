@@ -18,11 +18,25 @@ export const HAIR_STYLES = [
 export const HEADWEAR = ['none', 'cap', 'headband', 'beanie', 'tudung', 'songkok'] as const;
 export const FACE_EXTRAS = ['none', 'glasses', 'shades', 'moustache', 'beard'] as const;
 export const OUTFITS = ['gi', 'shirt-tie', 'baju-melayu', 'tshirt', 'jacket', 'hoodie'] as const;
+/** Cosplay races (owner decision 2026-10-16): looks only, never any effect on play. */
+export const RACES = [
+  'human',
+  'dwarf',
+  'elf',
+  'cat',
+  'goblin',
+  'orc',
+  'demon',
+  'vampire',
+  'robot',
+  'alien',
+] as const;
 
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Headwear = (typeof HEADWEAR)[number];
 export type FaceExtra = (typeof FACE_EXTRAS)[number];
 export type Outfit = (typeof OUTFITS)[number];
+export type Race = (typeof RACES)[number];
 
 export interface Swatch {
   readonly id: string;
@@ -108,6 +122,8 @@ export interface FighterLook {
   readonly outfitColour: string;
   readonly skin: string;
   readonly accent: string;
+  /** Absent = human (looks saved before races existed). */
+  readonly race?: Race;
 }
 
 export const LOOK_LABELS = {
@@ -138,6 +154,18 @@ export const LOOK_LABELS = {
     moustache: 'Moustache',
     beard: 'Beard',
   },
+  race: {
+    human: 'Human',
+    dwarf: 'Dwarf',
+    elf: 'Elf',
+    cat: 'Cat folk',
+    goblin: 'Goblin',
+    orc: 'Orc',
+    demon: 'Demon',
+    vampire: 'Vampire',
+    robot: 'Robot',
+    alien: 'Alien',
+  },
   outfit: {
     gi: 'Karate gi',
     'shirt-tie': 'Shirt & tie',
@@ -150,7 +178,18 @@ export const LOOK_LABELS = {
   hair: Record<HairStyle, string>;
   headwear: Record<Headwear, string>;
   face: Record<FaceExtra, string>;
+  race: Record<Race, string>;
   outfit: Record<Outfit, string>;
+};
+
+/** Skin suggested when a race is picked (the host can still change it). */
+export const RACE_SKIN: Readonly<Partial<Record<Race, string>>> = {
+  goblin: 'goblin',
+  orc: 'orc',
+  demon: 'demon',
+  vampire: 'vampire',
+  robot: '#a8b0bc',
+  alien: 'alien',
 };
 
 const has = (list: readonly string[], v: unknown): boolean =>
@@ -168,14 +207,25 @@ export function isFighterLook(value: unknown): value is FighterLook {
     has(OUTFITS, v.outfit) &&
     has(ids(OUTFIT_COLOURS), v.outfitColour) &&
     (has(ids(SKIN_TONES), v.skin) || (typeof v.skin === 'string' && CUSTOM_COLOUR.test(v.skin))) &&
-    has(ids(ACCENT_COLOURS), v.accent)
+    has(ids(ACCENT_COLOURS), v.accent) &&
+    (v.race === undefined || has(RACES, v.race))
   );
 }
 
 /** Only the fields we know, so a stored look never carries anything else. */
 export function cleanLook(look: FighterLook): FighterLook {
-  const { hair, hairColour, headwear, face, outfit, outfitColour, skin, accent } = look;
-  return { hair, hairColour, headwear, face, outfit, outfitColour, skin, accent };
+  const { hair, hairColour, headwear, face, outfit, outfitColour, skin, accent, race } = look;
+  return {
+    hair,
+    hairColour,
+    headwear,
+    face,
+    outfit,
+    outfitColour,
+    skin,
+    accent,
+    ...(race && race !== 'human' ? { race } : {}),
+  };
 }
 
 /** Headwear the random default may use (no religious headwear). */

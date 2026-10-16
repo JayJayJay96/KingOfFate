@@ -10,6 +10,9 @@ import {
   neutralLook,
   OUTFIT_COLOURS,
   OUTFITS,
+  RACE_SKIN,
+  RACES,
+  type Race,
   CUSTOM_COLOUR,
   FANTASY_SKIN_TONES,
   NATURAL_SKIN_TONES,
@@ -146,6 +149,24 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
             {select('headwear', 'Headwear', HEADWEAR)}
             {select('face', 'Face', FACE_EXTRAS)}
             {select('outfit', 'Outfit', OUTFITS)}
+            <div className="look-editor__field">
+              <label htmlFor={`${titleId}-race`}>Race</label>
+              <select
+                id={`${titleId}-race`}
+                value={look.race ?? 'human'}
+                onChange={(e) => {
+                  const race = e.target.value as Race;
+                  const skin = RACE_SKIN[race];
+                  change({ race, ...(skin ? { skin } : {}) });
+                }}
+              >
+                {RACES.map((r) => (
+                  <option key={r} value={r}>
+                    {LOOK_LABELS.race[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
             {swatches('skin', 'Skin tone', NATURAL_SKIN_TONES)}
             <div className="look-editor__swatches" role="group" aria-label="Fun skin">
               <span className="look-editor__swatch-label">Fun skin (cosplay)</span>
