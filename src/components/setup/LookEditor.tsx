@@ -7,7 +7,7 @@ import {
   HEADWEAR,
   LOOK_LABELS,
   lookFor,
-  neutralLook,
+  randomLook,
   OUTFIT_COLOURS,
   OUTFITS,
   lookTitle,
@@ -59,10 +59,13 @@ export function LookEditor({ person, onSave, onClose }: LookEditorProps) {
   };
 
   function randomize() {
-    // A fresh neutral look (never religious headwear), like a new default.
-    const values = new Uint32Array(1);
-    crypto.getRandomValues(values);
-    setLook(neutralLook(`${person.name}#${values[0]}`));
+    // Anything goes (races, classes, fun skins), except religious headwear.
+    const random = () => {
+      const values = new Uint32Array(1);
+      crypto.getRandomValues(values);
+      return values[0]! / 2 ** 32;
+    };
+    setLook(randomLook(random));
     setCustom(true);
   }
 

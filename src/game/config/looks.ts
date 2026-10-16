@@ -365,3 +365,28 @@ export const ROLE_FLAVOUR: Readonly<
 export function roleFlavour(look: FighterLook | null | undefined) {
   return ROLE_FLAVOUR[look?.role ?? 'none'];
 }
+
+/**
+ * "Random" in the look editor (owner request 2026-10-16): any hair, face, outfit, colour, skin
+ * (natural or fun), race and class. Religious headwear (tudung, songkok) is still never picked at
+ * random (owner decision 2026-10-10); the host chooses it on purpose. A race with a matching
+ * skin uses it half the time. `random` returns [0, 1).
+ */
+export function randomLook(random: () => number): FighterLook {
+  const any = <T>(list: readonly T[]): T => list[Math.floor(random() * list.length)]!;
+  const race = any(RACES);
+  const suggested = RACE_SKIN[race];
+  const role = any(ROLES);
+  return {
+    hair: any(HAIR_STYLES),
+    hairColour: any(ids(HAIR_COLOURS)),
+    headwear: any(HEADWEAR.filter((h) => h !== 'tudung' && h !== 'songkok')),
+    face: any(FACE_EXTRAS),
+    outfit: any(OUTFITS),
+    outfitColour: any(ids(OUTFIT_COLOURS)),
+    skin: suggested && random() < 0.5 ? suggested : any(ids(SKIN_TONES)),
+    accent: any(ids(ACCENT_COLOURS)),
+    ...(race !== 'human' ? { race } : {}),
+    ...(role !== 'none' ? { role } : {}),
+  };
+}

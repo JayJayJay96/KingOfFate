@@ -15,6 +15,7 @@ import {
   ROLES,
   cleanLook,
   lookTitle,
+  randomLook,
   roleFlavour,
   SKIN_TONES,
   type FighterLook,
@@ -129,6 +130,23 @@ describe('fighter looks (Pack B)', () => {
     expect(lookTitle(null)).toBeNull();
     expect(roleFlavour({ ...BASE, role: 'mage' })).toMatchObject({ fx: '🔥', pose: 'spin' });
     expect(roleFlavour(BASE)).toMatchObject({ fx: null, pose: 'jump' });
+  });
+
+  it('Random in the editor covers every option except religious headwear (owner 2026-10-16)', () => {
+    let seed = 1;
+    const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    const looks = Array.from({ length: 3000 }, () => randomLook(random));
+    const seen = (f: (l: FighterLook) => string | undefined) => new Set(looks.map(f));
+    expect(looks.every(isFighterLook)).toBe(true);
+    expect(seen((l) => l.race ?? 'human').size).toBe(RACES.length);
+    expect(seen((l) => l.role ?? 'none').size).toBe(ROLES.length);
+    const skins = seen((l) => l.skin);
+    for (const t of SKIN_TONES) expect(skins.has(t.id)).toBe(true);
+    expect(skins.has('#a8b0bc')).toBe(true); // Robot metal
+    expect(seen((l) => l.hair).size).toBe(HAIR_STYLES.length);
+    expect(seen((l) => l.outfit).size).toBe(OUTFITS.length);
+    expect(seen((l) => l.face).size).toBe(FACE_EXTRAS.length);
+    expect(seen((l) => l.headwear)).toEqual(new Set(['none', 'cap', 'headband', 'beanie']));
   });
 
   it('a tudung hides all hair and frames the face', () => {
