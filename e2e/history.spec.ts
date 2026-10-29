@@ -99,3 +99,33 @@ test('a finished match is in History, survives a reload, exports, and can be del
   await again.setFiles(file);
   await expect(page.getByRole('status')).toHaveText('Done: imported 0, skipped 1 duplicate.');
 });
+
+test('fair sit-out: the winner sits out with a crown, survives a reload, host can switch back in', async ({
+  page,
+}) => {
+  test.setTimeout(200_000);
+  const winner = await playQuickMatch(page, ['Aisyah', 'Wei Jie']);
+  const loser = winner === 'Aisyah' ? 'Wei Jie' : 'Aisyah';
+  const winnerToggle = page.getByRole('button', { name: winner, exact: true });
+  await expect(winnerToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: loser, exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByTestId('sit-out-crown')).toHaveCount(1);
+  await expect(page.getByTestId('sit-out-crown')).toHaveAttribute(
+    'title',
+    /^Sitting out so everyone gets a chance\. Won: /,
+  );
+
+  await page.reload();
+  await insertCoin(page);
+  await expect(winnerToggle).toHaveAttribute('aria-pressed', 'false');
+  await winnerToggle.click();
+  await expect(winnerToggle).toHaveAttribute('aria-pressed', 'true');
+  // Opening the menu again does not overrule the host.
+  await page.reload();
+  await insertCoin(page);
+  await expect(winnerToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeEnabled();
+});

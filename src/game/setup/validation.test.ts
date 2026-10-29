@@ -17,6 +17,7 @@ function config(active: number, winnerCount: number, inactive = 0): SetupConfig 
     stage: 'random',
     turbo: false,
     title: '',
+    fair: { cycleStart: null, handled: {} },
   };
 }
 

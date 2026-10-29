@@ -20,6 +20,7 @@ const sample: SetupConfig = {
   stage: 'mamak',
   turbo: false,
   title: 'Who buys kopi today?',
+  fair: { cycleStart: '2026-10-28T03:00:00.000Z', handled: { p2: { wins: 1, off: true } } },
 };
 
 function storeRaw(value: unknown) {
@@ -81,6 +82,7 @@ describe('setup storage', () => {
       stage: DEFAULT_SETUP.stage,
       turbo: false,
       title: '',
+      fair: DEFAULT_SETUP.fair,
     });
   });
 
@@ -122,6 +124,15 @@ describe('setup storage', () => {
     const result = loadSetup(localStorage);
     expect(result.status).toBe('repaired');
     expect(result.config.turbo).toBe(false);
+  });
+
+  it('keeps the fair sit-out cycle; a damaged one starts fresh', () => {
+    expect(saveSetup(sample, localStorage).ok).toBe(true);
+    expect(loadSetup(localStorage).config.fair).toEqual(sample.fair);
+    storeRaw({ schemaVersion: 1, roster: [], winnerCount: 1, presetId: 'normal', fair: { x: 1 } });
+    const result = loadSetup(localStorage);
+    expect(result.status).toBe('repaired');
+    expect(result.config.fair).toEqual({ cycleStart: null, handled: {} });
   });
 
   it('keeps the title on one line and at most 60 characters', () => {

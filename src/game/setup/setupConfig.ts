@@ -6,6 +6,7 @@ import {
   type FatePresetId,
 } from '../config/presets';
 import type { StageChoice } from '../config/stages';
+import { EMPTY_FAIR_STATE, type FairState } from './fairSitOut';
 import type { Roster } from './roster';
 
 /** The single persisted default configuration (PROJECT.md §3). */
@@ -21,6 +22,8 @@ export interface SetupConfig {
   readonly turbo: boolean;
   /** Prize / title line shown in the intro, finale and victory (empty = none). */
   readonly title: string;
+  /** Fair sit-out cycle (owner decision 2026-10-29). */
+  readonly fair: FairState;
 }
 
 export const DEFAULT_WINNER_COUNT: WinnerCount = 1;
@@ -33,4 +36,5 @@ export const DEFAULT_SETUP: SetupConfig = {
   stage: 'random',
   turbo: false,
   title: '',
+  fair: EMPTY_FAIR_STATE,
 };

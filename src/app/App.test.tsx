@@ -210,6 +210,23 @@ describe('Match', () => {
     expect((await repo.listCompleted())[0]!.match.title).toBe('Who buys kopi today?');
 
     await user.click(screen.getByRole('button', { name: /return to setup/i }));
+    // Fair sit-out (owner decision 2026-10-29): the winner sits out, crowned, with when they won.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Aisyah' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      ),
+    );
+    expect(screen.getByRole('button', { name: 'Wei Jie' })).toHaveAttribute('aria-pressed', 'true');
+    const crown = screen.getByTestId('sit-out-crown');
+    expect(crown).toHaveAttribute(
+      'title',
+      expect.stringMatching(
+        /^Sitting out so everyone gets a chance\. Won: .+ \(Who buys kopi today\?\)$/,
+      ),
+    );
+    // The host can still switch her back in.
+    await user.click(screen.getByRole('button', { name: 'Aisyah' }));
     await startMatch(user);
     const finalists = await screen.findAllByTestId('finalist');
     const crowned = finalists.filter((el) => el.querySelector('.champion-crown'));

@@ -66,6 +66,14 @@
 
 ## 6. Session log
 
+### 2026-10-29 — Office pack 2, phase A: fair sit-outs
+
+- **Identity check:** match players keep the roster entry ID (`App.handleStart` passes `id` through `createMatch`), so `winnerIds` in every completed record are roster IDs. No mapping needed. Limit: history imported from a browser with a different roster has different IDs and does not count.
+- **Added:** `src/game/setup/fairSitOut.ts` (`applyFairSitOut`: wins per roster ID since `cycleStart`; everyone above the lowest count sits out; level → new cycle starting after the newest counted match; `handled` = per person win count when handled + whether the game switched them off, so a host override holds until their next win and only game-switched people come back), `src/hooks/useFairSitOut.ts` (runs whenever the setup menu shows; history errors never block), tests `fairSitOut.test.ts`.
+- **Changed:** `SetupConfig.fair` (saved in `kof.setup`, optional field, schema unchanged; damaged → fresh), `App` (hook), `SetupScreen` / `RosterGrid` (crown over the sprite, hover `title` + `aria-label` "Sitting out so everyone gets a chance. Won: 28 Oct 2026, 12:30 pm (Who buys kopi today?)"), CSS `.slot__crown`, tests (storage round-trip; App: winner sits out with crown then host switches her back; E2E: crown, reload keeps it, host override survives reload; finale E2E now expects the 2-player winner to sit out, so Start is disabled).
+- **Tests (observed):** `npx vitest run` → **35 files, 387 passed**; `npm run e2e` → **25 passed**; tsc, oxlint, Prettier clean. Pane: crown over Aisyah with the tooltip text above (demo data cleared afterwards).
+- **Known by design:** someone who never plays (always absent but still on the roster) keeps the lowest count at 0, so winners keep sitting out until that person wins or is removed. The rule counts the whole roster as the owner described.
+
 ### 2026-10-29 — Office pack 2, phase C: history import / merge
 
 - **Owner decisions (2026-10-29, logged in `PROJECT.md` §10):** fair sit-outs (A), Office vs Personal mode on Supabase (B), history import (C). Clarified today: Merge skips identical copies and takes the file's version for a changed one; the game switches back on only the people it sat out; offline results auto-upload, offline setup edits stay local with a choice banner; sound + custom music stay per-PC.

@@ -13,6 +13,7 @@ import { createCryptoRng, type Rng } from '../game/rng/rng';
 import { lastChampionNames } from '../game/history/history';
 import { activeParticipants, nameKey } from '../game/setup/roster';
 import { validateSetup } from '../game/setup/validation';
+import { useFairSitOut } from '../hooks/useFairSitOut';
 import { useMatch } from '../hooks/useMatch';
 import { useOtherTabWarning } from '../hooks/useOtherTabWarning';
 import { useSetupConfig } from '../hooks/useSetupConfig';
@@ -73,6 +74,8 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
   const matchLooks = useMemo(() => looksByName(matchPlayers ?? []), [matchPlayers]);
   const roster = setup.config.roster;
   const rosterLooks = useMemo(() => looksByName(roster), [roster]);
+  const setupVisible = coinInserted && !game.loading && !game.match && !showHistory;
+  const sitOut = useFairSitOut(repository, setup, setupVisible);
 
   async function handleStart() {
     const { config } = setup;
@@ -145,6 +148,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
         onStart={() => void handleStart()}
         onOpenHistory={() => setShowHistory(true)}
         matchNotice={game.notice ?? game.saveError}
+        sitOut={sitOut}
       />
     </LooksContext.Provider>
   );

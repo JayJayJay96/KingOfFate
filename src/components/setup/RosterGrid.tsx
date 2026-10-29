@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import { formatDateTime } from '../../game/history/format';
+import type { FairWin } from '../../game/setup/fairSitOut';
 import {
   removeParticipant,
   setAllActive,
@@ -6,17 +8,27 @@ import {
   toggleParticipant,
   type Roster,
 } from '../../game/setup/roster';
-import { FighterSprite } from '../sprites/icons';
+import { CrownIcon, FighterSprite } from '../sprites/icons';
 import { LookEditor } from './LookEditor';
 
 interface RosterGridProps {
   readonly roster: Roster;
   /** Functional update, applied to the latest roster (safe under rapid clicks). */
   readonly onRosterChange: (change: (roster: Roster) => Roster) => void;
+  /** Fair sit-outs: who has won more than the lowest count this cycle, with their wins. */
+  readonly sitOut?: ReadonlyMap<string, readonly FairWin[]>;
+}
+
+/** Hover text for a sat-out person's crown. */
+function sitOutTip(wins: readonly FairWin[]): string {
+  const list = wins
+    .map((w) => formatDateTime(w.completedAt) + (w.title ? ` (${w.title})` : ''))
+    .join('; ');
+  return `Sitting out so everyone gets a chance. Won: ${list}`;
 }
 
 /** Attendance board: every stored fighter with an in/out toggle. Inactive fighters stay stored. */
-export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
+export function RosterGrid({ roster, onRosterChange, sitOut }: RosterGridProps) {
   const titleId = useId();
   const activeCount = roster.filter((p) => p.active).length;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,6 +70,17 @@ export function RosterGrid({ roster, onRosterChange }: RosterGridProps) {
           <ul className="roster-grid">
             {roster.map((p) => (
               <li key={p.id} className={p.active ? 'slot' : 'slot slot--out'}>
+                {sitOut?.has(p.id) && (
+                  <span
+                    className="slot__crown"
+                    role="img"
+                    aria-label={sitOutTip(sitOut.get(p.id)!)}
+                    title={sitOutTip(sitOut.get(p.id)!)}
+                    data-testid="sit-out-crown"
+                  >
+                    <CrownIcon size={18} />
+                  </span>
+                )}
                 <button
                   type="button"
                   className="slot__toggle"

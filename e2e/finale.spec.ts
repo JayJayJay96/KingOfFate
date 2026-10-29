@@ -67,7 +67,9 @@ test('a real "1, 2, Juice!" finale runs automatically to exactly one winner', as
   expect(await completedRecords(page)).toBe(1);
 
   await page.getByRole('button', { name: /return to setup/i }).click();
-  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeEnabled();
+  // Fair sit-out (owner decision 2026-10-29): the winner sits out, leaving one fighter.
+  await expect(page.getByTestId('sit-out-crown')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeDisabled();
   expect(await completedRecords(page)).toBe(1);
 });
 

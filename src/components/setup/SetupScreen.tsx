@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { Roster } from '../../game/setup/roster';
 import { describeSetupIssue, validateSetup } from '../../game/setup/validation';
+import type { FairWin } from '../../game/setup/fairSitOut';
 import type { SetupStore } from '../../hooks/useSetupConfig';
 import type { SetupLoadStatus } from '../../storage/setupStorage';
 import { MatchOptions } from './MatchOptions';
@@ -15,6 +16,7 @@ interface SetupScreenProps {
   readonly onOpenHistory: () => void;
   /** Problem with the saved/in-progress match (corrupt checkpoint, storage unavailable). */
   readonly matchNotice?: string | null;
+  readonly sitOut?: ReadonlyMap<string, readonly FairWin[]>;
 }
 
 const LOAD_NOTICES: Partial<Record<SetupLoadStatus, string>> = {
@@ -28,6 +30,7 @@ export function SetupScreen({
   onStart,
   onOpenHistory,
   matchNotice = null,
+  sitOut,
 }: SetupScreenProps) {
   const { config, update, loadStatus, saveError } = store;
   const validation = validateSetup(config);
@@ -69,7 +72,7 @@ export function SetupScreen({
       <div className="setup__layout">
         <div className="setup__main">
           <RosterInput onRosterChange={changeRoster} />
-          <RosterGrid roster={config.roster} onRosterChange={changeRoster} />
+          <RosterGrid roster={config.roster} onRosterChange={changeRoster} sitOut={sitOut} />
         </div>
 
         <aside className="setup__side">

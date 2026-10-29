@@ -1,6 +1,7 @@
 import { isWinnerCount, MAX_NAME_LENGTH, MAX_TITLE_LENGTH } from '../game/config/limits';
 import { cleanLook, isFighterLook } from '../game/config/looks';
 import { isFatePresetId, isValidCustomOdds } from '../game/config/presets';
+import { isFairState } from '../game/setup/fairSitOut';
 import { isStageChoice } from '../game/config/stages';
 import { nameKey, nameLength, normalizeName, type Participant } from '../game/setup/roster';
 import { DEFAULT_SETUP, type SetupConfig } from '../game/setup/setupConfig';
@@ -22,6 +23,8 @@ interface StoredSetupV1 {
   readonly title?: string;
   /** Added 2026-10-16 (optional, schema unchanged). */
   readonly customOdds?: unknown;
+  /** Added 2026-10-29 (optional, schema unchanged). */
+  readonly fair?: unknown;
 }
 
 /**
@@ -98,8 +101,21 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   if (isValidCustomOdds(parsed.customOdds)) customOdds = parsed.customOdds;
   else if (parsed.customOdds !== undefined) repaired = true;
 
+  let fair = DEFAULT_SETUP.fair;
+  if (isFairState(parsed.fair)) fair = parsed.fair;
+  else if (parsed.fair !== undefined) repaired = true;
+
   return {
-    config: { roster: roster.entries, winnerCount, presetId, customOdds, stage, turbo, title },
+    config: {
+      roster: roster.entries,
+      winnerCount,
+      presetId,
+      customOdds,
+      stage,
+      turbo,
+      title,
+      fair,
+    },
     status: repaired ? 'repaired' : 'loaded',
   };
 }
@@ -120,6 +136,7 @@ export function saveSetup(
     stage: config.stage,
     turbo: config.turbo,
     title: config.title,
+    fair: config.fair,
   };
   try {
     storage.setItem(SETUP_STORAGE_KEY, JSON.stringify(stored));

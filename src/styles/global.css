@@ -259,6 +259,7 @@ textarea {
 }
 
 .slot {
+  position: relative;
   display: flex;
   border: 3px solid var(--cyan);
   background: #10233a;
@@ -295,6 +296,17 @@ textarea {
   font-size: 0.75rem;
   font-weight: 900;
   color: var(--green);
+}
+
+/* Fair sit-out crown over the sprite; hover shows when they won. */
+.slot__crown {
+  position: absolute;
+  top: -9px;
+  left: 14px;
+  z-index: 1;
+  line-height: 0;
+  cursor: help;
+  filter: drop-shadow(1px 1px 0 #000);
 }
 
 .slot--out .slot__status {
