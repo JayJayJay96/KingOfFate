@@ -70,21 +70,11 @@ export function RosterGrid({ roster, onRosterChange, sitOut }: RosterGridProps) 
           <ul className="roster-grid">
             {roster.map((p) => (
               <li key={p.id} className={p.active ? 'slot' : 'slot slot--out'}>
-                {sitOut?.has(p.id) && (
-                  <span
-                    className="slot__crown"
-                    role="img"
-                    aria-label={sitOutTip(sitOut.get(p.id)!)}
-                    title={sitOutTip(sitOut.get(p.id)!)}
-                    data-testid="sit-out-crown"
-                  >
-                    <CrownIcon size={18} />
-                  </span>
-                )}
                 <button
                   type="button"
                   className="slot__toggle"
                   aria-pressed={p.active}
+                  aria-describedby={sitOut?.has(p.id) ? `${titleId}-${p.id}-won` : undefined}
                   title={
                     p.active ? 'Playing today. Click to sit out.' : 'Sitting out. Click to play.'
                   }
@@ -92,10 +82,26 @@ export function RosterGrid({ roster, onRosterChange, sitOut }: RosterGridProps) 
                 >
                   <FighterSprite seed={p.name} look={p.look} size={36} />
                   <span className="slot__name">{p.name}</span>
+                  {sitOut?.has(p.id) && (
+                    // Beside the name (owner request 2026-10-29); hover shows when they won.
+                    <span
+                      className="slot__crown"
+                      title={sitOutTip(sitOut.get(p.id)!)}
+                      data-testid="sit-out-crown"
+                    >
+                      <CrownIcon size={16} />
+                    </span>
+                  )}
                   <span className="slot__status" aria-hidden="true">
                     {p.active ? 'IN' : 'OUT'}
                   </span>
                 </button>
+                {sitOut?.has(p.id) && (
+                  // Outside the toggle so its name stays the person's name.
+                  <span id={`${titleId}-${p.id}-won`} className="sr-only">
+                    {sitOutTip(sitOut.get(p.id)!)}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="slot__look"
