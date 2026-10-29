@@ -58,7 +58,8 @@ Only use recordings you made or whose licence allows public use.
 
 ## Deploying (Vercel, static)
 
-The game is a static site: no server, no accounts, no database.
+The game is a static site: no accounts. Personal mode needs no server at all; the optional Office
+mode talks to a Supabase database (below).
 
 - `vercel.json` sets the build (`npm run build` → `dist/`) and the security headers (a strict
   Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, a locked-down
@@ -68,12 +69,48 @@ The game is a static site: no server, no accounts, no database.
 - Deploy either by importing the Git repository in the Vercel dashboard (framework: Vite, defaults
   are fine) or with the CLI: `npx vercel` (preview) then `npx vercel --prod`.
 
+## Office mode (Supabase)
+
+Office mode shares the roster (with looks and IDs), setup options, custom odds, prize line,
+history and fair sit-outs between every PC that uses the office code. Sound settings and custom
+music stay on each PC. Each PC chooses Personal or Office in the setup menu (*Saved where*).
+
+One-time setup:
+
+1. In Supabase create a project (any name; region Singapore is closest).
+2. *SQL Editor → New query*: paste all of [`supabase/office.sql`](supabase/office.sql) and *Run*.
+   It creates three tables (Row Level Security on, no policies, no table rights for the browser
+   roles) and six functions that check the office code on the server. Default code: `116059`.
+3. *Project Settings → Data API*: copy the Project URL. *Project Settings → API Keys*: copy the
+   **publishable** key (`sb_publishable_…`, or the legacy `anon` key). Never use the secret /
+   `service_role` key.
+4. Vercel → project → *Settings → Environment Variables*: add `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` (Production and Preview), then *Deployments → … → Redeploy*. They are
+   build-time values: a change needs a redeploy.
+5. In the game: *Saved where → Office code → Switch to Office*; then change the code
+   (*New office code*, 6–64 characters) and tell the hosts.
+
+Behaviour:
+
+- **Server unreachable:** each call is tried 3 times, then the game says so and uses this PC's
+  copy. A match won offline is saved on the PC and uploaded automatically when the server answers
+  again (keyed by match ID, so it is never lost or doubled). Setup changes made offline stay on the
+  PC; when the server is back the host picks *Upload my setup* or *Use office setup*.
+- **Two hosts at once:** each runs their own match on their own PC; both results are kept. Setup
+  saves are versioned: the first save wins, and the other host is asked whether to keep the office
+  setup or upload theirs. Nothing is overwritten silently.
+- **Security limits (honest version):** the publishable key and site are public, but the key alone
+  can read or write nothing; every function needs the office code, which the server checks against
+  a bcrypt hash. The code is not in the JS bundle. After 30 wrong codes in 15 minutes every call is
+  refused for up to 15 minutes, which slows guessing but means someone guessing can also lock the
+  office out for a while. A 6-digit code is short: use a longer code if the data matters. Anyone
+  with the code can change or clear the shared roster and history (no per-person accounts).
+
 ## Known limitations
 
-- **Data lives in one browser.** Setup, history, looks and custom music are stored in that
-  browser profile only (localStorage + IndexedDB). Another computer or browser starts empty;
-  clearing site data deletes everything. Use *History → Export JSON* to keep a backup (there is no
-  import yet).
+- **Personal mode data lives in one browser.** Setup, history, looks and custom music are stored in
+  that browser profile only (localStorage + IndexedDB). Clearing site data deletes everything. Use
+  *History → Export JSON* to keep a backup and *Merge from file* / *Import* to bring it back.
 - **One tab at a time.** Two open tabs share the same saved match; the game warns when a second
   tab is open, but does not lock.
 - **Voices depend on the computer.** The chant and announcer use the browser's text-to-speech.

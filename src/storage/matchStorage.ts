@@ -69,13 +69,15 @@ const CORRUPT_KEY = 'corrupt-backup';
 export function createIndexedDbMatchRepository(
   /** `null` = IndexedDB unavailable (e.g. blocked/private mode); every call then reports it. */
   factory: IDBFactory | null = globalThis.indexedDB ?? null,
+  /** Office mode keeps its own copy ('kof-office') so Personal history is never mixed in. */
+  dbName = DB_NAME,
 ): MatchRepository {
   let dbPromise: Promise<IDBDatabase> | null = null;
 
   function open(): Promise<IDBDatabase> {
     if (!factory) return Promise.reject(new Error('IndexedDB is not available in this browser.'));
     dbPromise ??= new Promise<IDBDatabase>((resolve, reject) => {
-      const request = factory.open(DB_NAME, DB_VERSION);
+      const request = factory.open(dbName, DB_VERSION);
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);

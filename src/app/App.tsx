@@ -1,4 +1,17 @@
 import { useMemo, useState } from 'react';
+import {
+  createOfficeClient,
+  describeOfficeError,
+  officeServerFromEnv,
+  type OfficeClient,
+} from '../office/officeClient';
+import { createOfficeMatchRepository } from '../office/officeRepository';
+import {
+  loadOfficeSettings,
+  saveOfficeSettings,
+  type OfficeSettings,
+} from '../office/officeSettings';
+import { createOfficeStatusStore, useOfficeStatus } from '../office/officeStatus';
 import type { SoundEngine } from '../audio/soundEngine';
 import { SoundProvider } from '../audio/SoundProvider';
 import { HistoryScreen, type Downloader } from '../components/history/HistoryScreen';
@@ -7,6 +20,7 @@ import { LooksContext, looksByName } from '../components/sprites/looksContext';
 import { StageBackdrop } from '../components/stage/StageArt';
 import { StageContext } from '../components/stage/stageContext';
 import { stageForMatch } from '../game/config/stages';
+import { OfficePanel } from '../components/setup/OfficePanel';
 import { SetupScreen } from '../components/setup/SetupScreen';
 import { TitleScreen } from '../components/TitleScreen';
 import { createCryptoRng, type Rng } from '../game/rng/rng';
@@ -32,6 +46,8 @@ export interface AppProps {
   readonly download?: Downloader;
   /** "INSERT COIN" title once per page load. Tests that are not about it turn it off. */
   readonly titleScreen?: boolean;
+  /** Office server; production builds it from the Vercel environment (null = not set up). */
+  readonly officeClient?: OfficeClient | null;
 }
 
 export function App({ soundEngine, assetStore, ...rest }: AppProps) {
@@ -44,12 +60,25 @@ export function App({ soundEngine, assetStore, ...rest }: AppProps) {
 
 type GameProps = Pick<
   AppProps,
-  'matchRepository' | 'rng' | 'timeScale' | 'download' | 'titleScreen'
+  'matchRepository' | 'rng' | 'timeScale' | 'download' | 'titleScreen' | 'officeClient'
 >;
 
+const envServer = officeServerFromEnv();
+
 /** Screens, plus a warning when the game is open in another tab (both would share one save). */
-function Game(props: GameProps) {
+function Game({ officeClient, ...props }: GameProps) {
   const otherTab = useOtherTabWarning();
+  // Once per page load, also across a Personal/Office switch.
+  const [coinInserted, setCoinInserted] = useState(false);
+  const [client] = useState(() =>
+    officeClient !== undefined ? officeClient : envServer && createOfficeClient(envServer),
+  );
+  const [officeSettings, setOfficeSettings] = useState(loadOfficeSettings);
+  const settings = client ? officeSettings : { mode: 'personal' as const, code: '' };
+  const changeOffice = (next: OfficeSettings) => {
+    saveOfficeSettings(next);
+    setOfficeSettings(next);
+  };
   return (
     <>
       {otherTab && (
@@ -58,24 +87,74 @@ function Game(props: GameProps) {
           match.
         </p>
       )}
-      <Screens {...props} />
+      {/* A mode or code change starts the screens afresh on the other storage. */}
+      <Screens
+        key={`${settings.mode}:${settings.code}`}
+        {...props}
+        client={client}
+        officeSettings={settings}
+        onOfficeChange={changeOffice}
+        coinAlreadyInserted={coinInserted}
+        onCoinInserted={() => setCoinInserted(true)}
+      />
     </>
   );
 }
 
-function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = true }: GameProps) {
-  const [repository] = useState(() => matchRepository ?? createIndexedDbMatchRepository());
+interface ScreensProps extends Omit<GameProps, 'officeClient'> {
+  readonly client: OfficeClient | null;
+  readonly officeSettings: OfficeSettings;
+  readonly onOfficeChange: (settings: OfficeSettings) => void;
+  readonly coinAlreadyInserted: boolean;
+  readonly onCoinInserted: () => void;
+}
+
+function Screens({
+  matchRepository,
+  rng,
+  timeScale = 1,
+  download,
+  titleScreen = true,
+  client,
+  officeSettings,
+  onOfficeChange,
+  coinAlreadyInserted,
+  onCoinInserted,
+}: ScreensProps) {
+  const [office] = useState(() =>
+    client && officeSettings.mode === 'office'
+      ? { client, code: officeSettings.code, status: createOfficeStatusStore() }
+      : undefined,
+  );
+  const [repository] = useState(() => {
+    const local =
+      matchRepository ?? createIndexedDbMatchRepository(undefined, office ? 'kof-office' : 'kof');
+    return office
+      ? createOfficeMatchRepository(local, office.client, office.code, office.status)
+      : local;
+  });
+  const officeStatus = useOfficeStatus(office?.status ?? null);
   const [matchRng] = useState(() => rng ?? createCryptoRng());
-  const setup = useSetupConfig();
+  const setup = useSetupConfig(office);
   const game = useMatch(repository, matchRng);
   const [showHistory, setShowHistory] = useState(false);
-  const [coinInserted, setCoinInserted] = useState(!titleScreen);
+  const coinInserted = coinAlreadyInserted || !titleScreen;
   const matchPlayers = game.match?.players;
   const matchLooks = useMemo(() => looksByName(matchPlayers ?? []), [matchPlayers]);
   const roster = setup.config.roster;
   const rosterLooks = useMemo(() => looksByName(roster), [roster]);
   const setupVisible = coinInserted && !game.loading && !game.match && !showHistory;
   const sitOut = useFairSitOut(repository, setup, setupVisible);
+
+  /** Office mode: copies this PC's Personal history to the office (results are never replaced). */
+  async function uploadPersonalHistory() {
+    if (!office) return '';
+    const records = await createIndexedDbMatchRepository().listCompleted();
+    if (records.length === 0) return 'This PC has no Personal history to upload.';
+    const result = await office.client.putMatches(office.code, records, 'add');
+    if (!result.ok) throw new Error(describeOfficeError(result.error));
+    return `Uploaded ${records.length} match${records.length === 1 ? '' : 'es'} (ones already in the office were kept).`;
+  }
 
   async function handleStart() {
     const { config } = setup;
@@ -96,7 +175,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
   }
 
   if (!coinInserted) {
-    return <TitleScreen onStart={() => setCoinInserted(true)} timeScale={timeScale} />;
+    return <TitleScreen onStart={onCoinInserted} timeScale={timeScale} />;
   }
 
   if (game.loading) {
@@ -137,6 +216,7 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
         repository={repository}
         onBack={() => setShowHistory(false)}
         download={download}
+        office={!!office}
       />
     );
   }
@@ -149,6 +229,16 @@ function Screens({ matchRepository, rng, timeScale = 1, download, titleScreen = 
         onOpenHistory={() => setShowHistory(true)}
         matchNotice={game.notice ?? game.saveError}
         sitOut={sitOut}
+        office={
+          <OfficePanel
+            settings={officeSettings}
+            client={client}
+            status={officeStatus}
+            sync={setup.office}
+            onChange={onOfficeChange}
+            onUploadPersonalHistory={matchRepository ? undefined : uploadPersonalHistory}
+          />
+        }
       />
     </LooksContext.Provider>
   );

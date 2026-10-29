@@ -18,6 +18,8 @@ interface HistoryScreenProps {
   readonly onBack: () => void;
   /** Injection point for tests. */
   readonly download?: Downloader;
+  /** Office mode: history is shared on the office server. */
+  readonly office?: boolean;
 }
 
 type Tab = 'leaderboard' | 'rivalries' | 'matches';
@@ -26,7 +28,12 @@ type Tab = 'leaderboard' | 'rivalries' | 'matches';
 const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 
 /** Phase 6: completed-match history, luck board and exports. All data stays in this browser. */
-export function HistoryScreen({ repository, onBack, download = downloadText }: HistoryScreenProps) {
+export function HistoryScreen({
+  repository,
+  onBack,
+  download = downloadText,
+  office = false,
+}: HistoryScreenProps) {
   const history = useHistory(repository);
   const [tab, setTab] = useState<Tab>('leaderboard');
   /** Open fighter profile (roster entry ID), shown instead of the tab content. */
@@ -174,7 +181,9 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
           Export & storage
         </h2>
         <p className="hint">
-          History lives only in this browser on this computer. Clearing browser data deletes it.
+          {office
+            ? 'Office mode: history is shared on the office server (this PC keeps a copy for when the server cannot be reached).'
+            : 'History lives only in this browser on this computer. Clearing browser data deletes it.'}{' '}
           Export to keep a copy. Merge adds the matches from an export file (an exact copy is
           skipped, a changed one takes the file&apos;s version); Import replaces all history.
         </p>

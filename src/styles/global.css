@@ -3530,3 +3530,18 @@ label.button {
     opacity: 0;
   }
 }
+
+/* Personal / Office storage panel (owner decision 2026-10-29). */
+.office-panel__form {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.office-panel__form .title-input {
+  margin-bottom: 0;
+}
+
+.office-panel__error {
+  color: var(--red);
+}

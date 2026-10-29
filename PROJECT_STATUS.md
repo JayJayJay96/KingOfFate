@@ -2,7 +2,7 @@
 
 **As of:** 2026-10-29  
 **Phase:** 7 — Hardening & Deployment  
-**Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 done: deployed at https://king-of-fate.vercel.app/** (GitHub `JayJayJay96/KingOfFate` → Vercel, auto-deploys `main`); hardening verified (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans under the production CSP); live smoke test passed. Awaiting owner acceptance.
+**Overall status:** 2026-10-29: Office pack 2 (history import, fair sit-outs, Office mode) built and live; Office mode waits for the owner's Supabase setup. Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 done: deployed at https://king-of-fate.vercel.app/** (GitHub `JayJayJay96/KingOfFate` → Vercel, auto-deploys `main`); hardening verified (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans under the production CSP); live smoke test passed. Awaiting owner acceptance.
 
 ## 1. Current snapshot
 
@@ -65,6 +65,15 @@
 2. Optional later: JSON import, real-device checks (projector, Firefox/Safari), manual screen-reader pass.
 
 ## 6. Session log
+
+### 2026-10-29 — Office pack 2, phase B: Office mode (Supabase)
+
+- **Added:** `supabase/office.sql` (tables `kof_office` / `kof_matches` / `kof_failed_codes`, RLS on with no policies, table rights revoked from `anon`/`authenticated`; SECURITY DEFINER functions `kof_get_setup`, `kof_save_setup` (versioned), `kof_list_matches`, `kof_put_matches` add/upsert/replace, `kof_delete_match`, `kof_change_code`; bcrypt code hash via pgcrypto, default 116059; 30 wrong codes / 15 min → all calls refused for the window), `src/office/officeClient.ts` (REST RPC with `apikey` header only, 3 tries then "offline"; `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` at build time), `officeRepository.ts` (current match local; won match saved locally then uploaded with mode `add`; outbox in `kof.office.outbox` written before the save; local IndexedDB `kof-office` mirrors office history for offline), `setupSync.ts` (versioned save, first save wins, `conflict` / `diverged` → host picks "Upload my setup" or "Use office setup"; offline edits stay local; an empty office is filled by the first host's setup), `officeSettings.ts` (`kof.office` per PC), `officeStatus.ts`, `components/setup/OfficePanel.tsx` ("Saved where": switch with code, status line incl. results waiting to upload, conflict choice, upload this PC's Personal history, change code, back to Personal), `src/test/fakeOffice.ts` + `fakeOfficeClient.ts`, tests `src/office/office.test.ts`, `e2e/office.spec.ts`.
+- **Changed:** `useSetupConfig(office?)` (office copy in `kof.office.setup`, starts from the Personal setup), `useFairSitOut` (Office: pulls the office setup first), `App` (client from env, mode per PC, screens remount on a mode/code change, title screen still once per page load), `HistoryScreen` hint, `matchStorage` (db name parameter), `setupStorage` (`parseStoredSetup`, `toStoredSetup`, key parameter), `vercel.json` CSP `connect-src 'self' https://*.supabase.co`, `playwright.config.ts` (E2E build points at a routed fake `kof-e2e.supabase.co`), README (setup guide, behaviour, security limits).
+- **Decided by me (allowed: implementation):** sound settings + custom music per PC (owner chose); switching mode keeps both data sets apart (Personal history is never mixed into Office; "Upload this PC's history" copies it with `add`, existing office matches kept).
+- **Tests (observed):** `npx vitest run` → **36 files, 400 passed**; `npm run e2e` → 25/26 first run (`match.spec.ts:54` "hands off at W + 1", the known load-sensitive one, passed alone), full rerun **26 passed**; tsc, oxlint, Prettier clean. Office E2E: two browser contexts on one fake server, roster shared, server down during a match → "1 result waiting to upload" → back → uploaded once, other PC's History shows it, no CSP errors.
+- **Not verified:** against the real Supabase project (owner has to run the SQL and set the Vercel variables; keys never go through chat). The SQL was not executed here (no database access); syntax reviewed by hand only.
+- **Next exact action:** owner runs `supabase/office.sql`, sets the two Vercel variables, redeploys; then in the game: Saved where → Switch to Office (116059) → change the code; I verify the live calls.
 
 ### 2026-10-29 — Office pack 2, phase A: fair sit-outs
 

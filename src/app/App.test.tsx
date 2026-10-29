@@ -6,7 +6,9 @@ import { beginFinale, resolveFinaleRound, startFinaleRound } from '../game/engin
 import { beginTurn, createMatch } from '../game/engine/match';
 import { createScriptedRng, createSeededRng, type Rng } from '../game/rng/rng';
 import { createMemoryMatchRepository, type MatchRepository } from '../storage/matchStorage';
-import { SETUP_STORAGE_KEY } from '../storage/setupStorage';
+import { SETUP_STORAGE_KEY, toStoredSetup } from '../storage/setupStorage';
+import { DEFAULT_SETUP } from '../game/setup/setupConfig';
+import { createFakeOffice } from '../test/fakeOfficeClient';
 import type { SoundEngine } from '../audio/soundEngine';
 import { App } from './App';
 
@@ -977,5 +979,75 @@ describe('Finale rising pace and showdown music (owner request 2026-10-10)', () 
     expect(rates.at(-1)).toBe(1); // back to normal when the finale ends
     // Someone reached match point before winning: the music dropped out for the held breath.
     expect(calls).toContain('musicDrop');
+  });
+});
+
+describe('Office mode (owner decisions 2026-10-29)', () => {
+  it('switches to Office with the code, uses the shared roster and uploads the result', async () => {
+    const server = createFakeOffice();
+    server.state.setup = toStoredSetup({
+      ...DEFAULT_SETUP,
+      roster: [
+        { id: 'o1', name: 'Aisyah', active: true },
+        { id: 'o2', name: 'Wei Jie', active: true },
+      ],
+    });
+    server.state.version = 1;
+    const user = userEvent.setup();
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        rng={createScriptedRng(Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? 0 : 2)))}
+        timeScale={FAST.timeScale}
+        titleScreen={false}
+        officeClient={server.client}
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+    expect(screen.getByText(/saved on this PC only/)).toBeInTheDocument();
+
+    // A wrong code is refused by the server and nothing changes.
+    const codeBox = screen.getByLabelText('Office code');
+    await user.clear(codeBox);
+    await user.type(codeBox, '000000');
+    await user.click(screen.getByRole('button', { name: 'Switch to Office' }));
+    expect(await screen.findByText(/office code was refused/)).toBeInTheDocument();
+
+    await user.clear(codeBox);
+    await user.type(codeBox, '116059');
+    await user.click(screen.getByRole('button', { name: 'Switch to Office' }));
+    expect(await screen.findByTestId('office-state')).toHaveTextContent(/shared with every PC/);
+    expect(await screen.findByRole('button', { name: 'Wei Jie' })).toBeInTheDocument();
+
+    await startMatch(user);
+    await user.click(screen.getByRole('button', { name: /start the finale/i }));
+    await screen.findByRole('main', { name: 'Victory' }, { timeout: 5000 });
+    await waitFor(() => expect(server.state.matches.size).toBe(1));
+    // Back on the menu the office winner sits out, and that is shared too.
+    await user.click(screen.getByRole('button', { name: /return to setup/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Aisyah' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      ),
+    );
+    await waitFor(() =>
+      expect((server.state.setup as { fair: { handled: object } }).fair.handled).toHaveProperty(
+        'o1',
+      ),
+    );
+  });
+
+  it('without an office server on the site, Office mode is not offered', async () => {
+    render(
+      <App
+        matchRepository={createMemoryMatchRepository()}
+        titleScreen={false}
+        officeClient={null}
+      />,
+    );
+    expect(
+      await screen.findByText('Office mode is not set up on this site yet.'),
+    ).toBeInTheDocument();
   });
 });

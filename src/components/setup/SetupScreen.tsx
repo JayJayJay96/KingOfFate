@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { Roster } from '../../game/setup/roster';
 import { describeSetupIssue, validateSetup } from '../../game/setup/validation';
 import type { FairWin } from '../../game/setup/fairSitOut';
@@ -17,6 +17,8 @@ interface SetupScreenProps {
   /** Problem with the saved/in-progress match (corrupt checkpoint, storage unavailable). */
   readonly matchNotice?: string | null;
   readonly sitOut?: ReadonlyMap<string, readonly FairWin[]>;
+  /** Personal / Office storage panel. */
+  readonly office?: ReactNode;
 }
 
 const LOAD_NOTICES: Partial<Record<SetupLoadStatus, string>> = {
@@ -31,6 +33,7 @@ export function SetupScreen({
   onOpenHistory,
   matchNotice = null,
   sitOut,
+  office,
 }: SetupScreenProps) {
   const { config, update, loadStatus, saveError } = store;
   const validation = validateSetup(config);
@@ -90,6 +93,8 @@ export function SetupScreen({
             title={config.title}
             onTitleChange={(title) => update((c) => ({ ...c, title }))}
           />
+
+          {office}
 
           <SoundSettings />
 

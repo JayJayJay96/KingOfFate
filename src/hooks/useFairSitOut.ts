@@ -14,12 +14,14 @@ export function useFairSitOut(
 ): ReadonlyMap<string, readonly FairWin[]> {
   const [records, setRecords] = useState<readonly unknown[]>([]);
   const { update } = store;
+  // Office mode: get the latest office setup first, so the rule runs on the shared roster.
+  const refresh = store.office?.refresh;
 
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
-    repository
-      .listCompleted()
+    Promise.resolve(refresh?.())
+      .then(() => repository.listCompleted())
       .catch(() => [])
       .then((all) => {
         if (cancelled) return;
@@ -34,7 +36,7 @@ export function useFairSitOut(
     return () => {
       cancelled = true;
     };
-  }, [repository, update, visible]);
+  }, [repository, update, visible, refresh]);
 
   const { roster, fair } = store.config;
   return useMemo(() => applyFairSitOut(roster, records, fair).sitOut, [roster, records, fair]);

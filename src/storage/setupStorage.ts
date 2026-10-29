@@ -10,7 +10,7 @@ export const SETUP_STORAGE_KEY = 'kof.setup';
 export const CORRUPT_BACKUP_KEY = `${SETUP_STORAGE_KEY}.corrupt`;
 export const SETUP_SCHEMA_VERSION = 1;
 
-interface StoredSetupV1 {
+export interface StoredSetupV1 {
   readonly schemaVersion: 1;
   readonly roster: readonly Participant[];
   readonly winnerCount: number;
@@ -52,12 +52,16 @@ export function getBrowserStorage(): Storage | null {
   }
 }
 
-export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupLoadResult {
+export function loadSetup(
+  storage: Storage | null = getBrowserStorage(),
+  /** Office mode keeps its own local copy of the office setup. */
+  key = SETUP_STORAGE_KEY,
+): SetupLoadResult {
   if (!storage) return { config: DEFAULT_SETUP, status: 'unavailable' };
 
   let raw: string | null;
   try {
-    raw = storage.getItem(SETUP_STORAGE_KEY);
+    raw = storage.getItem(key);
   } catch {
     return { config: DEFAULT_SETUP, status: 'unavailable' };
   }
@@ -69,9 +73,12 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
   } catch {
     return corrupt(storage, raw);
   }
-  if (!isRecord(parsed) || parsed.schemaVersion !== SETUP_SCHEMA_VERSION) {
-    return corrupt(storage, raw);
-  }
+  return parseStoredSetup(parsed) ?? corrupt(storage, raw);
+}
+
+/** Validates a stored (or office server) setup object; null when it is not a setup at all. */
+export function parseStoredSetup(parsed: unknown): SetupLoadResult | null {
+  if (!isRecord(parsed) || parsed.schemaVersion !== SETUP_SCHEMA_VERSION) return null;
 
   let repaired = false;
   const roster = sanitizeRoster(parsed.roster);
@@ -123,9 +130,21 @@ export function loadSetup(storage: Storage | null = getBrowserStorage()): SetupL
 export function saveSetup(
   config: SetupConfig,
   storage: Storage | null = getBrowserStorage(),
+  key = SETUP_STORAGE_KEY,
 ): SetupSaveResult {
   if (!storage) return { ok: false, message: 'Browser storage is unavailable.' };
-  const stored: StoredSetupV1 = {
+  try {
+    storage.setItem(key, JSON.stringify(toStoredSetup(config)));
+    return { ok: true };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `Could not save settings (${detail}).` };
+  }
+}
+
+/** The stored form: what localStorage and the office server keep. */
+export function toStoredSetup(config: SetupConfig): StoredSetupV1 {
+  return {
     schemaVersion: SETUP_SCHEMA_VERSION,
     roster: config.roster.map(({ id, name, active, look }) =>
       look ? { id, name, active, look: cleanLook(look) } : { id, name, active },
@@ -138,13 +157,6 @@ export function saveSetup(
     title: config.title,
     fair: config.fair,
   };
-  try {
-    storage.setItem(SETUP_STORAGE_KEY, JSON.stringify(stored));
-    return { ok: true };
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    return { ok: false, message: `Could not save settings (${detail}).` };
-  }
 }
 
 /** Single line, at most MAX_TITLE_LENGTH characters (edges kept so typing a space works). */

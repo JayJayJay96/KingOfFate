@@ -28,5 +28,10 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Office mode against a routed fake server (e2e/office.spec.ts); nothing leaves the machine.
+    env: {
+      VITE_SUPABASE_URL: 'https://kof-e2e.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'e2e-public-key',
+    },
   },
 });
