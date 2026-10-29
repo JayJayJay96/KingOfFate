@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — KOF / King of Fate
 
-**As of:** 2026-10-10  
+**As of:** 2026-10-29  
 **Phase:** 7 — Hardening & Deployment  
 **Overall status:** Phases 1–6 done (owner: "pretty perfect"). Owner approved three arcade enhancement packs (PROJECT.md §10). Arcade packs A–C done (owner: "tested, all good"). **Phase 7 done: deployed at https://king-of-fate.vercel.app/** (GitHub `JayJayJay96/KingOfFate` → Vercel, auto-deploys `main`); hardening verified (301 unit/integration tests, 21 E2E ×2 incl. WCAG 2.1 AA scans under the production CSP); live smoke test passed. Awaiting owner acceptance.
 
@@ -56,7 +56,7 @@
 | P5-c    | Custom _chant recording_ upload with cue sync (spec §5) not built; AI voice chosen instead.                                                                              | Optional later.                                            | Optional               |
 | P5-e    | Small matches: with 5 fighters there is 1 Shield in total and Sudden Death never happens (finale first).                                                                 | Intended by the formula; revisit if Shields feel too rare. | Owner play-test        |
 | P6-a    | Abandoned matches are not recorded (only completed ones).                                                                                                                | Keep: an abandoned match has no result.                    | Optional               |
-| P6-b    | JSON export is a backup only; there is no import.                                                                                                                        | Add import later if the office moves browsers.             | Optional               |
+| P6-b    | JSON import added 2026-10-29 (Merge / Import replace all).                                                                                                               | Done.                                                      | —                      |
 | D5 note | 20-char limit vs long Malaysian names ("Nurul Aisyah binti Ahmad" = 24).                                                                                                 | Keep 20; hosts use short/nick names. Raise if it bites.    | Optional               |
 
 ## 5. Planned next steps
@@ -65,6 +65,14 @@
 2. Optional later: JSON import, real-device checks (projector, Firefox/Safari), manual screen-reader pass.
 
 ## 6. Session log
+
+### 2026-10-29 — Office pack 2, phase C: history import / merge
+
+- **Owner decisions (2026-10-29, logged in `PROJECT.md` §10):** fair sit-outs (A), Office vs Personal mode on Supabase (B), history import (C). Clarified today: Merge skips identical copies and takes the file's version for a changed one; the game switches back on only the people it sat out; offline results auto-upload, offline setup edits stay local with a choice banner; sound + custom music stay per-PC.
+- **Added:** `src/game/history/importData.ts` (`parseHistoryFile`: only `app: 'kof-king-of-fate'`, `exportVersion: 1`; `planImport` merge/replace with `isHistoryRecord` per record, duplicates within the file, key-order-independent content compare `stableJson`; `importSummary`), tests `importData.test.ts`.
+- **Changed:** `MatchRepository.importCompleted(records, replace)` (one IndexedDB transaction; memory repo too), `useHistory` (`prepareImport`, `applyImport`), `HistoryScreen` ("Merge from file", "Import (replace all)" with a confirm showing both counts, 50 MB guard, result banner), CSS `.banner--ok`, tests (IndexedDB merge/replace survive reopen; UI merge report; replace: wrong file refused, Cancel keeps all, confirm replaces), `e2e/history.spec.ts` (export → delete → merge the file back → merge again = "skipped 1 duplicate").
+- **Tests (observed):** `npx vitest run` → **34 files, 378 passed**; `npm run e2e` → **24 passed**; tsc, oxlint, Prettier clean.
+- **Next:** phase A (fair sit-outs), then B (office mode; needs the owner's Supabase setup).
 
 ### 2026-10-16 — Random look covers every option (`381d75c`)
 

@@ -8,7 +8,18 @@ import {
   type FighterStats,
   type MatchSummary,
 } from '../game/history/history';
+import {
+  importSummary,
+  parseHistoryFile,
+  planImport,
+  type ImportMode,
+  type ImportPlan,
+} from '../game/history/importData';
 import type { CompletedMatchRecord, MatchRepository } from '../storage/matchStorage';
+
+export type PreparedImport =
+  | { readonly ok: true; readonly mode: ImportMode; readonly plan: ImportPlan }
+  | { readonly ok: false; readonly message: string };
 
 export interface HistoryController {
   readonly loading: boolean;
@@ -28,6 +39,10 @@ export interface HistoryController {
   readonly badges: ReadonlyMap<string, readonly CareerBadge[]>;
   readonly deleteMatch: (matchId: string) => Promise<boolean>;
   readonly clearAll: () => Promise<boolean>;
+  /** Reads an export file and works out what importing it would do; writes nothing. */
+  readonly prepareImport: (text: string, mode: ImportMode) => PreparedImport;
+  /** Writes a prepared import; resolves to the report line, or null on failure (error set). */
+  readonly applyImport: (prepared: PreparedImport & { ok: true }) => Promise<string | null>;
 }
 
 export function useHistory(repository: MatchRepository): HistoryController {
@@ -94,6 +109,29 @@ export function useHistory(repository: MatchRepository): HistoryController {
     return reload();
   }, [repository, reload]);
 
+  const prepareImport = useCallback(
+    (text: string, mode: ImportMode): PreparedImport => {
+      const parsed = parseHistoryFile(text);
+      if (!parsed.ok) return parsed;
+      return { ok: true, mode, plan: planImport(records, parsed.matches, mode) };
+    },
+    [records],
+  );
+
+  const applyImport = useCallback(
+    async ({ mode, plan }: PreparedImport & { ok: true }) => {
+      const result = await repository.importCompleted(plan.records, mode === 'replace');
+      if (!result.ok) {
+        setError(`Nothing was imported: ${result.message}`);
+        return null;
+      }
+      setError(null);
+      await reload();
+      return importSummary(plan);
+    },
+    [repository, reload],
+  );
+
   return {
     loading,
     error,
@@ -105,6 +143,8 @@ export function useHistory(repository: MatchRepository): HistoryController {
     badges,
     deleteMatch,
     clearAll,
+    prepareImport,
+    applyImport,
   };
 }
 

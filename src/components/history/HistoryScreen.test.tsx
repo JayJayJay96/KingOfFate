@@ -162,6 +162,63 @@ describe('History screen (Phase 6)', () => {
     expect(boardText.trim().split('\r\n')).toHaveLength(5);
   });
 
+  it('merges an export file and reports what happened (owner decision 2026-10-29)', async () => {
+    const changed = { ...older, completedAt: '2026-10-01T02:05:00.000Z' };
+    const file = new File(
+      [
+        JSON.stringify({
+          app: 'kof-king-of-fate',
+          exportVersion: 1,
+          matches: [changed, newer, {}],
+        }),
+      ],
+      'kof-history.json',
+      { type: 'application/json' },
+    );
+    const repo = createMemoryMatchRepository(null, [older, newer]);
+    const { user } = await openHistory(repo);
+    await user.click(screen.getByRole('button', { name: 'Merge from file' }));
+    await user.upload(screen.getByLabelText('History file to import'), file);
+    expect(await screen.findByText(/^Done:/)).toHaveTextContent(
+      'Done: imported 0, replaced 1, skipped 1 duplicate, 1 invalid.',
+    );
+    const saved = await repo.listCompleted();
+    expect(saved.find((r) => r.matchId === 'm-old')!.completedAt).toBe(changed.completedAt);
+  });
+
+  it('import replaces all history only after confirmation; a wrong file changes nothing', async () => {
+    const repo = createMemoryMatchRepository(null, [older, newer]);
+    const { user } = await openHistory(repo);
+    const input = screen.getByLabelText('History file to import');
+    await user.click(screen.getByRole('button', { name: 'Import (replace all)' }));
+    await user.upload(input, new File(['{"hello":1}'], 'x.json', { type: 'application/json' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This is not a King of Fate history export.',
+    );
+    expect(await repo.listCompleted()).toHaveLength(2);
+
+    const file = new File(
+      [JSON.stringify({ app: 'kof-king-of-fate', exportVersion: 1, matches: [newer] })],
+      'kof-history.json',
+    );
+    await user.click(screen.getByRole('button', { name: 'Import (replace all)' }));
+    await user.upload(input, file);
+    expect(
+      await screen.findByText('Replace all 2 saved matches with the 1 in this file?', {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await repo.listCompleted()).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: 'Import (replace all)' }));
+    await user.upload(input, file);
+    await user.click(await screen.findByRole('button', { name: 'Yes, replace all' }));
+    expect(await screen.findByText(/^Done:/)).toHaveTextContent('Done: imported 1.');
+    expect((await repo.listCompleted()).map((r) => r.matchId)).toEqual(['m-new']);
+    expect(screen.getByRole('button', { name: 'Matches (1)' })).toBeInTheDocument();
+  });
+
   it('leaves out unreadable records with a notice', async () => {
     const broken = {
       ...older,

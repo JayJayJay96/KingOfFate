@@ -38,6 +38,11 @@ export interface MatchRepository {
   listCompleted(): Promise<CompletedMatchRecord[]>;
   deleteCompleted(matchId: string): Promise<MatchSaveResult>;
   clearCompleted(): Promise<MatchSaveResult>;
+  /** Writes records in one transaction; `replace` first removes every saved record. */
+  importCompleted(
+    records: readonly CompletedMatchRecord[],
+    replace: boolean,
+  ): Promise<MatchSaveResult>;
 }
 
 export function toCompletedRecord(match: MatchState): CompletedMatchRecord {
@@ -193,6 +198,22 @@ export function createIndexedDbMatchRepository(
         return { ok: false, message: messageOf(error) };
       }
     },
+    async importCompleted(records, replace) {
+      try {
+        await transact(
+          'readwrite',
+          (_store, tx) => {
+            const completed = tx.objectStore(COMPLETED_STORE);
+            if (replace) completed.clear();
+            for (const record of records) completed.put(record);
+          },
+          [STORE, COMPLETED_STORE],
+        );
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: messageOf(error) };
+      }
+    },
   };
 }
 
@@ -230,6 +251,11 @@ export function createMemoryMatchRepository(
     },
     async clearCompleted() {
       completed.clear();
+      return { ok: true };
+    },
+    async importCompleted(records, replace) {
+      if (replace) completed.clear();
+      for (const r of records) completed.set(r.matchId, structuredClone(r));
       return { ok: true };
     },
   };

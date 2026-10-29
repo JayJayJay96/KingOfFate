@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
+import type { ImportMode } from '../../game/history/importData';
 import { fileStamp, historyToJson, matchesToCsv, statsToCsv } from '../../game/history/exportData';
-import { useHistory } from '../../hooks/useHistory';
+import { useHistory, type PreparedImport } from '../../hooks/useHistory';
 import type { MatchRepository } from '../../storage/matchStorage';
 import { downloadText } from '../../utils/download';
 import { headToHead } from '../../game/history/awards';
@@ -21,6 +22,9 @@ interface HistoryScreenProps {
 
 type Tab = 'leaderboard' | 'rivalries' | 'matches';
 
+/** Larger files are refused before reading (an export of ~1000 matches is a few MB). */
+const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+
 /** Phase 6: completed-match history, luck board and exports. All data stays in this browser. */
 export function HistoryScreen({ repository, onBack, download = downloadText }: HistoryScreenProps) {
   const history = useHistory(repository);
@@ -33,6 +37,40 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
     setProfileId(null);
   };
   const empty = history.records.length === 0;
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<ImportMode>('merge');
+  /** A "replace" import waiting for the host to confirm. */
+  const [pendingReplace, setPendingReplace] = useState<(PreparedImport & { ok: true }) | null>(
+    null,
+  );
+  const [importReport, setImportReport] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function pickFile(mode: ImportMode) {
+    setImportMode(mode);
+    setImportReport(null);
+    setPendingReplace(null);
+    fileInput.current?.click();
+  }
+
+  async function runImport(prepared: PreparedImport & { ok: true }) {
+    setPendingReplace(null);
+    const report = await history.applyImport(prepared);
+    if (report) setImportReport({ ok: true, text: `Done: ${report}.` });
+  }
+
+  async function onFileChosen(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      setImportReport({ ok: false, text: 'This file is too large to be a history export.' });
+      return;
+    }
+    const prepared = history.prepareImport(await file.text(), importMode);
+    if (!prepared.ok) setImportReport({ ok: false, text: prepared.message });
+    else if (prepared.mode === 'replace') setPendingReplace(prepared);
+    else await runImport(prepared);
+  }
 
   function exportFile(kind: 'json' | 'matches' | 'fighters') {
     const now = new Date();
@@ -137,7 +175,8 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
         </h2>
         <p className="hint">
           History lives only in this browser on this computer. Clearing browser data deletes it.
-          Export to keep a copy.
+          Export to keep a copy. Merge adds the matches from an export file (an exact copy is
+          skipped, a changed one takes the file&apos;s version); Import replaces all history.
         </p>
         <div className="toolbar history__exports">
           <button
@@ -165,6 +204,56 @@ export function HistoryScreen({ repository, onBack, download = downloadText }: H
             Luck board CSV
           </button>
         </div>
+        <div className="toolbar history__exports">
+          <button type="button" className="button button--small" onClick={() => pickFile('merge')}>
+            Merge from file
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            onClick={() => pickFile('replace')}
+          >
+            Import (replace all)
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            aria-label="History file to import"
+            onChange={(e) => void onFileChosen(e)}
+          />
+        </div>
+        {pendingReplace && (
+          <div className="confirm" role="group" aria-label="Confirm import">
+            <p className="confirm__question">
+              Replace all {history.records.length + history.skipped} saved matches with the{' '}
+              {pendingReplace.plan.records.length} in this file? Export first if you want a copy.
+            </p>
+            <button
+              type="button"
+              className="button button--small button--danger"
+              onClick={() => void runImport(pendingReplace)}
+            >
+              Yes, replace all
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              onClick={() => setPendingReplace(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+        {importReport && (
+          <p
+            className={`banner ${importReport.ok ? 'banner--ok' : 'banner--error'}`}
+            role={importReport.ok ? 'status' : 'alert'}
+          >
+            {importReport.text}
+          </p>
+        )}
         <ConfirmButton
           label="Clear all history"
           question={`Delete all ${history.records.length} matches for good? Export first if you want a copy.`}

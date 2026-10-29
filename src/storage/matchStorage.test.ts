@@ -262,6 +262,27 @@ describe('finale and completion records', () => {
     expect((await reopened.load()).status).toBe('loaded');
   });
 
+  it('imports records in one go: merge adds/overwrites, replace swaps the whole history', async () => {
+    const factory = new IDBFactory();
+    const repo = createIndexedDbMatchRepository(factory);
+    const won = await wonMatch();
+    await repo.save(won);
+    const record = (await repo.listCompleted())[0]!;
+    const changed = { ...record, completedAt: '2026-10-10T00:00:00.000Z' };
+    const extra = { ...record, matchId: 'won-9' };
+    expect(await repo.importCompleted([changed, extra], false)).toEqual({ ok: true });
+    const merged = await createIndexedDbMatchRepository(factory).listCompleted();
+    expect(merged.map((r) => [r.matchId, r.completedAt]).sort()).toEqual([
+      ['won-1', '2026-10-10T00:00:00.000Z'],
+      ['won-9', record.completedAt],
+    ]);
+    expect(await repo.importCompleted([extra], true)).toEqual({ ok: true });
+    const replaced = await createIndexedDbMatchRepository(factory).listCompleted();
+    expect(replaced.map((r) => r.matchId)).toEqual(['won-9']);
+    expect((await repo.load()).status).toBe('loaded');
+    expect((await createIndexedDbMatchRepository(null).importCompleted([], true)).ok).toBe(false);
+  });
+
   it('reports delete/clear failures when IndexedDB is unavailable', async () => {
     const repo = createIndexedDbMatchRepository(null);
     expect((await repo.deleteCompleted('x')).ok).toBe(false);

@@ -78,4 +78,24 @@ test('a finished match is in History, survives a reload, exports, and can be del
   await insertCoin(page);
   await page.getByRole('button', { name: 'History' }).click();
   await expect(page.getByText('No completed matches yet.')).toBeVisible();
+
+  // The exported JSON brings the match back (merge, then again = duplicate skipped).
+  const file = {
+    name: 'backup.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(json.text),
+  };
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByRole('button', { name: 'Merge from file' }).click(),
+  ]);
+  await chooser.setFiles(file);
+  await expect(page.getByRole('status')).toHaveText('Done: imported 1.');
+  await expect(page.getByRole('button', { name: 'Matches (1)' })).toBeVisible();
+  const [again] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByRole('button', { name: 'Merge from file' }).click(),
+  ]);
+  await again.setFiles(file);
+  await expect(page.getByRole('status')).toHaveText('Done: imported 0, skipped 1 duplicate.');
 });
